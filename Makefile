@@ -29,7 +29,7 @@ data: ## baixa TODOS os dados brutos do período do config (horas; ver README)
 	$(PY) -m src.aq.data.static
 	$(PY) -m src.aq.build_dataset
 
-sample: ## usa a amostra versionada em data/sample (poucos minutos)
+sample: ## copia as bases de treino da amostra versionada (sem download)
 	$(PY) -m src.aq.build_dataset --from-sample
 
 dataset: ## monta a base de treino a partir dos brutos já baixados
@@ -79,7 +79,9 @@ notebooks: ## executa os notebooks com saída visível
 test: ## testes automatizados
 	$(PY) -m pytest -q
 
-all-sample: sample train evaluate maps ## pipeline completo da Parte 1 sobre a amostra
+all-sample: sample bench train evaluate ## pipeline de modelagem da Parte 1 sobre a amostra (+ mapas)
+	$(PY) -m src.aq.maps --date 2022-10-11
+	$(PY) -m src.aq.maps --date 2021-08-24
 
 docker: ## imagem Docker reprodutível
 	docker build -t teste-ia .

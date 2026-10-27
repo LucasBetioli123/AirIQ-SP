@@ -51,26 +51,41 @@ def build(sample: bool = False):
 
 
 def make_sample():
-    """Recorte pequeno (período `sample` do config) de todos os insumos, ~poucos MB."""
-    s, e = pd.Timestamp(CFG["sample"]["start"]), pd.Timestamp(CFG["sample"]["end"])
-    src, dst = data_path("interim"), data_path("sample")
+    """Amostra versionada (poucos MB) que roda TODO o pipeline de modelagem em minutos.
+
+    - bases de treino já com as variáveis (estações x dias do período inteiro):
+      benchmark, treino, intervalos, D+1, SHAP e episódios reproduzem os números do relatório
+    - cubos de satélite/meteorologia completos SÓ para algumas janelas de datas: mapas,
+      CLI, API e agente funcionam nessas datas (lista em data/sample/README.md)
+    O caminho completo (download -> base) é `make data`."""
+    src, dst, proc = data_path("interim"), data_path("sample"), data_path("processed")
+    for f in ("station_days.parquet", "station_days_fc.parquet"):
+        pd.read_parquet(proc / f).to_parquet(dst / f, index=False, compression="zstd")
     shutil.copy(src / "stations.parquet", dst / "stations.parquet")
-    pm = pd.read_parquet(src / "pm25_daily.parquet")
-    pm[(pm.date >= s) & (pm.date <= e)].to_parquet(dst / "pm25_daily.parquet", index=False)
-    pad = pd.Timedelta(days=2)
-    enc = lambda ds: {v: {"zlib": True, "complevel": 6} for v in ds.data_vars}  # noqa: E731
-    aod = xr.load_dataset(src / "aod_daily.nc").sel(time=slice(s - pad, e + pad))
-    aod.to_netcdf(dst / "aod_daily.nc", encoding=enc(aod))
-    no2 = xr.load_dataset(src / "no2_daily.nc").sel(time=slice(s - pad, e + pad))
-    no2.to_netcdf(dst / "no2_daily.nc", encoding=enc(no2))
-    era = xr.load_dataset(src / "era5_daily.nc").sel(time=slice(s - pad, e + pad))
-    era.to_netcdf(dst / "era5_daily.nc", encoding=enc(era))
+    pd.read_parquet(src / "pm25_daily.parquet").to_parquet(dst / "pm25_daily.parquet", index=False, compression="zstd")
+    days = pd.DatetimeIndex([])
+    for d0, d1 in CFG["sample"]["context_windows"]:
+        days = days.union(pd.date_range(pd.Timestamp(d0) - pd.Timedelta(days=2), pd.Timestamp(d1) + pd.Timedelta(days=2)))
+    enc = lambda ds: {v: {"zlib": True, "complevel": 9, "least_significant_digit": 3} for v in ds.data_vars}  # noqa: E731
+    for name in ("aod_daily.nc", "no2_daily.nc", "era5_daily.nc"):
+        ds = xr.load_dataset(src / name)
+        ds = ds.sel(time=ds.time.to_index().isin(days))
+        ds.to_netcdf(dst / name, encoding=enc(ds))
     stc = xr.load_dataset(src / "static_0p01.nc")
-    stc.to_netcdf(dst / "static_0p01.nc", encoding=enc(stc))
+    stc.to_netcdf(dst / "static_0p01.nc", encoding={v: {"zlib": True, "complevel": 9, "least_significant_digit": 2}
+                                                   for v in stc.data_vars})
     f = pd.read_parquet(src / "fires_daily.parquet")
     f["date"] = pd.to_datetime(f["date"])
-    f[(f.date >= s - pad) & (f.date <= e + pad)].to_parquet(dst / "fires_daily.parquet", index=False)
-    print("amostra gravada em", dst)
+    f[f["date"].isin(days)].to_parquet(dst / "fires_daily.parquet", index=False, compression="zstd")
+    total = sum(p.stat().st_size for p in dst.iterdir()) / 1e6
+    print(f"amostra gravada em {dst} ({total:.1f} MB)")
+
+
+def from_sample():
+    """Copia as bases de treino da amostra para data/processed (sem baixar nada)."""
+    for f in ("station_days.parquet", "station_days_fc.parquet"):
+        shutil.copy(data_path("sample", f), data_path("processed", f))
+    print("bases de treino copiadas da amostra para data/processed")
 
 
 if __name__ == "__main__":
@@ -80,5 +95,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if a.make_sample:
         make_sample()
+    elif a.from_sample:
+        from_sample()
     else:
-        build(sample=a.from_sample)
+        build()
