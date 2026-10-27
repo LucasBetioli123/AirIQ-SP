@@ -17,17 +17,19 @@ period:
 
 split:
   # validação espaço-temporal: estação nunca vista + período posterior
-  train_end: "2022-06-30"
-  calib_start: "2022-07-01"
-  calib_end: "2022-09-30"
-  test_start: "2022-10-01"
+  # o teste começa em jul/2022 para incluir a estação seca (queimadas/episódios de fumaça);
+  # o treino cobre a estação seca de 2021 inteira
+  train_end: "2022-03-31"
+  calib_start: "2022-04-01"
+  calib_end: "2022-06-30"
+  test_start: "2022-07-01"
   n_station_folds: 5
   interval_alpha: 0.10   # intervalo de 90%
 
 sample:
   # amostra pequena versionada em data/sample para rodar tudo em poucos minutos
-  start: "2022-06-01"
-  end: "2022-12-31"
+  start: "2022-01-01"
+  end: "2022-10-31"
 
 openaq:
   bucket_url: "https://openaq-data-archive.s3.amazonaws.com/"

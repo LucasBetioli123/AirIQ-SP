@@ -16,7 +16,7 @@ Saída: data/raw/goes_aod/aod_<aaaa-mm-dd>.npz e o cubo data/interim/aod_daily.n
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -50,7 +50,7 @@ def process_day(date: pd.Timestamp) -> str:
     for h in CFG["goes"]["aod_hours_utc"]:
         t = date + pd.Timedelta(hours=h)  # date é meia-noite local ~ 03 UTC; horas UTC no mesmo dia
         try:
-            ks = list_hour(PRODUCT, t.year, t.dayofyear, h)
+            ks = list_hour(PRODUCT, t.year, t.day_of_year, h)
         except Exception:
             ks = []
         if ks:
@@ -105,8 +105,8 @@ def assemble(dates) -> xr.Dataset:
 def main(start=None, end=None, workers: int = 12):
     dates = pd.date_range(start or CFG["period"]["start"], end or CFG["period"]["end"], freq="D")
     window_for_bbox(PRODUCT, BBOX)  # aquece o cache da geometria antes das threads
-    with ThreadPoolExecutor(workers) as ex:
-        list(tqdm(ex.map(process_day, dates), total=len(dates), desc="GOES AOD"))
+    with ProcessPoolExecutor(workers) as ex:  # processos: o h5py serializa threads (lock global)
+        list(tqdm(ex.map(process_day, dates, chunksize=1), total=len(dates), desc="GOES AOD"))
     ds = assemble(dates)
     cov = np.isfinite(ds["aod_mean"]).mean().item()
     print(f"AOD diário: {ds.sizes['time']} dias, cobertura média de pixels {cov:.1%}")

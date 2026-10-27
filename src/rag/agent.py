@@ -1,0 +1,181 @@
+"""Agente de normas ambientais com RAG e ferramenta de qualidade do ar.
+
+Fluxo (poucas chamadas ao LLM, porque em CPU cada chamada custa segundos):
+  1. PLANEJAR (LLM, JSON): quais buscas na base normativa e quais consultas de PM2.5
+     (local, data, horizonte) a pergunta exige
+  2. EXECUTAR as ferramentas (buscar_normas, estimar_pm25)
+  3. RESPONDER (LLM, JSON): resposta em português, citando os trechos [n] e os
+     resultados de ferramenta [F1..]. `encontrado=false` quando a base não cobre
+  4. VALIDAR (sem LLM): citações existem? Os números da resposta aparecem nos trechos
+     citados, nas ferramentas ou na pergunta? Se não, a resposta vai marcada (e uma
+     regeneração é tentada)
+  5. REGISTRAR tudo em logs/agent_runs.jsonl
+Recusa honesta: se o melhor trecho tem relevância abaixo do limiar e nenhuma
+ferramenta foi pedida, o agente recusa sem gerar, para não inventar.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import time
+import uuid
+
+from src.rag.llm import get_llm
+from src.rag.runlog import log_run
+from src.rag.tools import buscar_normas, estimar_pm25, reference_today
+
+REFUSAL = ("Não encontrei essa informação na base de normas consultada "
+           "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
+           "Lei 9.605/1998). Prefiro não responder sem uma fonte.")
+RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.08"))
+
+PLAN_SYS = """Você planeja como responder perguntas sobre normas ambientais brasileiras e qualidade do ar no estado de São Paulo.
+Ferramentas:
+- buscar_normas(consulta): busca trechos em resoluções CONAMA e leis ambientais. Use 1 a 3 consultas curtas e específicas (termos técnicos da norma; separe assuntos diferentes em consultas diferentes).
+- estimar_pm25(local, data, horizonte): modelo de PM2.5 (µg/m³) com intervalo de confiança para um município de SP ou "lat,lon". data = "hoje", "amanhã" ou "AAAA-MM-DD". horizonte = 1 se for previsão para o dia seguinte (amanhã), senão 0.
+Só peça estimar_pm25 se a pergunta pedir concentração/qualidade do ar de um lugar e data. Se a pergunta comparar com um padrão legal, peça também uma busca sobre esse padrão.
+Responda apenas o JSON."""
+
+PLAN_SCHEMA = {"type": "object", "properties": {
+    "buscas": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+    "pm25": {"type": "array", "maxItems": 3, "items": {"type": "object", "properties": {
+        "local": {"type": "string"}, "data": {"type": "string"}, "horizonte": {"type": "integer", "enum": [0, 1]}},
+        "required": ["local", "data", "horizonte"]}},
+    "data_da_norma": {"type": "string"}},
+    "required": ["buscas", "pm25"]}
+
+ANSWER_SYS = """Você é um assistente técnico de normas ambientais. Responda em português, de forma objetiva, usando SOMENTE as FONTES fornecidas.
+Regras:
+1. Toda afirmação sobre norma deve citar a fonte entre colchetes, ex.: [1] ou [2][3]. Cite o dispositivo exato (ex.: "art. 4º, inciso II", "Anexo I") e o documento.
+2. Valores de PM2.5 estimados/previstos vêm das ferramentas [F1], [F2]...; informe o valor e o intervalo de 90%, e a data.
+3. Ao comparar com um padrão legal, use o valor do padrão que está nas FONTES e diga claramente se ultrapassa ou não.
+4. Se as fontes não contêm a resposta, retorne encontrado=false. Não invente números, artigos ou normas.
+5. Se precisar juntar dois trechos, cite ambos.
+Responda apenas o JSON."""
+
+ANSWER_SCHEMA = {"type": "object", "properties": {
+    "encontrado": {"type": "boolean"}, "resposta": {"type": "string"},
+    "citacoes": {"type": "array", "items": {"type": "integer"}}},
+    "required": ["encontrado", "resposta", "citacoes"]}
+
+
+def _numbers(s: str) -> set[str]:
+    out = set()
+    for n in re.findall(r"\d+(?:[.,]\d+)?", s):
+        n = n.replace(",", ".")
+        if n.count(".") == 1 and len(n.split(".")[1]) == 3 and n.split(".")[0].isdigit():  # 6.938 -> 6938
+            n = n.replace(".", "")
+        out.add(n.rstrip("0").rstrip(".") if "." in n else n)
+    return out
+
+
+def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dict], question: str) -> dict:
+    valid_ids = set(range(1, len(sources) + 1))
+    bad = [c for c in cited if c not in valid_ids]
+    inline = {int(x) for x in re.findall(r"\[(\d+)\]", answer)}
+    support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] for i in (set(cited) | inline) & valid_ids)
+    support += " " + json.dumps(tools, ensure_ascii=False) + " " + question
+    nums = {n for n in _numbers(re.sub(r"\[(?:F?\d+)\]", "", answer)) if len(n) > 0}
+    sup_nums = _numbers(support)
+    unsupported = sorted(n for n in nums if n not in sup_nums and not (n.isdigit() and int(n) < 10))
+    return {"citacoes_invalidas": bad, "numeros_sem_suporte": unsupported, "cita_algo": bool((set(cited) | inline) & valid_ids),
+            "ok": not bad and not unsupported}
+
+
+class Agent:
+    def __init__(self, provider: str | None = None, model: str | None = None, rag_mode: str | None = None,
+                 k_per_search: int = 4, max_sources: int = 8):
+        self.llm = get_llm(provider, model)
+        self.rag_mode = rag_mode or os.environ.get("RAG_MODE", "hybrid_rerank")
+        self.k = k_per_search
+        self.max_sources = max_sources
+
+    def ask(self, question: str, log: bool = True) -> dict:
+        t0 = time.time()
+        run = {"id": uuid.uuid4().hex[:10], "pergunta": question, "llm": self.llm.name, "rag_mode": self.rag_mode,
+               "data_referencia_sistema": str(reference_today().date()), "chamadas_llm": [], "ferramentas": []}
+        # 1) plano
+        plan_user = f"Data de referência do sistema (hoje): {reference_today().date()}.\nPergunta: {question}"
+        p = self.llm.chat_json(PLAN_SYS, plan_user, PLAN_SCHEMA, max_tokens=300)
+        run["chamadas_llm"].append(_usage("plano", p))
+        plan = p.data or {"buscas": [question], "pm25": []}
+        buscas = [b for b in plan.get("buscas", []) if b.strip()] or [question]
+        if question not in buscas:
+            buscas.append(question)  # a pergunta original sempre entra como consulta
+        date = plan.get("data_da_norma") or None
+        if date and not re.match(r"\d{4}-\d{2}-\d{2}$", date):
+            date = None
+        # 2) ferramentas
+        t1 = time.time()
+        sources, seen = [], set()
+        best = 0.0
+        for q in buscas[:4]:
+            hs = buscar_normas(q, data=date, k=self.k, mode=self.rag_mode)
+            run["ferramentas"].append({"ferramenta": "buscar_normas", "args": {"consulta": q, "data": date},
+                                       "resultado": [{"id": h["id"], "score": h["score"]} for h in hs]})
+            for h in hs:
+                best = max(best, h["rerank"] if h["rerank"] is not None else 1.0)
+                if h["id"] not in seen:
+                    seen.add(h["id"])
+                    sources.append(h)
+        # ordena por relevância e limita o contexto
+        sources = sorted(sources, key=lambda h: -(h["rerank"] if h["rerank"] is not None else h["score"]))[: self.max_sources]
+        tools_out = []
+        for c in plan.get("pm25", [])[:3]:
+            r = estimar_pm25(c.get("local", ""), c.get("data"), int(c.get("horizonte", 0) or 0))
+            tools_out.append(r)
+            run["ferramentas"].append({"ferramenta": "estimar_pm25", "args": c, "resultado": r})
+        run["tempo_ferramentas_s"] = round(time.time() - t1, 2)
+        run["trechos"] = [{"n": i + 1, "id": s["id"], "citacao": s["citacao"], "score": s["score"], "rerank": s["rerank"]}
+                          for i, s in enumerate(sources)]
+        # recusa sem gerar se a base claramente não cobre e não há ferramenta
+        if not tools_out and self.rag_mode.endswith("rerank") and best < RERANK_MIN:
+            return self._finish(run, t0, {"encontrado": False, "resposta": REFUSAL, "citacoes": []}, sources, tools_out,
+                                question, gate=True, log=log)
+        # 3) resposta
+        ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}\n{s['texto']}" for i, s in enumerate(sources))
+        tctx = "\n".join(f"[F{i + 1}] {json.dumps(t, ensure_ascii=False)}" for i, t in enumerate(tools_out))
+        user = f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else "")
+        a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=700)
+        run["chamadas_llm"].append(_usage("resposta", a))
+        ans = a.data or {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
+        v = validate(ans.get("resposta", ""), ans.get("citacoes", []), sources, tools_out, question)
+        if ans.get("encontrado") and not v["ok"]:
+            # 4) uma regeneração apontando o problema
+            fix = (f"{user}\nATENÇÃO: sua resposta anterior tinha problemas: {json.dumps(v, ensure_ascii=False)}. "
+                   "Corrija usando apenas números e dispositivos presentes nas FONTES/FERRAMENTAS.")
+            a2 = self.llm.chat_json(ANSWER_SYS, fix, ANSWER_SCHEMA, max_tokens=700)
+            run["chamadas_llm"].append(_usage("correcao", a2))
+            if a2.data:
+                v2 = validate(a2.data.get("resposta", ""), a2.data.get("citacoes", []), sources, tools_out, question)
+                if v2["ok"] or len(v2["numeros_sem_suporte"]) < len(v["numeros_sem_suporte"]):
+                    ans, v = a2.data, v2
+        return self._finish(run, t0, ans, sources, tools_out, question, validation=v, log=log)
+
+    def _finish(self, run, t0, ans, sources, tools_out, question, validation=None, gate=False, log=True):
+        found = bool(ans.get("encontrado"))
+        text = ans.get("resposta", "") if found else REFUSAL
+        if found and not ans.get("resposta"):
+            text, found = REFUSAL, False
+        cited = sorted({c for c in ans.get("citacoes", []) if 1 <= c <= len(sources)} |
+                       {int(x) for x in re.findall(r"\[(\d+)\]", text) if 1 <= int(x) <= len(sources)})
+        refs = [f"[{c}] {sources[c - 1]['citacao']} — {sources[c - 1].get('url') or ''}".rstrip(" —") for c in cited]
+        final = text + ("\n\nFontes:\n" + "\n".join(refs) if found and refs else "")
+        if found and tools_out:
+            final += ("\n\nObs.: estimativa do modelo da Parte 1 (satélite GOES-16 + ERA5 + rede CETESB); "
+                      f"data de referência do sistema = {run['data_referencia_sistema']}.")
+        run.update({"encontrado": found, "recusa_por_limiar": gate, "resposta": final, "citacoes": cited,
+                    "trechos_citados": [sources[c - 1]["id"] for c in cited], "validacao": validation,
+                    "tempo_total_s": round(time.time() - t0, 2),
+                    "tokens_entrada": sum(c["tokens_entrada"] for c in run["chamadas_llm"]),
+                    "tokens_saida": sum(c["tokens_saida"] for c in run["chamadas_llm"]),
+                    "custo_estimado_usd": round(sum(c["custo_usd"] for c in run["chamadas_llm"]), 6)})
+        if log:
+            log_run(run)
+        return run
+
+
+def _usage(step, r):
+    return {"etapa": step, "modelo": r.model, "tokens_entrada": r.prompt_tokens, "tokens_saida": r.completion_tokens,
+            "segundos": round(r.seconds, 2), "custo_usd": r.cost_usd, "saida_bruta": r.text[:2000]}

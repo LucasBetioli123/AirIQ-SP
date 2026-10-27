@@ -1,0 +1,92 @@
+# Base de conhecimento do agente (Parte 2). Só documentos públicos, de fontes oficiais.
+# vigencia_inicio/vigencia_fim permitem responder "qual regra valia na data X".
+# urls: tentadas em ordem; o conteúdo baixado é validado por `must_contain`.
+# Também é possível colocar o arquivo manualmente em data/raw/normas/<id>.<html|pdf>.
+documentos:
+  - id: conama_491_2018
+    titulo: "Resolução CONAMA nº 491, de 19 de novembro de 2018"
+    sigla: "Resolução CONAMA 491/2018"
+    ementa: "Dispõe sobre padrões de qualidade do ar."
+    tipo: resolucao
+    data_publicacao: "2018-11-21"
+    vigencia_inicio: "2018-11-21"
+    vigencia_fim: null
+    must_contain: ["491", "qualidade do ar"]
+    urls:
+      - "https://www.in.gov.br/materia/-/asset_publisher/Kujrw0TZC2Mb/content/id/51058895/do1-2018-11-21-resolucao-n-491-de-19-de-novembro-de-2018-51058603"
+      - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=740"
+    busca_dou: "Resolução nº 491, de 19 de novembro de 2018"
+
+  - id: conama_506_2024
+    titulo: "Resolução CONAMA nº 506, de 5 de julho de 2024"
+    sigla: "Resolução CONAMA 506/2024"
+    ementa: "Estabelece padrões nacionais de qualidade do ar e fornece diretrizes para sua aplicação."
+    tipo: resolucao
+    data_publicacao: "2024-07-09"
+    vigencia_inicio: "2024-07-09"
+    vigencia_fim: null
+    must_contain: ["506", "qualidade do ar"]
+    urls: []
+    busca_dou: "Resolução Conama nº 506, de 5 de julho de 2024"
+
+  - id: conama_003_1990
+    titulo: "Resolução CONAMA nº 3, de 28 de junho de 1990"
+    sigla: "Resolução CONAMA 03/1990"
+    ementa: "Dispõe sobre padrões de qualidade do ar, previstos no PRONAR."
+    tipo: resolucao
+    data_publicacao: "1990-08-22"
+    vigencia_inicio: "1990-08-22"
+    vigencia_fim: "2018-11-20"   # revogada pela Resolução CONAMA 491/2018
+    revogada_por: conama_491_2018
+    must_contain: ["qualidade do ar"]
+    urls:
+      - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=100"
+
+  - id: conama_005_1989
+    titulo: "Resolução CONAMA nº 5, de 15 de junho de 1989"
+    sigla: "Resolução CONAMA 05/1989"
+    ementa: "Dispõe sobre o Programa Nacional de Controle da Qualidade do Ar - PRONAR."
+    tipo: resolucao
+    data_publicacao: "1989-08-25"
+    vigencia_inicio: "1989-08-25"
+    vigencia_fim: null
+    must_contain: ["PRONAR"]
+    urls:
+      - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=81"
+
+  - id: lei_6938_1981
+    titulo: "Lei nº 6.938, de 31 de agosto de 1981"
+    sigla: "Lei 6.938/1981"
+    ementa: "Dispõe sobre a Política Nacional do Meio Ambiente, seus fins e mecanismos de formulação e aplicação."
+    tipo: lei
+    data_publicacao: "1981-09-02"
+    vigencia_inicio: "1981-09-02"
+    vigencia_fim: null
+    must_contain: ["6.938", "Política Nacional do Meio Ambiente"]
+    urls:
+      - "https://www.planalto.gov.br/ccivil_03/leis/l6938compilada.htm"
+      - "https://www.planalto.gov.br/ccivil_03/leis/l6938.htm"
+
+  - id: decreto_99274_1990
+    titulo: "Decreto nº 99.274, de 6 de junho de 1990"
+    sigla: "Decreto 99.274/1990"
+    ementa: "Regulamenta a Lei nº 6.902/1981 e a Lei nº 6.938/1981 (Estações Ecológicas, APAs e Política Nacional do Meio Ambiente)."
+    tipo: decreto
+    data_publicacao: "1990-06-07"
+    vigencia_inicio: "1990-06-07"
+    vigencia_fim: null
+    must_contain: ["99.274"]
+    urls:
+      - "https://www.planalto.gov.br/ccivil_03/decreto/antigos/d99274.htm"
+
+  - id: lei_9605_1998
+    titulo: "Lei nº 9.605, de 12 de fevereiro de 1998"
+    sigla: "Lei 9.605/1998"
+    ementa: "Dispõe sobre as sanções penais e administrativas derivadas de condutas e atividades lesivas ao meio ambiente."
+    tipo: lei
+    data_publicacao: "1998-02-13"
+    vigencia_inicio: "1998-02-13"
+    vigencia_fim: null
+    must_contain: ["9.605"]
+    urls:
+      - "https://www.planalto.gov.br/ccivil_03/leis/l9605.htm"
