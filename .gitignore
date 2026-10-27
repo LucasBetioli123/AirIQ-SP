@@ -218,3 +218,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- projeto ---
+data/raw/
+data/interim/
+data/processed/
+models/
+!data/sample/
+*.gguf
+.env
+logs/*.tmp
+reports/figures/*.tmp
