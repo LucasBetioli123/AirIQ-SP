@@ -5,6 +5,8 @@ tfold,T1,Climatologia mensal,4102,7.8147,11.5788,-0.1409,-3.9607,0.8255,-115.906
 tfold,T1,LightGBM (offset IDW),4102,3.9918,6.1756,0.6755,-1.5964,0.8937,-10.2876,29
 tfold,T1,LightGBM regularizado (offset IDW),4102,3.6455,5.8140,0.7124,-1.4153,0.9049,-0.7207,29
 tfold,T1,Random Forest (offset IDW),4102,3.7079,5.9297,0.7008,-0.8894,0.8998,-2.4426,29
+tfold,T1,XGBoost (offset IDW),4102,3.9785,6.2832,0.6640,-1.4842,0.8891,-9.9203,29
+tfold,T1,XGBoost regularizado (offset IDW),4102,3.9437,6.1913,0.6738,-1.4828,0.8940,-8.9576,29
 tfold,T1,Ensemble RF + LightGBM reg. (offset IDW),4102,3.6071,5.8031,0.7134,-1.1713,0.9022,0.3419,29
 tfold,T1,LightGBM (offset) sem satélite,4102,4.3549,6.7734,0.6096,-2.1121,0.8791,-20.3201,29
 tfold,T1,Ridge (log),4102,9.5060,16.3139,-1.2648,3.5365,0.7821,-162.6374,29
@@ -23,6 +25,8 @@ tfold,T2,Climatologia mensal,3659,4.5064,5.8759,-0.3865,1.1158,0.9872,-77.1924,3
 tfold,T2,LightGBM (offset IDW),3659,2.4057,3.3284,0.5551,-0.0579,0.9863,5.4063,30
 tfold,T2,LightGBM regularizado (offset IDW),3659,2.2866,3.2098,0.5862,-0.1337,0.9872,10.0911,30
 tfold,T2,Random Forest (offset IDW),3659,2.4864,3.4056,0.5342,0.0021,0.9855,2.2326,30
+tfold,T2,XGBoost (offset IDW),3659,2.5124,3.4819,0.5131,-0.2270,0.9866,1.2098,30
+tfold,T2,XGBoost regularizado (offset IDW),3659,2.3689,3.2988,0.5630,-0.0900,0.9869,6.8532,30
 tfold,T2,Ensemble RF + LightGBM reg. (offset IDW),3659,2.3378,3.2489,0.5761,-0.0811,0.9874,8.0760,30
 tfold,T2,LightGBM (offset) sem satélite,3659,2.4951,3.4183,0.5307,-0.0445,0.9861,1.8925,30
 tfold,T2,Ridge (log),3659,7.5145,26.8910,-28.0400,4.7111,0.9524,-195.4727,30
@@ -41,6 +45,8 @@ faixa_dist,<10 km,Climatologia mensal,4624,6.6507,10.1366,-0.0990,-2.5286,0.8849
 faixa_dist,<10 km,LightGBM (offset IDW),4624,3.2278,5.1402,0.7174,-1.1618,0.9321,-11.5958,17
 faixa_dist,<10 km,LightGBM regularizado (offset IDW),4624,2.9627,4.8403,0.7494,-1.0195,0.9394,-2.4317,17
 faixa_dist,<10 km,Random Forest (offset IDW),4624,3.1484,5.0218,0.7303,-0.6672,0.9364,-8.8511,17
+faixa_dist,<10 km,XGBoost (offset IDW),4624,3.3199,5.3687,0.6917,-1.1897,0.9286,-14.7810,17
+faixa_dist,<10 km,XGBoost regularizado (offset IDW),4624,3.2019,5.2180,0.7088,-1.1710,0.9330,-10.7013,17
 faixa_dist,<10 km,Ensemble RF + LightGBM reg. (offset IDW),4624,2.9932,4.8695,0.7464,-0.8598,0.9386,-3.4852,17
 faixa_dist,<10 km,LightGBM (offset) sem satélite,4624,3.4587,5.6083,0.6636,-1.4879,0.9224,-19.5790,17
 faixa_dist,<10 km,Ridge (log),4624,5.9443,11.3203,-0.3706,1.4647,0.8750,-105.5134,17
@@ -59,6 +65,8 @@ faixa_dist,10-25 km,Climatologia mensal,1475,5.7465,8.2917,-0.0875,-1.1967,0.913
 faixa_dist,10-25 km,LightGBM (offset IDW),1475,3.6936,5.3206,0.5522,-1.2497,0.9336,-12.5418,6
 faixa_dist,10-25 km,LightGBM regularizado (offset IDW),1475,3.5393,5.2054,0.5714,-1.2760,0.9383,-7.8413,6
 faixa_dist,10-25 km,Random Forest (offset IDW),1475,3.6155,5.3610,0.5454,-1.0466,0.9356,-10.1647,6
+faixa_dist,10-25 km,XGBoost (offset IDW),1475,3.8071,5.4555,0.5292,-1.2785,0.9322,-16.0023,6
+faixa_dist,10-25 km,XGBoost regularizado (offset IDW),1475,3.6537,5.2458,0.5647,-1.2632,0.9336,-11.3281,6
 faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (offset IDW),1475,3.5486,5.2475,0.5644,-1.1736,0.9369,-8.1244,6
 faixa_dist,10-25 km,LightGBM (offset) sem satélite,1475,3.9740,5.6652,0.4923,-1.6267,0.9336,-21.0883,6
 faixa_dist,10-25 km,Ridge (log),1475,5.4679,10.3981,-0.7102,-0.2706,0.9098,-66.6067,6
@@ -77,6 +85,8 @@ faixa_dist,25-50 km,Climatologia mensal,1477,5.3214,7.0883,-0.0565,1.2356,0.9472
 faixa_dist,25-50 km,LightGBM (offset IDW),1477,2.7229,3.9639,0.6696,0.4322,0.9587,22.4381,6
 faixa_dist,25-50 km,LightGBM regularizado (offset IDW),1477,2.4456,3.4539,0.7492,0.4935,0.9641,30.3357,6
 faixa_dist,25-50 km,Random Forest (offset IDW),1477,2.4617,3.5414,0.7363,0.6829,0.9587,29.8784,6
+faixa_dist,25-50 km,XGBoost (offset IDW),1477,2.5500,3.6640,0.7177,0.4191,0.9587,27.3611,6
+faixa_dist,25-50 km,XGBoost regularizado (offset IDW),1477,2.6055,3.7016,0.7119,0.7670,0.9580,25.7817,6
 faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (offset IDW),1477,2.3808,3.4135,0.7550,0.5688,0.9614,32.1829,6
 faixa_dist,25-50 km,LightGBM (offset) sem satélite,1477,2.9450,4.3574,0.6007,0.3753,0.9479,16.1111,6
 faixa_dist,25-50 km,Ridge (log),1477,19.7491,44.6761,-40.9708,17.0717,0.7867,-462.5580,6
@@ -95,6 +105,8 @@ faixa_dist,>50 km,Climatologia mensal,185,7.8697,11.7501,-0.0760,-2.8767,0.8649,
 faixa_dist,>50 km,LightGBM (offset IDW),185,4.2266,7.2929,0.5855,-0.9917,0.9297,-3.9538,1
 faixa_dist,>50 km,LightGBM regularizado (offset IDW),185,4.2609,7.5096,0.5605,-2.3092,0.9297,-4.7979,1
 faixa_dist,>50 km,Random Forest (offset IDW),185,4.2188,7.0307,0.6148,-0.1104,0.9243,-3.7609,1
+faixa_dist,>50 km,XGBoost (offset IDW),185,4.2144,7.0886,0.6084,-0.8155,0.9297,-3.6522,1
+faixa_dist,>50 km,XGBoost regularizado (offset IDW),185,4.3328,7.4731,0.5648,-1.4408,0.9297,-6.5664,1
 faixa_dist,>50 km,Ensemble RF + LightGBM reg. (offset IDW),185,4.1038,7.0854,0.6088,-1.2698,0.9297,-0.9342,1
 faixa_dist,>50 km,LightGBM (offset) sem satélite,185,4.2646,7.3988,0.5734,-0.5483,0.9297,-4.8871,1
 faixa_dist,>50 km,Ridge (log),185,9.5594,14.2494,-0.5824,0.8451,0.7730,-135.1140,1
