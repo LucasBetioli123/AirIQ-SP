@@ -14,6 +14,7 @@ setup: ## cria .venv e instala dependências com versões fixas
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
 	CMAKE_ARGS="-DGGML_NATIVE=OFF" $(PY) -m pip install -r requirements-llm.txt
+	$(PY) -m pip install -r requirements-nn.txt
 
 models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
 	$(PY) -m src.rag.models_dl
