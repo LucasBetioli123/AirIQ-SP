@@ -62,6 +62,8 @@ MODELS = {
     "Ensemble RF + LightGBM reg. (offset IDW)": ("ensemble_rf_lgbm", EST_FEATURES, "offset"),
     "LightGBM (offset) sem satélite": ("lightgbm", [f for f in EST_FEATURES if f not in SAT + PHYS], "offset"),
     "MLP 64-32 (offset IDW)": ("mlp", EST_FEATURES, "offset"),
+    "MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)": ("mlp_tanh", EST_FEATURES, "offset"),
+    "MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)": ("mlp_tanh", EST_FEATURES, True),
     "Ridge (offset IDW)": ("ridge", EST_FEATURES, "offset"),
     "Ridge (log)": ("ridge", EST_FEATURES, True),
     "Random Forest (log)": ("random_forest", EST_FEATURES, True),
