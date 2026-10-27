@@ -21,7 +21,7 @@ Saída: data/interim/era5_daily.nc
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import fsspec
 import numpy as np
@@ -120,6 +120,10 @@ def to_daily(h: xr.Dataset) -> xr.Dataset:
     return d
 
 
+def _run(job):
+    return job[0](*job[1:])
+
+
 def main(start=None, end=None, workers: int = 6):
     start = pd.Timestamp(start or CFG["period"]["start"])
     end = pd.Timestamp(end or CFG["period"]["end"])
@@ -127,8 +131,9 @@ def main(start=None, end=None, workers: int = 6):
     months = pd.date_range(start.to_period("M").to_timestamp(), end + pd.Timedelta(days=1), freq="MS")
     jobs = [(fetch_an, v, c, m) for m in months for v, c in E5["an_vars"].items()]
     jobs += [(fetch_accum, v, c, m) for m in months for v, c in ACCUM.items()]
-    with ThreadPoolExecutor(workers) as ex:
-        list(tqdm(ex.map(lambda j: j[0](*j[1:]), jobs), total=len(jobs), desc="ERA5 (NCAR)"))
+    # processos, não threads: o HDF5 não é thread-safe (segfault com leituras concorrentes)
+    with ProcessPoolExecutor(workers) as ex:
+        list(tqdm(ex.map(_run, jobs), total=len(jobs), desc="ERA5 (NCAR)"))
     names = list(E5["an_vars"]) + list(ACCUM)
     def series(v):
         da = xr.concat([xr.load_dataset(data_path("raw", "era5", f"{v}_{m:%Y%m}.nc"))[v] for m in months], "time")

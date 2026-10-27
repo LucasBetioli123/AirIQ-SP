@@ -91,8 +91,14 @@ def worldcover(lats, lons):
     base = CFG["static"]["worldcover_url"]
     tiles = [(la, lo) for la in range(3 * math.floor(BBOX[1] / 3), math.ceil(BBOX[3]), 3)
              for lo in range(3 * math.floor(BBOX[0] / 3), math.ceil(BBOX[2]), 3)]
+    def rd(t):
+        try:
+            return _read_block(base + _wc_tile_name(*t), BBOX)
+        except Exception:
+            return None  # blocos só de oceano não existem
+
     with ThreadPoolExecutor(6) as ex:
-        res = [r for r in tqdm(ex.map(lambda t: _read_block(base + _wc_tile_name(*t), BBOX), tiles),
+        res = [r for r in tqdm(ex.map(rd, tiles),
                                total=len(tiles), desc="WorldCover") if r is not None]
 
     def fn(v):
@@ -105,8 +111,9 @@ def worldcover(lats, lons):
 
 def dem(lats, lons):
     base = CFG["static"]["dem_url"]
-    tiles = [(la, lo) for la in range(math.floor(BBOX[1]), math.ceil(BBOX[3]))
-             for lo in range(math.floor(BBOX[0]), math.ceil(BBOX[2]))]
+    # margem de 1 bloco: os limites efetivos vêm do próprio arquivo
+    tiles = [(la, lo) for la in range(math.floor(BBOX[1]) - 1, math.ceil(BBOX[3]) + 1)
+             for lo in range(math.floor(BBOX[0]) - 1, math.ceil(BBOX[2]) + 1)]
 
     def rd(t):
         try:

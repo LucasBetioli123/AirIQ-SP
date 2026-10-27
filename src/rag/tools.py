@@ -1,0 +1,87 @@
+"""Ferramentas do agente.
+
+  buscar_normas(consulta, data)        -> trechos normativos com citação (RAG)
+  estimar_pm25(local, data, horizonte) -> modelo da Parte 1 (estimativa/previsão + IC 90%)
+
+Datas relativas ("hoje", "amanhã") são resolvidas contra a DATA DE REFERÊNCIA do
+sistema. Como não há feed em tempo real (os dados públicos usados vão até abr/2023),
+o padrão é o último dia com dados completos. Dá para mudar com AGENT_TODAY=aaaa-mm-dd.
+"""
+from __future__ import annotations
+
+import functools
+import os
+import re
+import unicodedata
+
+import pandas as pd
+
+from src.rag.retrieve import Retriever
+
+
+@functools.lru_cache(maxsize=1)
+def reference_today() -> pd.Timestamp:
+    if os.environ.get("AGENT_TODAY"):
+        return pd.Timestamp(os.environ["AGENT_TODAY"])
+    try:
+        from src.aq.predict import available_dates
+        return available_dates()[1] - pd.Timedelta(days=1)  # "amanhã" ainda tem dados
+    except Exception:
+        return pd.Timestamp.today().normalize()
+
+
+def _strip(s: str) -> str:
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower().strip()
+
+
+def resolve_date(text: str | None, horizon: int = 0) -> tuple[pd.Timestamp, int]:
+    """Devolve (data de referência, horizonte). 'amanhã' = previsão D+1 feita hoje."""
+    t = _strip(text or "hoje")
+    today = reference_today()
+    if t in ("hoje", "agora", "atual", ""):
+        return today, horizon
+    if t in ("amanha", "amanha (d+1)", "d+1"):
+        return today, 1
+    if t == "ontem":
+        return today - pd.Timedelta(days=1), 0
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", t) or re.search(r"(\d{2})/(\d{2})/(\d{4})", t)
+    if m:
+        g = m.groups()
+        d = pd.Timestamp(f"{g[0]}-{g[1]}-{g[2]}") if len(g[0]) == 4 else pd.Timestamp(f"{g[2]}-{g[1]}-{g[0]}")
+        return (d - pd.Timedelta(days=1), 1) if horizon == 1 else (d, 0)
+    return today, horizon
+
+
+def estimar_pm25(local: str, data: str | None = None, horizonte: int = 0) -> dict:
+    from src.aq.data.geo import geocode
+    from src.aq.predict import DataUnavailable, predict_one
+
+    m = re.match(r"\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$", local or "")
+    if m:
+        lat, lon, nome = float(m.group(1)), float(m.group(2)), local
+    else:
+        g = geocode(local or "")
+        if g is None:
+            return {"erro": f"município '{local}' não encontrado no estado de SP"}
+        lat, lon, nome = g["lat"], g["lon"], g["municipio"]
+    ref, h = resolve_date(data, horizonte)
+    try:
+        r = predict_one(lat, lon, str(ref.date()), h)
+    except DataUnavailable as e:
+        return {"erro": str(e)}
+    r["local"] = nome
+    r["data_referencia_sistema"] = str(reference_today().date())
+    return r
+
+
+@functools.lru_cache(maxsize=4)
+def get_retriever(mode: str | None = None) -> Retriever:
+    return Retriever(mode or os.environ.get("RAG_MODE", "hybrid_rerank"))
+
+
+def buscar_normas(consulta: str, data: str | None = None, k: int = 5, mode: str | None = None) -> list[dict]:
+    hits = get_retriever(mode).search(consulta, k=k, date=data)
+    return [{"id": h.chunk["id"], "citacao": f"{h.chunk['sigla']}, {h.chunk['label']}", "doc_id": h.chunk["doc_id"],
+             "dispositivos": h.chunk["dispositivos"], "texto": h.chunk["text"], "url": h.chunk.get("url"),
+             "score": round(h.score, 4), "rerank": h.rerank, "rank_bm25": h.rank_bm25, "rank_dense": h.rank_dense}
+            for h in hits]

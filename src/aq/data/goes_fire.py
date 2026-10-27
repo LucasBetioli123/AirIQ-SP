@@ -16,7 +16,7 @@ registro por pixel de 2 km com fogo no dia local.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -51,7 +51,7 @@ def process_day(date: pd.Timestamp) -> str:
         # varreduras cujo dia LOCAL é `date`: UTC de date 03h até date+1 02h
         t = date + pd.Timedelta(hours=h + 3)
         try:
-            ks = list_hour(PRODUCT, t.year, t.dayofyear, t.hour)
+            ks = list_hour(PRODUCT, t.year, t.day_of_year, t.hour)
             if ks:
                 frames.append(read_scan(ks[0]))
         except Exception:
@@ -67,8 +67,8 @@ def process_day(date: pd.Timestamp) -> str:
 def main(start=None, end=None, workers: int = 12):
     dates = pd.date_range(start or CFG["period"]["start"], end or CFG["period"]["end"], freq="D")
     window_for_bbox(PRODUCT, BBOX)
-    with ThreadPoolExecutor(workers) as ex:
-        list(tqdm(ex.map(process_day, dates), total=len(dates), desc="GOES FDC"))
+    with ProcessPoolExecutor(workers) as ex:  # processos: o h5py serializa threads (lock global)
+        list(tqdm(ex.map(process_day, dates, chunksize=1), total=len(dates), desc="GOES FDC"))
     files = [data_path("raw", "goes_fire", f"fire_{d.date()}.parquet") for d in dates]
     df = pd.concat([pd.read_parquet(f) for f in files if f.exists()], ignore_index=True)
     df.to_parquet(data_path("interim", "fires_daily.parquet"), index=False)

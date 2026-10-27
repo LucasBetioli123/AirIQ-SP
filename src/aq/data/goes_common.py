@@ -47,8 +47,14 @@ def open_remote(key: str) -> xr.Dataset:
 
 @functools.lru_cache(maxsize=4)
 def window_for_bbox(product: str, bbox: tuple[float, float, float, float]):
-    """Calcula (uma vez por produto) a janela de linhas/colunas que cobre o bbox e as
-    coordenadas lat/lon dos pixels dessa janela."""
+    """Calcula (uma vez por produto, com cache em disco) a janela de linhas/colunas que
+    cobre o bbox e as coordenadas lat/lon dos pixels dessa janela."""
+    from src.common.config import data_path
+
+    cache = data_path("raw", "goes_geom", f"{product}_{'_'.join(f'{b:g}' for b in bbox)}.npz")
+    if cache.exists():
+        z = np.load(cache)
+        return tuple(int(v) for v in z["win"]), z["lat"], z["lon"]
     key = first_key(product, 2022, 200, 15)
     ds = open_remote(key)
     proj = {k: float(v) for k, v in ds["goes_imager_projection"].attrs.items()
@@ -61,7 +67,8 @@ def window_for_bbox(product: str, bbox: tuple[float, float, float, float]):
     inside = (lat >= lat_min) & (lat <= lat_max) & (lon >= lon_min) & (lon <= lon_max)
     rows = np.where(inside.any(axis=1))[0]
     cols = np.where(inside.any(axis=0))[0]
-    r0, r1, c0, c1 = rows.min(), rows.max() + 1, cols.min(), cols.max() + 1
+    r0, r1, c0, c1 = int(rows.min()), int(rows.max() + 1), int(cols.min()), int(cols.max() + 1)
+    np.savez(cache, win=np.array([r0, r1, c0, c1]), lat=lat[r0:r1, c0:c1], lon=lon[r0:r1, c0:c1])
     return (r0, r1, c0, c1), lat[r0:r1, c0:c1], lon[r0:r1, c0:c1]
 
 
