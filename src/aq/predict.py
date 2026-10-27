@@ -46,9 +46,14 @@ def station_obs() -> pd.DataFrame:
     return d
 
 
-def available_dates() -> tuple[pd.Timestamp, pd.Timestamp]:
+@functools.lru_cache(maxsize=1)
+def available_index() -> pd.DatetimeIndex:
     ctx = load_context(_use_sample())
-    t = pd.DatetimeIndex(ctx["aod"].time.values).intersection(pd.DatetimeIndex(ctx["era5"].time.values))
+    return pd.DatetimeIndex(ctx["aod"].time.values).intersection(pd.DatetimeIndex(ctx["era5"].time.values))
+
+
+def available_dates() -> tuple[pd.Timestamp, pd.Timestamp]:
+    t = available_index()
     return t.min(), t.max()
 
 
@@ -57,11 +62,14 @@ def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
     o que se sabe em `dates` (satélite, fogo e medições de hoje)."""
     dates = pd.DatetimeIndex(pd.to_datetime(dates)).normalize()
     lats, lons = np.asarray(lats, float), np.asarray(lons, float)
-    lo_d, hi_d = available_dates()
+    idx = available_index()
     need = dates + pd.Timedelta(days=horizon)
-    if dates.min() < lo_d or need.max() > hi_d:
+    if not (dates.isin(idx).all() and need.isin(idx).all()):
+        lo_d, hi_d = available_dates()
+        extra = " (modo amostra: só algumas janelas de datas; rode `make data` para o período completo)" \
+            if _use_sample() else ""
         raise DataUnavailable(f"sem dados de satélite/meteorologia para essa data; período disponível: "
-                              f"{lo_d.date()} a {hi_d.date()} (horizonte {horizon})")
+                              f"{lo_d.date()} a {hi_d.date()}{extra}")
     est, fc = models()
     ctx = load_context(_use_sample())
     feats = point_features(ctx, dates, lats, lons, forecast=horizon == 1)
