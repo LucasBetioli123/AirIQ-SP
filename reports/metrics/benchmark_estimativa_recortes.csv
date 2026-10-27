@@ -2,12 +2,12 @@ recorte,grupo,modelo,n,MAE,RMSE,R2,bias,acerto_faixa_IQAr,ganho_MAE_vs_baseline_
 tfold,T1,IDW (baseline),4102,3.6195,5.8181,0.7119,0.8195,0.9035,0.0000,29
 tfold,T1,Krigagem ordinária,4102,3.6529,5.9334,0.7004,-0.2579,0.8964,-0.9242,29
 tfold,T1,Climatologia mensal,4102,7.8147,11.5788,-0.1409,-3.9607,0.8255,-115.9069,29
-tfold,T1,LightGBM (offset IDW),4102,3.9915,6.1749,0.6755,-1.5961,0.8937,-10.2778,29
+tfold,T1,LightGBM (offset IDW),4102,3.9918,6.1756,0.6755,-1.5964,0.8937,-10.2876,29
 tfold,T1,LightGBM regularizado (offset IDW),4102,3.6455,5.8140,0.7124,-1.4153,0.9049,-0.7207,29
-tfold,T1,Random Forest (offset IDW),4102,3.7062,5.9274,0.7010,-0.8878,0.8998,-2.3966,29
-tfold,T1,Ensemble RF + LightGBM reg. (offset IDW),4102,3.6070,5.8030,0.7134,-1.1712,0.9022,0.3434,29
+tfold,T1,Random Forest (offset IDW),4102,3.7079,5.9297,0.7008,-0.8894,0.8998,-2.4426,29
+tfold,T1,Ensemble RF + LightGBM reg. (offset IDW),4102,3.6071,5.8031,0.7134,-1.1713,0.9022,0.3419,29
 tfold,T1,LightGBM (offset) sem satélite,4102,4.3549,6.7734,0.6096,-2.1121,0.8791,-20.3201,29
-tfold,T1,Ridge (log),4102,50.1037,194.0668,-319.4925,44.1652,0.7796,-1284.2872,29
+tfold,T1,Ridge (log),4102,9.5060,16.3139,-1.2648,3.5365,0.7821,-162.6374,29
 tfold,T1,Random Forest (log),4102,4.6486,7.6255,0.5052,-2.6421,0.8630,-28.4333,29
 tfold,T1,HistGB (log),4102,4.8300,7.7310,0.4914,-2.0976,0.8623,-33.4442,29
 tfold,T1,XGBoost (log),4102,5.1097,8.2577,0.4197,-3.0676,0.8525,-41.1730,29
@@ -25,7 +25,7 @@ tfold,T2,LightGBM regularizado (offset IDW),3659,2.2866,3.2098,0.5862,-0.1337,0.
 tfold,T2,Random Forest (offset IDW),3659,2.4864,3.4056,0.5342,0.0021,0.9855,2.2326,30
 tfold,T2,Ensemble RF + LightGBM reg. (offset IDW),3659,2.3378,3.2489,0.5761,-0.0811,0.9874,8.0760,30
 tfold,T2,LightGBM (offset) sem satélite,3659,2.4951,3.4183,0.5307,-0.0445,0.9861,1.8925,30
-tfold,T2,Ridge (log),3659,17.4741,82.8858,-274.8953,14.6707,0.9524,-587.0872,30
+tfold,T2,Ridge (log),3659,7.5145,26.8910,-28.0400,4.7111,0.9524,-195.4727,30
 tfold,T2,Random Forest (log),3659,2.3706,3.3407,0.5518,-0.2311,0.9872,6.7886,30
 tfold,T2,HistGB (log),3659,2.5011,3.4611,0.5189,-0.1468,0.9861,1.6546,30
 tfold,T2,XGBoost (log),3659,2.5077,3.5045,0.5068,-0.2356,0.9872,1.3966,30
@@ -38,12 +38,12 @@ tfold,T2,LightGBM sem lag espacial,3659,2.9671,4.0769,0.3325,-0.2248,0.9866,-16.
 faixa_dist,<10 km,IDW (baseline),4624,2.8924,4.7232,0.7614,0.0678,0.9472,0.0000,17
 faixa_dist,<10 km,Krigagem ordinária,4624,2.9970,4.9552,0.7374,-0.8374,0.9423,-3.6165,17
 faixa_dist,<10 km,Climatologia mensal,4624,6.6507,10.1366,-0.0990,-2.5286,0.8849,-129.9368,17
-faixa_dist,<10 km,LightGBM (offset IDW),4624,3.2275,5.1395,0.7175,-1.1615,0.9321,-11.5850,17
+faixa_dist,<10 km,LightGBM (offset IDW),4624,3.2278,5.1402,0.7174,-1.1618,0.9321,-11.5958,17
 faixa_dist,<10 km,LightGBM regularizado (offset IDW),4624,2.9627,4.8403,0.7494,-1.0195,0.9394,-2.4317,17
-faixa_dist,<10 km,Random Forest (offset IDW),4624,3.1469,5.0193,0.7305,-0.6658,0.9364,-8.8000,17
-faixa_dist,<10 km,Ensemble RF + LightGBM reg. (offset IDW),4624,2.9932,4.8694,0.7464,-0.8598,0.9386,-3.4835,17
+faixa_dist,<10 km,Random Forest (offset IDW),4624,3.1484,5.0218,0.7303,-0.6672,0.9364,-8.8511,17
+faixa_dist,<10 km,Ensemble RF + LightGBM reg. (offset IDW),4624,2.9932,4.8695,0.7464,-0.8598,0.9386,-3.4852,17
 faixa_dist,<10 km,LightGBM (offset) sem satélite,4624,3.4587,5.6083,0.6636,-1.4879,0.9224,-19.5790,17
-faixa_dist,<10 km,Ridge (log),4624,26.1960,136.9764,-199.6727,21.7440,0.8733,-805.6844,17
+faixa_dist,<10 km,Ridge (log),4624,5.9443,11.3203,-0.3706,1.4647,0.8750,-105.5134,17
 faixa_dist,<10 km,Random Forest (log),4624,3.6931,6.3676,0.5663,-1.7878,0.9150,-27.6837,17
 faixa_dist,<10 km,HistGB (log),4624,3.8178,6.4369,0.5569,-1.3578,0.9146,-31.9959,17
 faixa_dist,<10 km,XGBoost (log),4624,4.0402,6.9106,0.4892,-2.0354,0.9048,-39.6838,17
@@ -61,7 +61,7 @@ faixa_dist,10-25 km,LightGBM regularizado (offset IDW),1475,3.5393,5.2054,0.5714
 faixa_dist,10-25 km,Random Forest (offset IDW),1475,3.6155,5.3610,0.5454,-1.0466,0.9356,-10.1647,6
 faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (offset IDW),1475,3.5486,5.2475,0.5644,-1.1736,0.9369,-8.1244,6
 faixa_dist,10-25 km,LightGBM (offset) sem satélite,1475,3.9740,5.6652,0.4923,-1.6267,0.9336,-21.0883,6
-faixa_dist,10-25 km,Ridge (log),1475,19.9435,116.2032,-212.5895,14.2050,0.9085,-507.6748,6
+faixa_dist,10-25 km,Ridge (log),1475,5.4679,10.3981,-0.7102,-0.2706,0.9098,-66.6067,6
 faixa_dist,10-25 km,Random Forest (log),1475,3.6820,5.5565,0.5116,-1.8592,0.9200,-12.1905,6
 faixa_dist,10-25 km,HistGB (log),1475,3.8468,5.6553,0.4941,-1.6474,0.9214,-17.2123,6
 faixa_dist,10-25 km,XGBoost (log),1475,4.0174,6.0419,0.4226,-2.0654,0.9214,-22.4086,6
@@ -79,7 +79,7 @@ faixa_dist,25-50 km,LightGBM regularizado (offset IDW),1477,2.4456,3.4539,0.7492
 faixa_dist,25-50 km,Random Forest (offset IDW),1477,2.4617,3.5414,0.7363,0.6829,0.9587,29.8784,6
 faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (offset IDW),1477,2.3808,3.4135,0.7550,0.5688,0.9614,32.1829,6
 faixa_dist,25-50 km,LightGBM (offset) sem satélite,1477,2.9450,4.3574,0.6007,0.3753,0.9479,16.1111,6
-faixa_dist,25-50 km,Ridge (log),1477,77.4357,219.3965,-1011.1777,74.7583,0.7867,-2105.7785,6
+faixa_dist,25-50 km,Ridge (log),1477,19.7491,44.6761,-40.9708,17.0717,0.7867,-462.5580,6
 faixa_dist,25-50 km,Random Forest (log),1477,2.8509,4.4626,0.5812,-0.0833,0.9506,18.7909,6
 faixa_dist,25-50 km,HistGB (log),1477,3.1480,4.8126,0.5130,0.0793,0.9458,10.3282,6
 faixa_dist,25-50 km,XGBoost (log),1477,2.9882,4.5976,0.5555,-0.2645,0.9519,14.8789,6
@@ -97,7 +97,7 @@ faixa_dist,>50 km,LightGBM regularizado (offset IDW),185,4.2609,7.5096,0.5605,-2
 faixa_dist,>50 km,Random Forest (offset IDW),185,4.2188,7.0307,0.6148,-0.1104,0.9243,-3.7609,1
 faixa_dist,>50 km,Ensemble RF + LightGBM reg. (offset IDW),185,4.1038,7.0854,0.6088,-1.2698,0.9297,-0.9342,1
 faixa_dist,>50 km,LightGBM (offset) sem satélite,185,4.2646,7.3988,0.5734,-0.5483,0.9297,-4.8871,1
-faixa_dist,>50 km,Ridge (log),185,24.5593,100.1734,-77.2024,15.8450,0.7730,-504.0358,1
+faixa_dist,>50 km,Ridge (log),185,9.5594,14.2494,-0.5824,0.8451,0.7730,-135.1140,1
 faixa_dist,>50 km,Random Forest (log),185,5.5332,9.5634,0.2872,-2.9810,0.8649,-36.0881,1
 faixa_dist,>50 km,HistGB (log),185,5.3336,9.3084,0.3248,-2.9773,0.8649,-31.1792,1
 faixa_dist,>50 km,XGBoost (log),185,6.0238,10.0701,0.2097,-3.2241,0.8649,-48.1562,1
