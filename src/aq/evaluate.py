@@ -19,20 +19,23 @@ import matplotlib.pyplot as plt  # noqa: E402  (depois do plotstyle)
 warnings.filterwarnings("ignore")
 CFG = load_config()
 FIG = lambda n: data_path("figures", n)  # noqa: E731
+BEST = "LightGBM regularizado (offset IDW)"
+BASELINES = {"IDW (baseline)", "Krigagem ordinária", "Climatologia mensal"}
 
 
 def fig_benchmark():
     b = pd.read_csv(data_path("metrics", "benchmark_estimativa.csv"))
     b = b[~b["modelo"].str.contains("ALEATÓRIA")].sort_values("MAE", ascending=True)
+    b = b[b["MAE"] < 3 * b["MAE"].min()]  # modelos que divergiram ficam só na tabela
     fig, ax = plt.subplots(figsize=(8, 0.42 * len(b) + 1.2))
-    colors = [ps.GREY if any(k in m for k in ("IDW", "Krig", "Climat")) else ps.BLUE for m in b["modelo"]]
+    colors = [ps.GREY if m in BASELINES else (ps.ORANGE if m == BEST else ps.BLUE) for m in b["modelo"]]
     ax.barh(b["modelo"], b["MAE"], color=colors, height=0.6, xerr=b["MAE_std_folds"],
             error_kw={"elinewidth": 1, "ecolor": ps.MUTED})
     for y, v in enumerate(b["MAE"]):
         ax.text(v + 0.15, y, f"{v:.2f}", va="center", color=ps.TEXT, fontsize=9)
     ax.invert_yaxis()
-    ax.set_xlabel("MAE (µg/m³) em estações nunca vistas, período de teste (barra = desvio entre folds)")
-    ax.set_title("Benchmark da estimativa diária de PM2.5 (cinza = baselines)")
+    ax.set_xlabel("MAE (µg/m³) - estações fora do treino, período posterior\n(traço = desvio entre folds)")
+    ax.set_title("Estimativa diária de PM2.5: cinza = baselines, laranja = escolhido")
     ax.grid(axis="y", visible=False)
     fig.tight_layout()
     fig.savefig(FIG("benchmark_mae.png"), dpi=130)
@@ -42,7 +45,7 @@ def fig_benchmark():
 def fig_scatter():
     oof = pd.read_parquet(data_path("processed", "oof_estimativa.parquet"))
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.6), sharex=True, sharey=True)
-    for ax, col, c in zip(axes, ["IDW (baseline)", "LightGBM (log)"], [ps.GREY, ps.BLUE]):
+    for ax, col, c in zip(axes, ["IDW (baseline)", BEST], [ps.GREY, ps.BLUE]):
         d = oof[["pm25", col]].dropna()
         m = metrics(d["pm25"], d[col])
         ax.scatter(d["pm25"], d[col], s=8, alpha=0.35, color=c, edgecolor="none")
@@ -61,6 +64,7 @@ def fig_scatter():
 def fig_intervals():
     r = pd.read_parquet(data_path("processed", "oof_intervalos.parquet"))
     tab = pd.read_csv(data_path("metrics", "intervalos.csv"))
+    tab = tab[tab["recorte"] == "todos"].reset_index(drop=True)
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
     ax = axes[0]
     ax.bar(range(len(tab)), tab["cobertura_real"], color=[ps.GREY, ps.BLUE, ps.AQUA], width=0.6)
@@ -99,8 +103,7 @@ def shap_analysis(n: int = 3000):
 
     est, _ = models()
     df = pd.read_parquet(data_path("processed", "station_days.parquet"))
-    test = df[period_masks(df["date"])["test"]]
-    test = with_lag(test, df).sample(min(n, len(test)), random_state=CFG["seed"])
+    test = with_lag(df, df).sample(min(n, len(df)), random_state=CFG["seed"])
     X = test[EST_FEATURES]
     booster = est["point"].model
     sv = shap.TreeExplainer(booster).shap_values(X)
@@ -109,7 +112,7 @@ def shap_analysis(n: int = 3000):
     imp.to_csv(data_path("metrics", "shap_importancia.csv"), index=False, float_format="%.5f")
     plt.figure()
     shap.summary_plot(sv, X, max_display=18, show=False, plot_size=(8, 6.5))
-    plt.title("SHAP: contribuição para log(1+PM2.5)")
+    plt.title("SHAP: contribuição para a correção log(1+PM2.5) - log(1+IDW)")
     plt.tight_layout()
     plt.savefig(FIG("shap_resumo.png"), dpi=130)
     plt.close("all")
@@ -130,7 +133,7 @@ def shap_analysis(n: int = 3000):
     fig.savefig(FIG("shap_dependencia.png"), dpi=130)
     plt.close(fig)
     # explicação local: o dia/estação de maior PM2.5 previsto
-    j = int(np.argmax(booster.predict(X)))
+    j = int(np.argmax(est["point"].predict(X)))
     contrib = pd.Series(sv[j], index=EST_FEATURES).sort_values(key=np.abs, ascending=False).head(10)
     row = test.iloc[j]
     contrib.to_frame("shap").assign(valor=X.iloc[j][contrib.index].values).to_csv(
@@ -145,14 +148,14 @@ def episodes():
     df = pd.read_parquet(data_path("processed", "station_days.parquet"),
                          columns=["location_id", "date", "fire_up_400km", "fire_n_400km", "aod_filled",
                                   "aod_fill_level", "blh_pm", "rh", "tp"])
-    d = oof.merge(df, on=["location_id", "date"])
+    d = oof.merge(df, on=["location_id", "date"]).dropna(subset=["IDW (baseline)", BEST])
     p95_fire = d["fire_up_400km"].quantile(0.95)
     p95_pm = d["pm25"].quantile(0.95)
     d["regime"] = np.select([d["fire_up_400km"] >= p95_fire, d["pm25"] >= p95_pm],
                             ["fumaça (fogo a favor do vento ≥ p95)", "PM2.5 alto sem fogo (≥ p95)"], "normal")
     rows = []
     for reg, g in d.groupby("regime"):
-        for col in ["IDW (baseline)", "LightGBM (log)"]:
+        for col in ["IDW (baseline)", BEST]:
             m = metrics(g["pm25"], g[col])
             rows.append({"regime": reg, "modelo": col, "n": m["n"], "PM2.5_medio": g["pm25"].mean(), "MAE": m["MAE"],
                          "vies": m["bias"], "AOD_medio": g["aod_filled"].mean(),
@@ -161,8 +164,9 @@ def episodes():
     tab.to_csv(data_path("metrics", "episodios_extremos.csv"), index=False, float_format="%.3f")
     print(tab.to_string(index=False))
     # piores dias
-    d["err"] = d["LightGBM (log)"] - d["pm25"]
-    worst = d.groupby("date").agg(pm25=("pm25", "mean"), pred=("LightGBM (log)", "mean"), err=("err", "mean"),
+    d["err"] = d[BEST] - d["pm25"]
+    worst = d.groupby("date").agg(pm25=("pm25", "mean"), pred=(BEST, "mean"), idw=("IDW (baseline)", "mean"),
+                                  err=("err", "mean"),
                                   fogo=("fire_up_400km", "mean"), aod=("aod_filled", "mean"),
                                   sem_aod=("aod_fill_level", lambda s: (s > 0).mean()))
     worst.reindex(worst["err"].abs().sort_values(ascending=False).index).head(15).to_csv(
@@ -170,7 +174,7 @@ def episodes():
     fig, (ax, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True, height_ratios=[2.2, 1])
     t = worst.sort_index()
     ax.plot(t.index, t["pm25"], color=ps.TEXT, lw=1.2, label="medido (média das estações de teste)")
-    ax.plot(t.index, t["pred"], color=ps.BLUE, lw=1.2, label="LightGBM")
+    ax.plot(t.index, t["pred"], color=ps.BLUE, lw=1.2, label="modelo (LightGBM offset IDW)")
     ax.set_ylabel("PM2.5 (µg/m³)")
     ax.set_title("Período de teste: medido x estimado (estações fora do treino)")
     ax.legend(loc="upper right", fontsize=8)
@@ -183,6 +187,7 @@ def episodes():
 
 def fig_forecast():
     t = pd.read_csv(data_path("metrics", "previsao_d1.csv"))
+    t = t[t["recorte"] == "todos"].reset_index(drop=True)
     fig, ax = plt.subplots(figsize=(7.5, 3.4))
     labels = [f"{c.split(')')[0]})\n{m}" for c, m in zip(t["cenario"], t["metodo"])]
     colors = [ps.GREY if "Persist" in m else ps.BLUE for m in t["metodo"]]

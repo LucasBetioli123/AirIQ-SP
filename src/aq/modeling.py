@@ -62,11 +62,17 @@ def station_folds(stations: np.ndarray, k: int = SPLIT["n_station_folds"]) -> di
     return {s: i % k for i, s in enumerate(st)}
 
 
-def period_masks(dates: pd.Series) -> dict:
+def period_masks(dates: pd.Series, tf: dict | None = None) -> dict:
+    """Máscaras treino/calibração/teste para um corte temporal `tf` (padrão: o corte final do config)."""
+    tf = tf or SPLIT
     d = pd.to_datetime(dates)
-    return {"train": d <= pd.Timestamp(SPLIT["train_end"]),
-            "calib": (d >= pd.Timestamp(SPLIT["calib_start"])) & (d <= pd.Timestamp(SPLIT["calib_end"])),
-            "test": d >= pd.Timestamp(SPLIT["test_start"])}
+    end = pd.Timestamp(tf.get("test_end", "2100-01-01"))
+    return {"train": d <= pd.Timestamp(tf["train_end"]),
+            "calib": (d >= pd.Timestamp(tf["calib_start"])) & (d <= pd.Timestamp(tf["calib_end"])),
+            "test": (d >= pd.Timestamp(tf["test_start"])) & (d <= end)}
+
+
+TEMPORAL_FOLDS = SPLIT["temporal_folds"]
 
 
 def with_lag(rows: pd.DataFrame, ref_pool: pd.DataFrame, value_col: str = "pm25", prefix: str = "idw") -> pd.DataFrame:
@@ -86,7 +92,7 @@ def make_model(name: str, quantile: float | None = None):
 
     if name == "ridge":
         return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler(),
-                             RidgeCV(alphas=np.logspace(-2, 3, 20)))
+                             RidgeCV(alphas=np.logspace(-1, 4, 20)))
     if name == "random_forest":
         return make_pipeline(SimpleImputer(strategy="median"),
                              RandomForestRegressor(n_estimators=400, min_samples_leaf=3, max_features=0.4,
@@ -99,15 +105,62 @@ def make_model(name: str, quantile: float | None = None):
         return xgb.XGBRegressor(n_estimators=700, learning_rate=0.03, max_depth=6, subsample=0.8,
                                 colsample_bytree=0.7, min_child_weight=5, reg_lambda=2.0, n_jobs=4,
                                 random_state=SEED)
-    if name == "lightgbm":
+    if name in ("lightgbm", "lightgbm_reg"):
         import lightgbm as lgb
         params = dict(n_estimators=900, learning_rate=0.03, num_leaves=31, min_child_samples=30,
                       subsample=0.8, subsample_freq=1, colsample_bytree=0.7, reg_lambda=2.0,
                       random_state=SEED, n_jobs=4, verbose=-1)
+        if name == "lightgbm_reg":  # mais regularizado: poucas estações -> risco de decorar o local
+            params.update(n_estimators=700, num_leaves=15, min_child_samples=60, colsample_bytree=0.5,
+                          reg_lambda=5.0, extra_trees=True)
         if quantile is not None:
             params.update(objective="quantile", alpha=quantile)
         return lgb.LGBMRegressor(**params)
+    if name == "ensemble_rf_lgbm":
+        return Ensemble([make_model("random_forest"), make_model("lightgbm_reg")])
     raise ValueError(name)
+
+
+class Ensemble:
+    """Média simples das previsões (RF e GBM erram de formas diferentes)."""
+
+    def __init__(self, models):
+        self.models = models
+
+    def fit(self, X, y):
+        for m in self.models:
+            m.fit(X, y)
+        return self
+
+    def predict(self, X):
+        return np.mean([m.predict(X) for m in self.models], axis=0)
+
+
+class OffsetLogTarget:
+    """Alvo RELATIVO ao IDW do mesmo dia: log1p(PM) - log1p(IDW).
+
+    O nível regional do dia (que muda muito entre estação seca e chuvosa) vem das
+    medições das estações. O modelo aprende só a correção local (urbanização, fumaça,
+    relevo, meteorologia). Isso resolve a principal falha das árvores: elas não
+    extrapolam para níveis de PM2.5 que não viram no treino (episódios de seca/fumaça).
+    Sem IDW disponível (nenhuma estação mediu no dia), o offset vira a mediana do treino."""
+
+    def __init__(self, model, offset_col: str = "idw"):
+        self.model = model
+        self.offset_col = offset_col
+
+    def _offset(self, X):
+        o = np.log1p(np.clip(X[self.offset_col].to_numpy(dtype=float), 0, None))
+        return np.where(np.isfinite(o), o, self.fallback)
+
+    def fit(self, X, y):
+        self.fallback = float(np.nanmedian(np.log1p(np.clip(y, 0, None))))
+        self.cap = float(np.log1p(1.5 * np.nanmax(y)))
+        self.model.fit(X, np.log1p(np.clip(y, 0, None)) - self._offset(X))
+        return self
+
+    def predict(self, X):
+        return np.expm1(np.clip(self._offset(X) + self.model.predict(X), 0, self.cap)).clip(0)
 
 
 class LogTarget:
@@ -118,11 +171,13 @@ class LogTarget:
         self.model = model
 
     def fit(self, X, y):
+        # limite da volta da escala log: 1,5x o máximo do treino (modelos lineares extrapolam)
+        self.cap = float(np.log1p(1.5 * np.nanmax(y)))
         self.model.fit(X, np.log1p(np.clip(y, 0, None)))
         return self
 
     def predict(self, X):
-        return np.expm1(self.model.predict(X)).clip(0)
+        return np.expm1(np.clip(self.model.predict(X), 0, self.cap)).clip(0)
 
 
 # ----------------------------------------------------------------------------- intervalos
@@ -154,19 +209,29 @@ class CQR:
 
 
 class QuantileTrio:
-    """Três LightGBM quantílicos (α/2, 0.5, 1-α/2) em escala log."""
+    """Três LightGBM quantílicos (α/2, 0.5, 1-α/2) em escala log, com o mesmo offset do IDW
+    do modelo pontual (os quantis são da correção local; somamos log1p(IDW) de volta)."""
 
-    def __init__(self, alpha: float = SPLIT["interval_alpha"]):
+    def __init__(self, alpha: float = SPLIT["interval_alpha"], offset_col: str | None = "idw", base: str = "lightgbm"):
         self.qs = (alpha / 2, 0.5, 1 - alpha / 2)
-        self.models = [make_model("lightgbm", quantile=q) for q in self.qs]
+        self.models = [make_model(base, quantile=q) for q in self.qs]
+        self.offset_col = offset_col
+
+    def _offset(self, X):
+        if self.offset_col is None:
+            return 0.0
+        o = np.log1p(np.clip(X[self.offset_col].to_numpy(dtype=float), 0, None))
+        return np.where(np.isfinite(o), o, self.fallback)
 
     def fit(self, X, y):
         ly = np.log1p(np.clip(y, 0, None))
+        self.fallback = float(np.nanmedian(ly))
         for m in self.models:
-            m.fit(X, ly)
+            m.fit(X, ly - self._offset(X))
         return self
 
     def predict_log(self, X):
-        lo, med, hi = (m.predict(X) for m in self.models)
+        off = self._offset(X)
+        lo, med, hi = (m.predict(X) + off for m in self.models)
         lo, hi = np.minimum(lo, med), np.maximum(hi, med)  # evita cruzamento de quantis
         return lo, med, hi
