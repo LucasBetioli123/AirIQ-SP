@@ -61,6 +61,8 @@ def make_sample():
     enc = lambda ds: {v: {"zlib": True, "complevel": 6} for v in ds.data_vars}  # noqa: E731
     aod = xr.load_dataset(src / "aod_daily.nc").sel(time=slice(s - pad, e + pad))
     aod.to_netcdf(dst / "aod_daily.nc", encoding=enc(aod))
+    no2 = xr.load_dataset(src / "no2_daily.nc").sel(time=slice(s - pad, e + pad))
+    no2.to_netcdf(dst / "no2_daily.nc", encoding=enc(no2))
     era = xr.load_dataset(src / "era5_daily.nc").sel(time=slice(s - pad, e + pad))
     era.to_netcdf(dst / "era5_daily.nc", encoding=enc(era))
     stc = xr.load_dataset(src / "static_0p01.nc")

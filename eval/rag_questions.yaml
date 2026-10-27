@@ -1,0 +1,195 @@
+# Conjunto de avaliação do agente (escrito à mão).
+# tipo: fato | multi (exige juntar 2+ trechos) | sem_resposta (não está na base) | ferramenta | temporal
+# gold: ids dos chunks que contêm a resposta (casam também com as partes ":pN"/linhas)
+# fatos_chave: o que a resposta PRECISA conter (lista = alternativas equivalentes)
+perguntas:
+  - id: q01
+    tipo: fato
+    pergunta: "Qual é o padrão de qualidade do ar final (PF) para MP2,5 na média de 24 horas segundo a Resolução CONAMA 491/2018?"
+    resposta_esperada: "25 µg/m³ (PF, média de 24 h, Anexo I)."
+    fatos_chave: ["25"]
+    gold: [conama_491_2018:anexoi]
+
+  - id: q02
+    tipo: fato
+    pergunta: "Qual o valor do padrão intermediário PI-1 para MP2,5 em 24 horas na Resolução CONAMA 491/2018?"
+    resposta_esperada: "60 µg/m³."
+    fatos_chave: ["60"]
+    gold: [conama_491_2018:anexoi]
+
+  - id: q03
+    tipo: fato
+    pergunta: "Como a Resolução CONAMA 491/2018 define padrão de qualidade do ar intermediário?"
+    resposta_esperada: "Padrões estabelecidos como valores temporários a serem cumpridos em etapas (art. 2º)."
+    fatos_chave: [["tempor", "etapas"]]
+    gold: [conama_491_2018:art2]
+
+  - id: q04
+    tipo: fato
+    pergunta: "Qual o prazo para os órgãos ambientais estaduais elaborarem o Plano de Controle de Emissões Atmosféricas segundo a CONAMA 491?"
+    resposta_esperada: "Até 3 anos a partir da entrada em vigor da Resolução."
+    fatos_chave: [["3 anos", "três anos", "3 (tres) anos"]]
+    gold: [conama_491_2018:art4]
+
+  - id: q05
+    tipo: fato
+    pergunta: "Qual o nível de atenção para episódio crítico de poluição do ar por MP2,5 na Resolução CONAMA 491/2018?"
+    resposta_esperada: "125 µg/m³ (média de 24 h), Anexo III."
+    fatos_chave: ["125"]
+    gold: [conama_491_2018:anexoiii]
+
+  - id: q06
+    tipo: fato
+    pergunta: "Quais normas a Resolução CONAMA 491/2018 revogou?"
+    resposta_esperada: "A Resolução CONAMA 03/1990 e os itens 2.2.1 e 2.3 da Resolução CONAMA 05/1989."
+    fatos_chave: [["03/1990", "3/1990", "nº 3, de 28 de junho de 1990", "n 3"], ["05/1989", "5/1989", "nº 5"]]
+    gold: [conama_491_2018:art13]
+
+  - id: q07
+    tipo: fato
+    pergunta: "Segundo a Lei 6.938/1981, o que se entende por poluidor?"
+    resposta_esperada: "Pessoa física ou jurídica, de direito público ou privado, responsável, direta ou indiretamente, por atividade causadora de degradação ambiental (art. 3º, IV)."
+    fatos_chave: [["fisica ou juridica", "física ou jurídica"], ["degradacao ambiental", "degradação ambiental"]]
+    gold: [lei_6938_1981:art3]
+
+  - id: q08
+    tipo: fato
+    pergunta: "Qual é o órgão consultivo e deliberativo do SISNAMA, segundo a Lei 6.938/1981?"
+    resposta_esperada: "O Conselho Nacional do Meio Ambiente - CONAMA (art. 6º, II)."
+    fatos_chave: [["CONAMA", "Conselho Nacional do Meio Ambiente"]]
+    gold: [lei_6938_1981:art6]
+
+  - id: q09
+    tipo: fato
+    pergunta: "Quais são os instrumentos da Política Nacional do Meio Ambiente relacionados a padrões e licenciamento?"
+    resposta_esperada: "O estabelecimento de padrões de qualidade ambiental (art. 9º, I) e o licenciamento e a revisão de atividades efetiva ou potencialmente poluidoras (art. 9º, IV)."
+    fatos_chave: [["padroes de qualidade ambiental", "padrões de qualidade ambiental"], ["licenciamento"]]
+    gold: [lei_6938_1981:art9]
+
+  - id: q10
+    tipo: fato
+    pergunta: "O poluidor é obrigado a reparar o dano ambiental mesmo sem culpa?"
+    resposta_esperada: "Sim: o poluidor é obrigado, independentemente da existência de culpa, a indenizar ou reparar os danos (art. 14, § 1º, da Lei 6.938/1981)."
+    fatos_chave: [["independentemente da existencia de culpa", "independentemente de culpa", "independentemente da existência de culpa"]]
+    gold: [lei_6938_1981:art14]
+
+  - id: q11
+    tipo: fato
+    pergunta: "Qual a pena para quem causa poluição atmosférica que provoque a retirada dos habitantes das áreas afetadas?"
+    resposta_esperada: "Reclusão de um a cinco anos (Lei 9.605/1998, art. 54, § 2º, II)."
+    fatos_chave: [["um a cinco anos", "1 a 5 anos"]]
+    gold: [lei_9605_1998:art54]
+
+  - id: q12
+    tipo: fato
+    pergunta: "Qual era o padrão primário de partículas totais em suspensão (média de 24 horas) na Resolução CONAMA 03/1990?"
+    resposta_esperada: "240 µg/m³, que não deve ser excedida mais de uma vez por ano."
+    fatos_chave: ["240"]
+    gold: [conama_003_1990:art3]
+
+  - id: q13
+    tipo: fato
+    pergunta: "Quais são os objetivos do PRONAR instituído pela Resolução CONAMA 05/1989?"
+    resposta_esperada: "Permitir o desenvolvimento econômico e social de forma ambientalmente segura, pela limitação dos níveis de emissão de poluentes por fontes de poluição atmosférica, com vistas à melhoria da qualidade do ar, ao atendimento dos padrões e ao não comprometimento da qualidade do ar em áreas não degradadas."
+    fatos_chave: [["emissao", "emissão"], ["qualidade do ar"]]
+    gold: [conama_005_1989:preambulo, conama_005_1989:item1]
+
+  # ---------------- exigem juntar trechos ----------------
+  - id: q14
+    tipo: multi
+    pergunta: "Quais são as etapas dos padrões de qualidade do ar da CONAMA 491/2018 e qual o valor de MP2,5 (24 h) em cada uma?"
+    resposta_esperada: "PI-1 = 60, PI-2 = 50, PI-3 = 37 e PF = 25 µg/m³ (Anexo I), adotados de forma subsequente (art. 3º)."
+    fatos_chave: ["60", "50", "37", "25"]
+    gold: [conama_491_2018:anexoi, conama_491_2018:art3]
+
+  - id: q15
+    tipo: multi
+    pergunta: "Compare o padrão de MP10 para 24 horas da Resolução CONAMA 03/1990 (partículas inaláveis) com o PI-1 da CONAMA 491/2018."
+    resposta_esperada: "03/1990: 150 µg/m³ (padrão primário de partículas inaláveis); 491/2018 PI-1: 120 µg/m³."
+    fatos_chave: ["150", "120"]
+    gold: [conama_003_1990:art3, conama_491_2018:anexoi]
+    data: "2010-01-01"
+
+  - id: q16
+    tipo: multi
+    pergunta: "Quem estabelece os padrões nacionais de qualidade do ar e com base em qual competência legal?"
+    resposta_esperada: "O CONAMA, que tem competência para estabelecer normas, critérios e padrões de qualidade ambiental (Lei 6.938/1981, art. 8º, VI e VII), exercida na Resolução 491/2018."
+    fatos_chave: [["CONAMA", "Conselho Nacional do Meio Ambiente"], ["art. 8", "artigo 8"]]
+    gold: [lei_6938_1981:art8, conama_491_2018:preambulo]
+
+  - id: q17
+    tipo: multi
+    pergunta: "O que é um episódio crítico de poluição do ar e quais níveis de MP2,5 caracterizam atenção, alerta e emergência?"
+    resposta_esperada: "Episódio crítico: presença de altas concentrações de poluentes em curto período, por condições meteorológicas desfavoráveis (art. 2º). MP2,5: atenção 125, alerta 210, emergência 250 µg/m³ (Anexo III)."
+    fatos_chave: ["125", "210", "250"]
+    gold: [conama_491_2018:art2, conama_491_2018:anexoiii]
+
+  # ---------------- temporais (vigência) ----------------
+  - id: q18
+    tipo: temporal
+    pergunta: "Em 2015, qual resolução CONAMA definia os padrões nacionais de qualidade do ar?"
+    resposta_esperada: "A Resolução CONAMA 03/1990 (revogada em 2018 pela 491/2018)."
+    fatos_chave: [["03/1990", "3/1990", "nº 3"]]
+    gold: [conama_003_1990:preambulo, conama_003_1990:art1]
+    data: "2015-06-01"
+
+  - id: q19
+    tipo: temporal
+    pergunta: "A Resolução CONAMA 03/1990 ainda está em vigor?"
+    resposta_esperada: "Não. Foi revogada pela Resolução CONAMA 491/2018."
+    fatos_chave: [["revogada", "revogou", "não está em vigor", "nao esta em vigor"], "491"]
+    gold: [conama_491_2018:art13]
+
+  # ---------------- ferramenta (modelo da Parte 1) ----------------
+  - id: q20
+    tipo: ferramenta
+    pergunta: "Qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da Resolução CONAMA 491?"
+    resposta_esperada: "Valor previsto com IC 90% pela ferramenta; comparar com o PI-1 de 60 µg/m³ (24 h) do Anexo I."
+    fatos_chave: ["60"]
+    gold: [conama_491_2018:anexoi]
+    deve_chamar_ferramenta: true
+    local: "Campinas"
+
+  - id: q21
+    tipo: ferramenta
+    pergunta: "Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 e em qual faixa do IQAr ela fica?"
+    resposta_esperada: "Valor da ferramenta e faixa (Boa/Moderada/...)."
+    fatos_chave: [["Boa", "Moderada", "Ruim", "Muito Ruim", "Péssima"]]
+    gold: []
+    deve_chamar_ferramenta: true
+    local: "Ribeirão Preto"
+
+  - id: q22
+    tipo: ferramenta
+    pergunta: "Em 2022-08-20 a qualidade do ar em Sorocaba atendia ao padrão final (PF) de MP2,5 da CONAMA 491/2018?"
+    resposta_esperada: "Comparar a estimativa da ferramenta com o PF de 25 µg/m³."
+    fatos_chave: ["25"]
+    gold: [conama_491_2018:anexoi]
+    deve_chamar_ferramenta: true
+    local: "Sorocaba"
+
+  # ---------------- sem resposta na base ----------------
+  - id: q23
+    tipo: sem_resposta
+    pergunta: "Qual o limite de ruído permitido em área residencial no período noturno?"
+    deve_recusar: true
+
+  - id: q24
+    tipo: sem_resposta
+    pergunta: "Qual o padrão de qualidade da água doce classe 2 para oxigênio dissolvido?"
+    deve_recusar: true
+
+  - id: q25
+    tipo: sem_resposta
+    pergunta: "Qual é o prazo de validade da licença de operação de um empreendimento?"
+    deve_recusar: true
+
+  - id: q26
+    tipo: sem_resposta
+    pergunta: "Qual o limite de emissão de NOx para turbinas a gás de termelétricas novas?"
+    deve_recusar: true
+
+  - id: q27
+    tipo: sem_resposta
+    pergunta: "Qual o padrão nacional de qualidade do ar para benzeno?"
+    deve_recusar: true

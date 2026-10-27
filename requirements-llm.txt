@@ -1,0 +1,2 @@
+# Compilado a partir do código-fonte (CPU). Ver Makefile/Dockerfile para CMAKE_ARGS.
+llama_cpp_python==0.3.36

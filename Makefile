@@ -24,6 +24,8 @@ data: ## baixa TODOS os dados brutos do período do config (horas; ver README)
 	$(PY) -m src.aq.data.era5
 	$(PY) -m src.aq.data.goes_aod
 	$(PY) -m src.aq.data.goes_fire
+	$(PY) -m src.aq.data.s5p_no2
+	$(PY) -m src.aq.data.geo
 	$(PY) -m src.aq.data.static
 	$(PY) -m src.aq.build_dataset
 

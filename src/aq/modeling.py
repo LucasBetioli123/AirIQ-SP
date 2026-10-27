@@ -22,7 +22,7 @@ SPLIT = CFG["split"]
 SEED = CFG["seed"]
 
 # variáveis do modelo de ESTIMATIVA (mesmo dia)
-SAT = ["aod", "aod_w3", "aod_w9", "aod_max", "aod_nscan", "aod_filled", "aod_fill_level"]
+SAT = ["aod", "aod_w3", "aod_w9", "aod_max", "aod_nscan", "aod_filled", "aod_fill_level", "no2", "no2_w9", "no2_filled"]
 MET = ["t2m", "rh", "ws", "ws_pm", "u10", "v10", "sp", "tcc", "blh", "blh_pm", "blh_min", "tp", "prev_tp",
        "prev_blh_pm"]
 PHYS = ["aod_blh", "aod_dry", "aod_dry_blh", "vent", "log_vent"]

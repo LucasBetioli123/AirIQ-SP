@@ -40,14 +40,17 @@ MET_VARS = ["t2m", "rh", "ws", "ws_pm", "u10", "v10", "sp", "tcc", "blh", "blh_p
 # ----------------------------------------------------------------------------- contexto
 @functools.lru_cache(maxsize=2)
 def load_context(sample: bool = False) -> dict:
-    """Carrega os cubos diários (AOD, ERA5, estáticos, fogo) já processados."""
+    """Carrega os cubos diários (AOD, NO2, ERA5, estáticos, fogo) já processados."""
     base = data_path("sample") if sample else data_path("interim")
     aod = xr.load_dataset(base / "aod_daily.nc")
     era5 = xr.load_dataset(base / "era5_daily.nc")
     static = xr.load_dataset(base / "static_0p01.nc")
     fires = pd.read_parquet(base / "fires_daily.parquet")
     fires["date"] = pd.to_datetime(fires["date"])
-    return {"aod": _aod_windows(aod), "era5": era5, "static": _static_windows(static),
+    no2 = xr.load_dataset(base / "no2_daily.nc")
+    no2["no2_w3"] = (no2["no2"].dims, _nanmean_window(no2["no2"].values, 3))
+    no2["no2_w9"] = (no2["no2"].dims, _nanmean_window(no2["no2"].values, 9))
+    return {"aod": _aod_windows(aod), "era5": era5, "static": _static_windows(static), "no2": no2,
             "fires": {d: g[["lat", "lon", "frp_max"]].to_numpy() for d, g in fires.groupby("date")}}
 
 
@@ -133,6 +136,13 @@ def aod_features(ctx, dates, lats, lons, forecast: bool = False) -> pd.DataFrame
     return pd.DataFrame({"aod": a["aod_mean"], "aod_w3": a["aod_w3"], "aod_w9": a["aod_w9"],
                          "aod_max": a["aod_max"], "aod_nscan": a["aod_nscan"],
                          "aod_filled": filled, "aod_fill_level": level})
+
+
+def no2_features(ctx, dates, lats, lons) -> pd.DataFrame:
+    """NO2 troposférico (TROPOMI) na célula e em janelas 3x3/9x9. Lacunas de nuvem: usa a janela maior."""
+    a = _sel_grid(ctx["no2"], ["no2", "no2_w3", "no2_w9"], dates, lats, lons)
+    filled = np.where(np.isfinite(a["no2_w3"]), a["no2_w3"], a["no2_w9"])
+    return pd.DataFrame({"no2": a["no2"], "no2_w9": a["no2_w9"], "no2_filled": filled})
 
 
 def met_features(ctx, dates, lats, lons, prefix: str = "") -> pd.DataFrame:
@@ -232,7 +242,8 @@ def point_features(ctx, dates, lats, lons, forecast: bool = False) -> pd.DataFra
     dates = pd.DatetimeIndex(dates)
     lats = np.asarray(lats, dtype="float64")
     lons = np.asarray(lons, dtype="float64")
-    parts = [aod_features(ctx, dates, lats, lons, forecast=forecast), met_features(ctx, dates, lats, lons)]
+    parts = [aod_features(ctx, dates, lats, lons, forecast=forecast), no2_features(ctx, dates, lats, lons),
+             met_features(ctx, dates, lats, lons)]
     met_prev = met_features(ctx, dates - pd.Timedelta(days=1), lats, lons, prefix="prev_")[["prev_tp", "prev_blh_pm"]]
     parts.append(met_prev)
     base = pd.concat(parts, axis=1)
