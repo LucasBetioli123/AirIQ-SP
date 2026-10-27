@@ -100,11 +100,18 @@ def make_model(name: str, quantile: float | None = None):
     if name == "hist_gb":
         return HistGradientBoostingRegressor(max_iter=600, learning_rate=0.04, min_samples_leaf=30,
                                              l2_regularization=1.0, random_state=SEED)
-    if name == "xgboost":
+    if name in ("xgboost", "xgboost_reg", "xgboost_forte"):
         import xgboost as xgb
-        return xgb.XGBRegressor(n_estimators=700, learning_rate=0.03, max_depth=6, subsample=0.8,
-                                colsample_bytree=0.7, min_child_weight=5, reg_lambda=2.0, n_jobs=4,
-                                random_state=SEED)
+        params = dict(n_estimators=700, learning_rate=0.03, max_depth=6, subsample=0.8, colsample_bytree=0.7,
+                      min_child_weight=5, reg_lambda=2.0, n_jobs=4, random_state=SEED, tree_method="hist")
+        if name == "xgboost_reg":  # mesma lógica do lightgbm_reg: árvores rasas e folhas com mais amostras
+            params.update(max_depth=4, min_child_weight=30, colsample_bytree=0.5, reg_lambda=5.0, reg_alpha=0.5)
+        if name == "xgboost_forte":  # ainda mais raso/regularizado (sugestão de teste do usuário)
+            params.update(n_estimators=800, max_depth=3, min_child_weight=60, subsample=0.7, colsample_bytree=0.4,
+                          colsample_bynode=0.7, reg_lambda=10.0, reg_alpha=1.0, gamma=0.02)
+        if quantile is not None:
+            params.update(objective="reg:quantileerror", quantile_alpha=quantile)
+        return xgb.XGBRegressor(**params)
     if name in ("lightgbm", "lightgbm_reg"):
         import lightgbm as lgb
         params = dict(n_estimators=900, learning_rate=0.03, num_leaves=31, min_child_samples=30,
@@ -116,6 +123,13 @@ def make_model(name: str, quantile: float | None = None):
         if quantile is not None:
             params.update(objective="quantile", alpha=quantile)
         return lgb.LGBMRegressor(**params)
+    if name == "mlp":
+        # rede neural pequena para dados tabulares: 2 camadas ocultas, L2 e early stopping
+        from sklearn.neural_network import MLPRegressor
+        return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler(),
+                             MLPRegressor(hidden_layer_sizes=(64, 32), alpha=1e-2, learning_rate_init=1e-3,
+                                          batch_size=128, max_iter=400, early_stopping=True, validation_fraction=0.15,
+                                          n_iter_no_change=20, random_state=SEED))
     if name == "ensemble_rf_lgbm":
         return Ensemble([make_model("random_forest"), make_model("lightgbm_reg")])
     raise ValueError(name)
