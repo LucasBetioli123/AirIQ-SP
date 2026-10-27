@@ -1,0 +1,7 @@
+regime,modelo,n,PM2.5_medio,MAE,vies,AOD_medio,frac_sem_AOD_obs
+PM2.5 alto sem fogo (≥ p95),IDW (baseline),179,38.934,7.329,-5.808,0.312,0.117
+PM2.5 alto sem fogo (≥ p95),LightGBM regularizado (offset IDW),179,38.934,9.279,-7.790,0.312,0.117
+fumaça (fogo a favor do vento ≥ p95),IDW (baseline),393,34.324,8.028,1.310,0.279,0.104
+fumaça (fogo a favor do vento ≥ p95),LightGBM regularizado (offset IDW),393,34.324,8.853,-3.684,0.279,0.104
+normal,IDW (baseline),7286,11.851,2.737,0.837,0.400,0.532
+normal,LightGBM regularizado (offset IDW),7286,11.851,2.523,-0.475,0.400,0.532

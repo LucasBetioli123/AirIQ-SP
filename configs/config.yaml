@@ -16,9 +16,16 @@ period:
   end: "2023-04-30"
 
 split:
-  # validação espaço-temporal: estação nunca vista + período posterior
-  # o teste começa em jul/2022 para incluir a estação seca (queimadas/episódios de fumaça);
-  # o treino cobre a estação seca de 2021 inteira
+  # validação espaço-temporal: estação nunca vista (GroupKFold) + período posterior.
+  # Origem móvel com 2 cortes, sempre testando DEPOIS do treino. T1 testa a estação seca de
+  # 2021 (episódios de fumaça); T2 testa jul/2022-abr/2023. O arquivo OpenAQ tem poucos dias
+  # em jul-set/2022, por isso um corte só deixaria o teste quase todo na estação chuvosa.
+  temporal_folds:
+    - {name: T1, train_end: "2021-05-31", calib_start: "2021-06-01", calib_end: "2021-06-30",
+       test_start: "2021-07-01", test_end: "2021-12-31"}
+    - {name: T2, train_end: "2022-03-31", calib_start: "2022-04-01", calib_end: "2022-06-30",
+       test_start: "2022-07-01", test_end: "2023-04-30"}
+  # modelos finais (mapa/API/agente): treinados até aqui
   train_end: "2022-03-31"
   calib_start: "2022-04-01"
   calib_end: "2022-06-30"
@@ -28,8 +35,8 @@ split:
 
 sample:
   # amostra pequena versionada em data/sample para rodar tudo em poucos minutos
-  start: "2022-01-01"
-  end: "2022-10-31"
+  start: "2021-04-01"
+  end: "2021-10-31"
 
 openaq:
   bucket_url: "https://openaq-data-archive.s3.amazonaws.com/"

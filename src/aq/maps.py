@@ -15,6 +15,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import shapely  # noqa: E402
 
+from src.aq import plotstyle as ps  # noqa: E402
 from src.aq.aqi import BANDS  # noqa: E402
 from src.aq.data.geo import sp_boundary  # noqa: E402
 from src.aq.predict import predict_points, station_obs  # noqa: E402
@@ -44,21 +45,19 @@ def make_map(date: str, horizon: int = 0, out: str | None = None):
     obs = obs[obs["date"] == target]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.6), constrained_layout=True)
-    edges = [0] + [b[1] for b in BANDS[:-1]] + [200]
-    cmap = matplotlib.colors.ListedColormap(["#2e9e4f", "#f2c12e", "#f07c22", "#d6322f", "#7d2a8a"])
-    norm = matplotlib.colors.BoundaryNorm(edges, cmap.N)
+    edges = [0] + [b[1] for b in BANDS[:-1]] + [10000]
     ext = [lons[0], lons[-1], lats[0], lats[-1]]
-    # mapa contínuo (viridis) + contorno das faixas do IQAr
-    im = axes[0].imshow(pm, origin="lower", extent=ext, cmap="viridis", vmin=0, vmax=max(40, np.nanpercentile(pm, 99)))
-    axes[0].contour(LO, LA, np.nan_to_num(pm, nan=-1), levels=[25, 50], colors=["white", "red"], linewidths=0.8)
+    # magnitude contínua (um só matiz) + contornos nos limites das faixas do IQAr
+    im = axes[0].imshow(pm, origin="lower", extent=ext, cmap=ps.SEQ_PM, vmin=0, vmax=max(40, np.nanpercentile(pm, 99)))
+    axes[0].contour(LO, LA, np.nan_to_num(pm, nan=-1), levels=[25, 50], colors=[ps.BLUE, "#7d2a8a"], linewidths=1)
     plt.colorbar(im, ax=axes[0], label="PM2.5 (µg/m³)")
     if len(obs):
-        axes[0].scatter(obs["lon"], obs["lat"], c=obs["pm25"], cmap="viridis", vmin=im.norm.vmin, vmax=im.norm.vmax,
+        axes[0].scatter(obs["lon"], obs["lat"], c=obs["pm25"], cmap=ps.SEQ_PM, vmin=im.norm.vmin, vmax=im.norm.vmax,
                         edgecolor="k", s=40, label="estações CETESB (medido)")
         axes[0].legend(loc="lower left", fontsize=8)
     tipo = "estimativa" if horizon == 0 else f"previsão D+{horizon} (feita em {date})"
-    axes[0].set_title(f"PM2.5 {tipo} - {target.date()}\n(linhas: 25 e 50 µg/m³, limites Boa/Moderada/Ruim)")
-    im2 = axes[1].imshow(wid, origin="lower", extent=ext, cmap="magma_r")
+    axes[0].set_title(f"PM2.5 {tipo} - {target.date()}\n(contornos: 25 e 50 µg/m³, limites Boa/Moderada/Ruim)")
+    im2 = axes[1].imshow(wid, origin="lower", extent=ext, cmap=ps.SEQ_UNC)
     plt.colorbar(im2, ax=axes[1], label="largura do IC 90% (µg/m³)")
     st = obs[["lon", "lat"]].drop_duplicates() if len(obs) else station_obs()[["lon", "lat"]].drop_duplicates()
     axes[1].scatter(st["lon"], st["lat"], marker="^", c="cyan", edgecolor="k", s=30, label="estações")
@@ -76,7 +75,7 @@ def make_map(date: str, horizon: int = 0, out: str | None = None):
     plt.close(fig)
     # tabela-resumo do mapa (fração da área por faixa)
     bands = pd.cut(pm[inside], bins=edges, labels=[b[2] for b in BANDS], include_lowest=True)
-    summary = bands.value_counts(normalize=True).round(4).to_dict()
+    summary = pd.Series(bands).value_counts(normalize=True).round(4).to_dict()
     print(f"mapa salvo em {out} | área por faixa: {summary} | largura média IC: {np.nanmean(wid):.1f}")
     return out
 
