@@ -10,7 +10,7 @@ COPY requirements.txt requirements-llm.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 # llama.cpp genérico para x86-64 (sem -march=native, para rodar em qualquer CPU com AVX2)
 RUN CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON" \
-        pip install --no-cache-dir -r requirements-llm.txt
+        pip install --no-cache-dir -r requirements-llm.txt && pip install --no-cache-dir -r requirements-nn.txt
 COPY . .
 ENV PYTHONPATH=/app PY=python
 CMD ["make", "help"]

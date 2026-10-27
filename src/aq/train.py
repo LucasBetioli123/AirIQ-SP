@@ -190,7 +190,7 @@ def fit_final(df: pd.DataFrame, fc: pd.DataFrame):
     ycf, locf, hicf, _ = crossfit_scores(f, FC_FEATURES_UNMON, k_inner=5, target="pm25_next", lag_col="pm25_today")
     cqr_fc = CQR(ALPHA).calibrate(ycf, locf, hicf)
 
-    mdir = data_path("models", "x").parent
+    mdir = data_path("models")
     joblib.dump({"point": point, "quantiles": qt, "cqr_q": cqr.q, "features": EST_FEATURES, "modelo": POINT_LABEL},
                 mdir / "estimativa.joblib")
     joblib.dump({"point_mon": fc_mon, "point_unmon": fc_unmon, "quantiles": qt_fc, "cqr_q": cqr_fc.q,

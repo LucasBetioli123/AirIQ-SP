@@ -88,10 +88,15 @@ def make_model(name: str, quantile: float | None = None):
     from sklearn.impute import SimpleImputer
     from sklearn.linear_model import RidgeCV
     from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import QuantileTransformer
+
+    # modelos contínuos: QuantileTransformer (robusto às caudas longas de fogo/NO2; com
+    # StandardScaler, Ridge e MLP extrapolavam e divergiam nos episódios)
+    def qnorm():
+        return QuantileTransformer(n_quantiles=200, output_distribution="normal", random_state=SEED)
 
     if name == "ridge":
-        return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler(),
+        return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), qnorm(),
                              RidgeCV(alphas=np.logspace(-1, 4, 20)))
     if name == "random_forest":
         return make_pipeline(SimpleImputer(strategy="median"),
@@ -126,10 +131,13 @@ def make_model(name: str, quantile: float | None = None):
     if name == "mlp":
         # rede neural pequena para dados tabulares: 2 camadas ocultas, L2 e early stopping
         from sklearn.neural_network import MLPRegressor
-        return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler(),
+        return make_pipeline(SimpleImputer(strategy="median", add_indicator=True), qnorm(),
                              MLPRegressor(hidden_layer_sizes=(64, 32), alpha=1e-2, learning_rate_init=1e-3,
                                           batch_size=128, max_iter=400, early_stopping=True, validation_fraction=0.15,
                                           n_iter_no_change=20, random_state=SEED))
+    if name == "mlp_tanh":
+        from src.aq.nn_torch import TorchTanhRegressor  # PyTorch: saída tanh, alvo em [-0.7, 0.7]
+        return TorchTanhRegressor(hidden=(64, 32), out_range=0.7, weight_decay=1e-2, dropout=0.1, seed=SEED)
     if name == "ensemble_rf_lgbm":
         return Ensemble([make_model("random_forest"), make_model("lightgbm_reg")])
     raise ValueError(name)
