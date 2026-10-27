@@ -1,0 +1,90 @@
+"""Testa o fluxo do agente (plano -> ferramentas -> resposta citada -> validação -> log)
+com um LLM falso e uma base normativa FICTÍCIA. Não depende de modelos nem de rede."""
+import json
+
+import pytest
+
+from src.rag import agent as A
+from src.rag.llm import LLMResult
+
+FAKE_CHUNKS = [
+    {"id": "res_999_2020:art3", "doc_id": "res_999_2020", "sigla": "Resolução Teste 999/2020", "titulo": "Teste",
+     "path": "", "label": "art. 3º", "dispositivos": ["art. 3º"], "text": "Art. 3º O padrão de 24 horas é 60 µg/m³.",
+     "vigencia_inicio": "2020-01-01", "vigencia_fim": None, "url": "http://exemplo", "revogado": False, "meta": {}},
+]
+
+
+class FakeLLM:
+    name = "fake"
+
+    def __init__(self, answers):
+        self.answers = list(answers)
+
+    def chat_json(self, system, user, schema, max_tokens=700, temperature=0.0):
+        data = self.answers.pop(0)
+        return LLMResult(json.dumps(data), data, 10, 5, 0.01, "fake", 0.0)
+
+
+@pytest.fixture
+def patched(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_LOG", str(tmp_path / "runs.jsonl"))
+    monkeypatch.setattr(A, "reference_today", lambda: __import__("pandas").Timestamp("2023-04-03"))
+
+    def fake_search(q, data=None, k=4, mode=None):
+        c = FAKE_CHUNKS[0]
+        return [{"id": c["id"], "citacao": f"{c['sigla']}, {c['label']}", "doc_id": c["doc_id"], "dispositivos": [],
+                 "texto": c["text"], "url": c["url"], "score": 0.9, "rerank": 0.9, "rank_bm25": 1, "rank_dense": 1}]
+
+    calls = []
+
+    def fake_pm25(local, data=None, horizonte=0):
+        calls.append((local, data, horizonte))
+        return {"local": local, "pm25_ug_m3": 18.2, "intervalo_90": [11.0, 29.5], "data_alvo": "2023-04-04"}
+
+    monkeypatch.setattr(A, "buscar_normas", fake_search)
+    monkeypatch.setattr(A, "estimar_pm25", fake_pm25)
+    return tmp_path, calls
+
+
+def test_agent_calls_tool_and_cites(patched):
+    tmp, calls = patched
+    llm = FakeLLM([
+        {"buscas": ["padrão 24 horas"], "pm25": [{"local": "Campinas", "data": "amanhã", "horizonte": 1}]},
+        {"encontrado": True, "citacoes": [1],
+         "resposta": "Previsão de 18.2 µg/m³ (IC 90%: 11.0-29.5) [F1]; não ultrapassa o padrão de 60 µg/m³ [1]."},
+    ])
+    ag = A.Agent.__new__(A.Agent)
+    ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
+    r = ag.ask("PM2.5 amanhã em Campinas ultrapassa o padrão?")
+    assert calls == [("Campinas", "amanhã", 1)]
+    assert r["encontrado"] and r["citacoes"] == [1] and r["validacao"]["ok"]
+    assert "Resolução Teste 999/2020, art. 3º" in r["resposta"]
+    log = [json.loads(l) for l in open(tmp / "runs.jsonl", encoding="utf-8")]
+    assert log[0]["ferramentas"][-1]["ferramenta"] == "estimar_pm25" and "tempo_total_s" in log[0]
+
+
+def test_agent_flags_unsupported_number(patched):
+    llm = FakeLLM([
+        {"buscas": ["padrão"], "pm25": []},
+        {"encontrado": True, "citacoes": [1], "resposta": "O padrão é 75 µg/m³ [1]."},
+        {"encontrado": True, "citacoes": [1], "resposta": "O padrão é 75 µg/m³ [1]."},
+    ])
+    ag = A.Agent.__new__(A.Agent)
+    ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
+    r = ag.ask("Qual o padrão?")
+    assert "75" in r["validacao"]["numeros_sem_suporte"]
+
+
+def test_agent_refuses_when_not_found(patched):
+    llm = FakeLLM([{"buscas": ["ruído"], "pm25": []}, {"encontrado": False, "citacoes": [], "resposta": ""}])
+    ag = A.Agent.__new__(A.Agent)
+    ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
+    r = ag.ask("Qual o limite de ruído noturno?")
+    assert not r["encontrado"] and r["resposta"].startswith("Não encontrei")
+
+
+def test_validate_numbers():
+    src = [{"texto": "Art. 4º O prazo é de 3 (três) anos e o padrão 60 µg/m³.", "citacao": "Res X, art. 4º"}]
+    assert A.validate("O prazo é de 3 anos e o padrão 60 µg/m³ [1].", [1], src, [], "q")["ok"]
+    assert not A.validate("O padrão é 61 µg/m³ [1].", [1], src, [], "q")["ok"]
+    assert A.validate("Ver [7].", [7], src, [], "q")["citacoes_invalidas"] == [7]
