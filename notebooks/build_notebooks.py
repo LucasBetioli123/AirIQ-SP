@@ -40,7 +40,7 @@ NB1 = [
     "lvl = df['aod_fill_level'].value_counts(normalize=True).sort_index().rename('fração'); display(lvl.to_frame())\n"
     "df.assign(mes=df.date.dt.month).groupby('mes')['aod'].apply(lambda s: s.notna().mean()).rename('AOD observado na célula (fração)').to_frame().T.round(2)",
     "md:## Coerência física: correlações com o PM2.5 medido",
-    "cols = ['aod','aod_filled','aod_dry_blh','no2_filled','blh_pm','log_vent','rh','tp','fire_up_400km','idw']\n"
+    "cols = ['aod','aod_filled','aod_dry_blh','no2_filled','blh_pm','log_vent','rh','tp','fire_up_400km','built_5km']\n"
     "df[cols + ['pm25']].corr(method='spearman')['pm25'].drop('pm25').sort_values().round(3).to_frame('Spearman com PM2.5')",
 ]
 
