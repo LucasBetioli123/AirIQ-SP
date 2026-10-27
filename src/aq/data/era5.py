@@ -51,6 +51,13 @@ def _main_var(ds: xr.Dataset) -> str:
     return next(v for v in ds.data_vars if ds[v].ndim >= 3)
 
 
+def _atomic_write(da: xr.DataArray, out) -> None:
+    """Grava em .tmp e renomeia: um processo interrompido não deixa arquivo truncado."""
+    tmp = out.with_suffix(".tmp")
+    da.to_dataset().to_netcdf(tmp)
+    tmp.rename(out)
+
+
 def fetch_an(var: str, code: str, month: pd.Timestamp) -> str:
     out = data_path("raw", "era5", f"{var}_{month:%Y%m}.nc")
     if out.exists():
@@ -59,7 +66,7 @@ def fetch_an(var: str, code: str, month: pd.Timestamp) -> str:
     keys, _ = s3_list(BUCKET, f"e5.oper.an.sfc/{ym}/e5.oper.an.sfc.{code}.")
     ds = _open(keys[0][0])
     da = ds[_main_var(ds)].sel(latitude=LAT_SL, longitude=LON_SL).load().rename(var)
-    da.to_dataset().to_netcdf(out)
+    _atomic_write(da, out)
     return str(out)
 
 
@@ -83,7 +90,7 @@ def fetch_accum(var: str, code: str, month: pd.Timestamp) -> str:
                                   name=var))
     da = xr.concat(parts, "time").sortby("time")
     da = da.sel(time=~da.get_index("time").duplicated())
-    da.to_dataset().to_netcdf(out)
+    _atomic_write(da, out)
     return str(out)
 
 

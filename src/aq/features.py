@@ -145,20 +145,33 @@ def no2_features(ctx, dates, lats, lons) -> pd.DataFrame:
     return pd.DataFrame({"no2": a["no2"], "no2_w9": a["no2_w9"], "no2_filled": filled})
 
 
+def _bilinear_index(axis: np.ndarray, x: np.ndarray):
+    """Índice inferior e peso para interpolação linear numa grade regular crescente."""
+    step = axis[1] - axis[0]
+    f = np.clip((x - axis[0]) / step, 0, len(axis) - 1 - 1e-9)
+    i0 = np.floor(f).astype(int)
+    return i0, f - i0
+
+
 def met_features(ctx, dates, lats, lons, prefix: str = "") -> pd.DataFrame:
+    """ERA5 por interpolação bilinear (implementação vetorizada: o `interp` do xarray com
+    índices pontuais crescia de forma quadrática com o número de pontos)."""
     e = ctx["era5"]
-    t = xr.DataArray(pd.DatetimeIndex(dates), dims="p")
-    la = xr.DataArray(lats, dims="p")
-    lo = xr.DataArray(lons, dims="p")
-    valid_t = np.isin(pd.DatetimeIndex(dates).values, e.time.values)
+    times = pd.DatetimeIndex(e.time.values)
+    ti = times.get_indexer(pd.DatetimeIndex(dates))
+    valid_t = ti >= 0
+    iy, wy = _bilinear_index(e.lat.values, np.asarray(lats))
+    ix, wx = _bilinear_index(e.lon.values, np.asarray(lons))
     out = {}
     for v in MET_VARS:
+        if v == "wd":  # direção não se interpola linearmente; vem de u/v abaixo
+            continue
         arr = np.full(len(lats), np.nan, dtype="float32")
         if valid_t.any():
-            src = e[v]
-            if v == "wd":  # direção não se interpola linearmente; usa u/v
-                continue
-            arr[valid_t] = src.sel(time=t[valid_t]).interp(lat=la[valid_t], lon=lo[valid_t]).values
+            a = e[v].values  # (time, lat, lon)
+            t, y0, x0, fy, fx = ti[valid_t], iy[valid_t], ix[valid_t], wy[valid_t], wx[valid_t]
+            arr[valid_t] = ((1 - fy) * (1 - fx) * a[t, y0, x0] + (1 - fy) * fx * a[t, y0, x0 + 1] +
+                            fy * (1 - fx) * a[t, y0 + 1, x0] + fy * fx * a[t, y0 + 1, x0 + 1])
         out[prefix + v] = arr
     out[prefix + "wd"] = (np.degrees(np.arctan2(-out[prefix + "u10"], -out[prefix + "v10"])) + 360) % 360
     return pd.DataFrame(out)
