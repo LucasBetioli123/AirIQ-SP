@@ -125,6 +125,8 @@ coletores usam processos, não threads, porque o HDF5 não é *thread-safe* (tiv
 | Climatologia mensal | 6,26 | 9,34 | −0,07 | −101% | 90,2% |
 | *Validação aleatória (otimista, só referência)* | *2,15* | *3,39* | *0,836* | | |
 
+**Reprodutibilidade**: `make all-sample` rodado de novo num clone limpo, no Windows (14 min), refaz esta tabela. O LightGBM escolhido, os baselines, a MLP e as variantes de LightGBM saem idênticos até a 4ª casa. XGBoost, Random Forest e krigagem variam até 0,03 µg/m³ (o XGBoost reg. forte deu 3,06), por causa das threads e da plataforma. A conclusão continua a mesma: o LightGBM é o melhor e os ganhos sobre o IDW são pequenos no agregado.
+
 **Recortes** (`benchmark_estimativa_recortes.csv`), MAE em µg/m³:
 
 | | IDW | Krigagem | **LightGBM reg. offset** | XGBoost forte | MLP tanh |
