@@ -299,7 +299,58 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 
 **LLM configurável** (`LLM_PROVIDER`): `llamacpp` (padrão, GGUF local, grátis), `ollama` (local, grátis) ou `openai_compat` (Groq, Gemini, OpenRouter, com camadas gratuitas). Os provedores remotos recebem `response_format=json_object`; no llama.cpp a saída é restrita por gramática JSON, o que torna modelos de 4B confiáveis no formato.
 
-<!--P2_AVALIACAO-->
+### 5.6 Avaliação (`eval/rag_questions.yaml`, `reports/metrics/rag_eval_*.csv`, `logs/eval_runs_*.jsonl`)
+
+**Conjunto: 37 perguntas escritas por mim**, com gabarito conferido no texto das normas:
+
+| Tipo | n | O que testa |
+|---|---|---|
+| fato | 17 | um dispositivo (valor do Anexo I, definição, pena, competência…) |
+| multi | 6 | juntar 2 trechos (ex.: etapas do art. 4º + valores do Anexo I; 491 × 506) |
+| temporal | 5 | vigência ("em 2015…", "a 03/1990 ainda vale?", "a 491 continua em vigor?") |
+| ferramenta | 3 | PM2.5 do modelo da Parte 1 + padrão legal (Campinas amanhã; Ribeirão Preto; Sorocaba no episódio de fumaça de ago/2021) |
+| sem resposta | 6 | ruído, água, validade de licença, NOx, decreto estadual, a 513/2026 (que existe, mas não está na base) |
+
+**Métricas:**
+- **Acerto**: a resposta não é recusa e contém **todos** os fatos-chave do gabarito (números e termos normalizados; um fato pode ter alternativas). Nas perguntas de ferramenta, também precisa ter chamado `estimar_pm25` com o local certo. **Acerto parcial** é a fração dos fatos presentes.
+- **Citação**: *precisão* é a fração dos trechos citados que são do documento-ouro; *recall* é a fração dos trechos-ouro que foram citados.
+- **Fidelidade**:
+  - (a) checagem automática, sem LLM: toda citação existe, e todo número da resposta aparece nos trechos citados, na ferramenta ou na pergunta;
+  - (b) **LLM-juiz de outra família** (Gemma3-4B julgando o Qwen3-4B) dá uma nota de 0 a 1 para "tudo o que a resposta afirma está nos trechos que ela cita?". O juiz recebe só os trechos citados e a saída da ferramenta.
+- **Recusa**: nas sem resposta, a taxa de recusa correta; nas outras, a taxa de recusa indevida.
+- **Tempo e tokens** por pergunta, em CPU.
+
+**Resultado: Qwen3-4B-Instruct-2507 (Q4_K_M) + BM25 + Granite + reranker**, rodada completa (`rag_eval_detalhe_qwen3-4b-instruct-2507-q4_k_m.csv`):
+
+| Métrica | Valor |
+|---|---|
+| **Acerto** (31 perguntas com resposta) | **87,1%** (27/31); parcial 91,9% |
+| por tipo | fato 17/17 · temporal 5/5 · multi 4/6 · ferramenta 1/3 |
+| Citação: precisão / recall | 0,89 / 0,95 |
+| Fidelidade automática / LLM-juiz | 1,00 / 1,00 (nas respostas dadas) |
+| **Recusa correta** (6 sem resposta) | **6/6**: 5 pelo limiar do reranker, sem chamar o LLM; 1 pelo próprio LLM (validade da LO) |
+| Recusa indevida | 2/31 (6,5%) |
+| Tempo médio / tokens médios | 293 s / 2.345 por pergunta (3 h para as 37) |
+| Custo | US$ 0 (local) |
+
+**Os 4 erros**, todos lidos no log:
+1. **q30 (Ribeirão Preto)**: o plano veio vazio, o LLM não pediu a ferramenta e o agente recusou.
+2. **q31 (Sorocaba, 24/08/2021)**: também sem ferramenta. O modelo respondeu só com o padrão legal; sem a estimativa, a resposta não conta.
+3. **q23 ("padrão de MP2,5 em vigor hoje")**: o plano inventou uma "CONAMA 375/2006", e o art. 4º da 506 (cronograma) não entrou no contexto. O LLM disse PI-1 = 60 com uma data errada, a validação barrou os números e a saída final virou recusa. Errou, mas não entregou informação falsa.
+4. **q20 (competência do CONAMA)**: a resposta está certa (CONAMA, com base na Lei 6.938), mas não cita o art. 8º, que não foi recuperado.
+
+**Correções depois da rodada** (as 3 perguntas de ferramenta rodadas de novo: `rag_eval_detalhe_qwen3-4b_ferramenta_v2.csv`):
+- Quando a pergunta cita PM2.5/qualidade do ar, um município de SP e uma data, e o plano esquece a ferramenta, ela é **chamada por regra** (o log marca `ferramenta_por_regra`).
+- Numa rodada intermediária, o modelo escreveu que "51,4 µg/m³ ultrapassou o PI-1 de 60". Isso é falso, e o critério automático não pegou. A **comparação numérica saiu do LLM**: a ferramenta devolve "51,4 NÃO ultrapassa o PI-1 de 60…; ULTRAPASSA o PF de 25", e a resposta só copia.
+- Resultado: **ferramenta 3/3**, todas com a estimativa e a comparação certas. Com isso, o acerto estimado do sistema final é **29/31 (93,5%)**.
+- Na q31, a checagem automática ainda marcou uma citação [7] inexistente (havia 6 trechos). O juiz deu nota 0, mas as afirmações apontadas por ele estão na saída da ferramenta, então é limite do juiz de 4B.
+
+**Ajustes de gabarito/critério, feitos às claras** (`git log eval/`):
+- o fato-chave "emissão" da q13 virou o radical "emiss", porque a resposta certa dizia "emissões";
+- nas perguntas de ferramenta, o acerto passou a exigir a chamada, porque a q31 contava acerto citando só o PF.
+- As notas foram recalculadas a partir das respostas registradas (`--rescore`), sem rodar o LLM de novo.
+
+<!--P2_LLMS-->
 
 ## 6. O que foi descartado e por quê
 
