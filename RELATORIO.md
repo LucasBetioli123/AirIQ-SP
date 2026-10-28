@@ -268,7 +268,7 @@ Problemas que só apareceram com os textos reais, e o que fiz:
 
 ### 5.4 Recuperação (`src/rag/retrieve.py`, `reports/metrics/rag_retrieval.csv`)
 
-Método: as 31 perguntas do conjunto de avaliação que têm trecho-ouro. O **recall@k** é a fração dos trechos-ouro que aparecem no top-k, em média por pergunta; o **MRR** é a média de 1/posição do primeiro trecho-ouro. O filtro de vigência fica ligado em todos os casos, como no uso real. A latência é por consulta, em CPU (i5-9300H).
+Método: as 30 perguntas do conjunto de avaliação que têm trecho-ouro (das 31 com resposta, a q30 depende só da ferramenta de PM2.5). O **recall@k** é a fração dos trechos-ouro que aparecem no top-k, em média por pergunta; o **MRR** é a média de 1/posição do primeiro trecho-ouro. O filtro de vigência fica ligado em todos os casos, como no uso real. A latência é por consulta, em CPU (i5-9300H).
 
 | Configuração | recall@1 | recall@3 | **recall@5** | hit@5 | MRR | latência |
 |---|---|---|---|---|---|---|
