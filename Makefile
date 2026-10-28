@@ -79,8 +79,8 @@ rag-eval: ## avaliação ponta a ponta do agente (respostas, citações, recusa)
 ask: ## pergunta ao agente: make ask Q="..."
 	$(PY) -m src.rag.cli "$(Q)"
 
-chat: ## interface de chat (Gradio) em :7860
-	$(PY) -m src.rag.app
+chat: ## interface de chat (FastAPI + HTML) em :7860
+	$(PY) -m uvicorn src.rag.app:app --host 0.0.0.0 --port 7860
 
 # ---------------- Engenharia ----------------
 notebooks: ## executa os notebooks com saída visível
