@@ -43,6 +43,11 @@ class Embedder:
         self.fmt_q, self.fmt_d = FORMATS[_family(self.path)]
         self.llm = Llama(model_path=self.path, embedding=True, n_ctx=n_ctx, n_batch=n_ctx, n_ubatch=n_ctx,
                          n_threads=os.cpu_count(), verbose=False)
+        train_ctx = self.llm._model.n_ctx_train()
+        if train_ctx < n_ctx:  # ex.: Granite (512): além disso a posição sai do treino e o vetor degrada
+            n_ctx = train_ctx
+            self.llm = Llama(model_path=self.path, embedding=True, n_ctx=n_ctx, n_batch=n_ctx, n_ubatch=n_ctx,
+                             n_threads=os.cpu_count(), verbose=False)
         self.n_ctx = n_ctx
 
     def _embed(self, texts: list[str]) -> np.ndarray:
@@ -105,8 +110,11 @@ class Reranker:
                 toks = toks[:keep] + self.llm.tokenize(self.SUFFIX.encode(), add_bos=False, special=True)
             self.llm.reset()
             self.llm.eval(toks)
-            logits = np.asarray(self.llm.scores[self.llm.n_tokens - 1], dtype="float64")
-            a, b = logits[self.yes], logits[self.no]
+            # sem logits_all, o llama-cpp-python >= 0.3 não copia mais os logits para `scores`:
+            # lê os do último token direto do contexto
+            ptr = self.llm._ctx.get_logits_ith(-1)
+            logits = np.ctypeslib.as_array(ptr, shape=(self.llm.n_vocab(),))
+            a, b = float(logits[self.yes]), float(logits[self.no])
             out.append(1.0 / (1.0 + math.exp(b - a)))
         return np.asarray(out)
 
