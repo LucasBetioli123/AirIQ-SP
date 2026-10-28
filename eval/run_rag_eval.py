@@ -27,7 +27,7 @@ import pandas as pd
 
 from eval.bench_retrieval import gold_match, load_questions
 from src.common.config import data_path
-from src.rag.agent import Agent
+from src.rag.agent import Agent, blocked_by_validation
 
 
 def _norm(s: str) -> str:
@@ -151,11 +151,24 @@ def rescore(tag: str):
     for i, row in df.iterrows():
         q = next(q for q in qs.values() if q["id"] == row["id"])
         run = runs[q["pergunta"]]
-        if not q.get("deve_recusar"):
-            pres = [fact_present(f, run["resposta"]) for f in q.get("fatos_chave", [])]
-            df.at[i, "acerto"] = bool(run["encontrado"] and all(pres)) and \
+        found = bool(run["encontrado"])
+        if blocked_by_validation(run, run.get("validacao")):
+            # execução gravada antes da regra "número sem fonte depois da correção -> recusa"
+            # (src/rag/agent.py): a regra é determinística, então é aplicada aqui sobre o log
+            found = False
+            for c in ("cit_precisao", "cit_recall", "fidelidade_auto", "fidelidade_juiz"):
+                if c in df:
+                    df.at[i, c] = np.nan
+        df.at[i, "encontrado"] = found
+        if q.get("deve_recusar"):
+            df.at[i, "recusa_correta"] = not found
+        else:
+            pres = [fact_present(f, run["resposta"]) for f in q.get("fatos_chave", [])] if found else \
+                [False] * len(q.get("fatos_chave", []))
+            df.at[i, "acerto"] = bool(found and all(pres)) and \
                 (not q.get("deve_chamar_ferramenta") or bool(row.get("ferramenta_ok")))
-            df.at[i, "acerto_parcial"] = float(np.mean(pres)) if pres else float(run["encontrado"])
+            df.at[i, "acerto_parcial"] = float(np.mean(pres)) if pres else float(found)
+            df.at[i, "recusa_indevida"] = not found
     df.to_csv(p, index=False)
     return summarize(df, tag)
 

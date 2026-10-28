@@ -75,6 +75,8 @@ def test_agent_flags_unsupported_number(patched):
     ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
     r = ag.ask("Qual o padrão?")
     assert "75" in r["validacao"]["numeros_sem_suporte"]
+    # o número continuou sem fonte depois da correção: recusa em vez de entregar o valor
+    assert not r["encontrado"] and r["resposta"].startswith("Não encontrei") and r["bloqueado_pela_validacao"] == ["75"]
 
 
 def test_agent_refuses_when_not_found(patched):

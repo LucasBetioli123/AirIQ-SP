@@ -133,6 +133,10 @@ def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dic
             "ok": not bad and not unsupported}
 
 
+def blocked_by_validation(ans: dict, v: dict | None) -> bool:
+    return bool(ans.get("encontrado") and v and v.get("numeros_sem_suporte"))
+
+
 class Agent:
     def __init__(self, provider: str | None = None, model: str | None = None, rag_mode: str | None = None,
                  k_per_search: int = 4, max_sources: int | None = None):
@@ -212,6 +216,11 @@ class Agent:
                 v2 = validate(a2.data.get("resposta", ""), a2.data.get("citacoes", []), sources, tools_out, ref + question)
                 if v2["ok"] or len(v2["numeros_sem_suporte"]) < len(v["numeros_sem_suporte"]):
                     ans, v = a2.data, v2
+        if blocked_by_validation(ans, v):
+            # número sem fonte mesmo depois da correção: melhor recusar do que entregar um valor inventado
+            # (na avaliação, o modelo inventou "desde 12 de abril de 2024" para o padrão de MP2,5)
+            run["bloqueado_pela_validacao"] = v["numeros_sem_suporte"]
+            ans = {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
         return self._finish(run, t0, ans, sources, tools_out, question, validation=v, log=log)
 
     def _finish(self, run, t0, ans, sources, tools_out, question, validation=None, gate=False, log=True):
