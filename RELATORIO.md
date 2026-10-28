@@ -245,6 +245,32 @@ Problemas que só apareceram com os textos reais, e o que fiz:
 - Trecho revogado vai para o LLM com a nota "REVOGADO: vigente de … até …; revogado por …". É isso que responde "a 03/1990 ainda está em vigor?" sem inventar.
 - A ferramenta de PM2.5 compara com o padrão vigente **na data-alvo** (`src/aq/aqi.py`): PI-1 de 60 µg/m³ da 491 até 08/07/2024, PI-1 da 506 até 31/12/2024 e PI-2 de 50 µg/m³ a partir de 01/01/2025.
 
-<!--P2_RECUPERACAO-->
+### 5.4 Recuperação (`src/rag/retrieve.py`, `reports/metrics/rag_retrieval.csv`)
+
+Método: as 31 perguntas do conjunto de avaliação que têm trecho-ouro. O **recall@k** é a fração dos trechos-ouro que aparecem no top-k, em média por pergunta; o **MRR** é a média de 1/posição do primeiro trecho-ouro. O filtro de vigência fica ligado em todos os casos, como no uso real. A latência é por consulta, em CPU (i5-9300H).
+
+| Configuração | recall@1 | recall@3 | **recall@5** | hit@5 | MRR | latência |
+|---|---|---|---|---|---|---|
+| BM25 (stem PT + sinônimos de poluentes) | 0,617 | 0,850 | 0,917 | 0,933 | 0,797 | 8 ms |
+| Vetorial EmbeddingGemma-300M | 0,683 | 0,850 | 0,883 | 0,933 | 0,838 | 162 ms |
+| Vetorial Granite-multilingual-278M | 0,583 | 0,750 | 0,900 | 0,933 | 0,764 | 116 ms |
+| Vetorial Qwen3-Embedding-0.6B | 0,500 | 0,733 | 0,867 | 0,900 | 0,662 | 1.361 ms |
+| Híbrido RRF BM25 + EmbeddingGemma | 0,650 | 0,850 | 0,950 | 0,967 | 0,832 | 169 ms |
+| **Híbrido RRF BM25 + Granite (escolhido)** | **0,717** | 0,833 | **0,983** | **1,000** | **0,864** | 139 ms |
+| Híbrido RRF BM25 + Qwen3-Embedding | 0,600 | 0,833 | 0,917 | 0,933 | 0,782 | 1.410 ms |
+| *Ablação: o escolhido sem limite de 2 trechos por dispositivo* | 0,717 | 0,817 | 0,933 | 1,000 | 0,864 | 133 ms |
+| Híbrido Granite + reranker Qwen3-Reranker-0.6B (top 8) | 0,700 | 0,867 | 0,950 | 1,000 | 0,864 | 61,5 s |
+
+- **Por que híbrido.** O texto normativo mistura termos exatos ("MP2,5", "PI-1", "art. 14", números de resolução), em que o BM25 é forte, com paráfrases ("quem fiscaliza", "poluição que tira os moradores"), em que o vetorial é forte. O RRF combina os dois rankings sem calibrar escalas. Cada um sozinho chega a 0,90–0,92; juntos, 0,983.
+- **Por que Granite.** É o melhor no híbrido, o mais rápido e o menor. Indexar os 452 trechos levou 5,3 min, contra 6,6 min do EmbeddingGemma e ~25 min do Qwen3-Embedding, que era o padrão inicial. O Qwen3-Embedding ficou pior **e** 10x mais lento.
+- **Duas correções que vieram da análise dos erros**, e não de ajuste de parâmetro:
+  1. "segundo a CONAMA 491" não era reconhecido como menção à norma (o padrão exigia "491/2018"), e o filtro de vigência descartava os artigos revogados da 491. Agora a menção sem ano conta.
+  2. As 15 linhas do Anexo I repetem título e cabeçalho e ocupavam o top-5 inteiro, e o segundo trecho das perguntas compostas ficava de fora. Agora entram no máximo 2 trechos do mesmo dispositivo no topo. A ablação mostra o efeito: 0,933 → 0,983.
+  - Com as duas, o BM25 subiu de 0,850 para 0,917 e o híbrido de 0,867 para 0,983.
+- **O reranker não melhora a recuperação, mas fica pela recusa.** O recall@5 cai de 0,983 para 0,950, e cada reordenação custa ~60 s em CPU (o GGUF é F16, 7,7 s por trecho). Em compensação, o escore dele separa o que a base não cobre (`rag_limiar_recusa.csv`): as 31 perguntas respondíveis têm escore ≥ 0,93, e 5 das 6 sem resposta ficam abaixo de 0,65. Com limiar 0,8, o agente recusa essas 5 **sem chamar o LLM** e sem nenhuma recusa indevida. O cosseno do Granite separa pior: o limiar de 0,675 só pega 2 das 6. A exceção é a pergunta sobre a validade da licença de operação (0,99), porque o art. 19 do Decreto 99.274 define a LO, só não o prazo. Essa recusa fica a cargo do LLM.
+  - **Ressalva honesta:** o limiar foi calibrado no próprio conjunto de avaliação; com mais perguntas, ele deveria ser escolhido num conjunto separado.
+- O agente roda o reranker **uma vez**, sobre a união dos candidatos das buscas do plano e contra a pergunta original. Reordenar a cada busca multiplicaria o custo pelo número de buscas.
+
+<!--P2_AGENTE-->
 
 <!--FIM-->
