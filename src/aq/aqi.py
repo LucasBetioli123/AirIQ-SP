@@ -47,3 +47,21 @@ def legal_standard_24h(date) -> dict:
     if d < pd.Timestamp("2044-01-01"):
         return {"norma": "Resolução CONAMA 506/2024, art. 4º, § 3º e Anexo I", "etapa": "PI-3", "valor": 37.0}
     return {"norma": "Resolução CONAMA 506/2024, art. 4º, § 4º e Anexo I", "etapa": "PI-4", "valor": 25.0}
+
+
+# MP2,5 em 24 h, Anexo I de cada resolução (µg/m³), conferido no texto (data/raw/normas)
+STAGES_24H = {"Resolução CONAMA 491/2018": {"PI-1": 60, "PI-2": 50, "PI-3": 37, "PF": 25},
+              "Resolução CONAMA 506/2024": {"PI-1": 60, "PI-2": 50, "PI-3": 37, "PI-4": 25, "PF": 15}}
+
+
+def compare_stages(pm25: float, date) -> list[str]:
+    """Comparação já calculada da estimativa com todas as etapas da norma vigente na data. LLMs de 4B
+    erram comparação numérica ("51,4 ultrapassa 60"); com o texto pronto, a resposta só copia."""
+    std = legal_standard_24h(date)
+    if std["valor"] is None:
+        return []
+    norma = next(n for n in STAGES_24H if std["norma"].startswith(n))
+    fmt = lambda x: f"{x:.1f}".replace(".", ",")
+    return [f"{fmt(pm25)} µg/m³ {'ULTRAPASSA' if pm25 > v else 'NÃO ultrapassa'} o {etapa} de {v} µg/m³ "
+            f"({norma}, Anexo I){' - etapa vigente na data' if etapa == std['etapa'] else ''}"
+            for etapa, v in STAGES_24H[norma].items()]

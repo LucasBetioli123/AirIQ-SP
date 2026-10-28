@@ -100,7 +100,9 @@ def estimar_pm25(local: str, data: str | None = None, horizonte: int = 0) -> dic
         r = predict_one(lat, lon, str(ref.date()), h)
     except DataUnavailable as e:
         return {"erro": str(e)}
+    from src.aq.aqi import compare_stages
     r["local"] = nome
+    r["comparacao_com_padroes"] = compare_stages(r["pm25_ug_m3"], r["data_alvo"])
     r["data_referencia_sistema"] = str(reference_today().date())
     return r
 
