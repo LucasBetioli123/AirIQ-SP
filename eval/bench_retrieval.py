@@ -92,6 +92,12 @@ def main(emb_models=None, rerank=True, rerank_top=8):
         if best is None or (hyb["recall@5"], hyb["MRR"]) > (best[1]["recall@5"], best[1]["MRR"]):
             best = (name, hyb, r)
         print(_save(rows, gate).tail(2).to_string(index=False))
+    if best:  # ablação: o mesmo híbrido sem limitar trechos por dispositivo (diversify)
+        name, _, r = best
+        r.max_per_group = 0
+        rows.append({"config": f"Híbrido RRF (BM25 + {name}) sem diversificação", **evaluate(r, qs, "hybrid")})
+        r.max_per_group = 2
+        _save(rows, gate)
     # reranker só sobre o melhor híbrido: em CPU ele custa segundos por trecho
     if rerank and best and (ROOT / "models/rerank/qwen3-reranker-0.6b.gguf").exists():
         name, _, r = best

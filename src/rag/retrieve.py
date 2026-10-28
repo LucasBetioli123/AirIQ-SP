@@ -63,21 +63,37 @@ def index_text(c: dict) -> str:
     return f"{head}\n{c['text']}"
 
 
-# menções explícitas a uma norma: "491/2018", "nº 491", "03/1990", "6.938"
+# menções explícitas a uma norma: "491/2018", "nº 491", "03/1990", "6.938", e também sem o ano
+# ("CONAMA 491", "Resolução 506", "Lei 9605"), que é como a pergunta costuma vir
 def mentioned_docs(query: str, chunks: list[dict]) -> set[str]:
-    q = _strip(query.lower())
+    q = _strip(query.lower())  # sem acento; "nº" vira "no"
     out = set()
-    for c in chunks:
-        did = c["doc_id"]
-        m = re.match(r"[a-z]+_(\d+)_(\d{4})", did)
+    for did in {c["doc_id"] for c in chunks}:
+        m = re.match(r"([a-z]+)_(\d+)_(\d{4})", did)
         if not m:
             continue
-        num, year = str(int(m.group(1))), m.group(2)
+        tipo, num, year = m.group(1), str(int(m.group(2))), m.group(3)
+        dotted = rf"{num[:-3]}\.?{num[-3:]}" if len(num) > 3 else num
+        prefix = r"(?:conama|resolucao)\s*(?:conama\s*)?" if tipo == "conama" else rf"{tipo}\s*"
         pats = [rf"\b0*{num}\s*/\s*{year}\b", rf"\b0*{num}\s*/\s*{year[2:]}\b", rf"n[oº°]?\s*0*{num}\b.*{year}",
-                rf"\b{num[:-3]}\.{num[-3:]}\b" if len(num) > 3 else r"(?!x)x"]
+                rf"\b{prefix}(?:n[o.]?\s*)?0*{dotted}\b(?![.,/]?\d)"]
+        if len(num) > 3:
+            pats.append(rf"\b{num[:-3]}\.{num[-3:]}\b")
         if any(re.search(p, q) for p in pats):
             out.add(did)
     return out
+
+
+def diversify(hits: list, max_per_group: int = 2) -> list:
+    """No máximo `max_per_group` trechos do mesmo dispositivo (mesma tabela ou partes do mesmo artigo)
+    no topo; o excedente desce para o fim. Sem isso, as 15 linhas do Anexo I (que repetem título e
+    cabeçalho) tomam o top-k inteiro e o segundo trecho de uma pergunta composta fica de fora."""
+    head, tail, count = [], [], {}
+    for h in hits:
+        g = (h.chunk["doc_id"], h.chunk["label"].split(" (")[0])
+        count[g] = count.get(g, 0) + 1
+        (head if count[g] <= max_per_group else tail).append(h)
+    return head + tail
 
 
 def vigente(c: dict, date: pd.Timestamp) -> bool:
@@ -104,6 +120,7 @@ class Retriever:
         self.bm25 = BM25Okapi([tokenize(t) for t in self.texts], k1=1.2, b=0.6)
         self.rrf_k = rrf_k
         self.rerank_top = rerank_top or int(os.environ.get("RAG_RERANK_TOP", "8"))
+        self.max_per_group = int(os.environ.get("RAG_MAX_PER_GROUP", "2"))  # 0 desliga a diversificação
         self.emb = None
         if mode in ("dense", "hybrid", "hybrid_rerank", "dense_rerank"):
             from src.rag.embed import get_embedder
@@ -142,6 +159,8 @@ class Retriever:
         hits = [Hit(self.chunks[i], float(score[i]), int(r_bm[i]) + 1,
                     int(r_dn[i]) + 1 if cos is not None else None,
                     cos=float(cos[i]) if cos is not None else None) for i in order]
+        if self.max_per_group:
+            hits = diversify(hits, self.max_per_group)
         if mode.endswith("_rerank"):
             hits = rerank(query, hits, self.rerank_top)
         return hits[:k]

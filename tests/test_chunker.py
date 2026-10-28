@@ -91,3 +91,17 @@ def test_partial_revocation_and_numbered_items(tmp_path: Path):
     assert chunks["r5:item21"].vigencia_fim == "2018-11-20"
     assert chunks["r5:item21"].meta["revogado_por"] == "Res. 491, art. 14"
     assert chunks["r5:item2"].vigencia_fim is None
+
+
+def test_mentioned_docs_without_year_and_diversify():
+    from src.rag.retrieve import Hit, diversify, mentioned_docs
+
+    ch = [{"doc_id": d} for d in ("conama_491_2018", "conama_005_1989", "lei_9605_1998", "lei_6938_1981")]
+    assert mentioned_docs("ultrapassa o padrão da Resolução CONAMA 491?", ch) == {"conama_491_2018"}
+    assert mentioned_docs("o que diz a Lei nº 6.938?", ch) == {"lei_6938_1981"}
+    assert mentioned_docs("pena da Lei 9605", ch) == {"lei_9605_1998"}
+    assert mentioned_docs("PM2,5 de 24 horas acima de 491 µg/m³", ch) == set()
+    rows = [Hit({"doc_id": "d", "label": f"Anexo I (linha {i})"}, 1.0) for i in range(4)]
+    art = Hit({"doc_id": "d", "label": "art. 4º"}, 0.5)
+    out = diversify(rows + [art], max_per_group=2)
+    assert out[2] is art and len(out) == 5
