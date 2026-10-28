@@ -23,12 +23,22 @@ import uuid
 
 from src.rag.llm import get_llm
 from src.rag.runlog import log_run
-from src.rag.tools import buscar_normas, estimar_pm25, reference_today
+from src.rag.tools import buscar_normas_varias, estimar_pm25, reference_today
 
 REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
            "Lei 9.605/1998). Prefiro não responder sem uma fonte.")
+# limiares de recusa sem gerar (calibrados em reports/metrics/rag_limiar_recusa.csv): escore do reranker
+# (modo *_rerank) ou maior cosseno da busca vetorial (modos dense/hybrid)
 RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.08"))
+COS_MIN = float(os.environ.get("RAG_COS_MIN", "0.0"))
+
+
+def gate_score(sources: list[dict], mode: str) -> float | None:
+    """Relevância do melhor trecho para a recusa sem gerar. None = modo sem escore calibrável (BM25)."""
+    key = "rerank" if mode.endswith("_rerank") else "cos"
+    vals = [s[key] for s in sources if s.get(key) is not None]
+    return max(vals) if vals else None
 
 PLAN_SYS = """Você planeja como responder perguntas sobre normas ambientais brasileiras e qualidade do ar no estado de São Paulo.
 Ferramentas:
@@ -109,11 +119,12 @@ def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dic
 
 class Agent:
     def __init__(self, provider: str | None = None, model: str | None = None, rag_mode: str | None = None,
-                 k_per_search: int = 4, max_sources: int = 8):
+                 k_per_search: int = 4, max_sources: int | None = None):
         self.llm = get_llm(provider, model)
         self.rag_mode = rag_mode or os.environ.get("RAG_MODE", "hybrid_rerank")
         self.k = k_per_search
-        self.max_sources = max_sources
+        # cada trecho custa ~400-600 tokens de prompt; em CPU o prompt domina o tempo da resposta
+        self.max_sources = max_sources or int(os.environ.get("AGENT_MAX_SOURCES", "6"))
 
     def ask(self, question: str, log: bool = True) -> dict:
         t0 = time.time()
@@ -130,19 +141,13 @@ class Agent:
         date = norm_date(plan.get("data_da_norma"), question)
         # 2) ferramentas
         t1 = time.time()
-        sources, seen = [], set()
-        best = 0.0
-        for q in buscas[:4]:
-            hs = buscar_normas(q, data=date, k=self.k, mode=self.rag_mode)
+        # união dos candidatos de todas as consultas; o reranker (se houver) roda uma vez só
+        sources, per_query = buscar_normas_varias(buscas[:4], question, data=date, k=self.k, mode=self.rag_mode)
+        for q, ids in per_query.items():
             run["ferramentas"].append({"ferramenta": "buscar_normas", "args": {"consulta": q, "data": date},
-                                       "resultado": [{"id": h["id"], "score": h["score"]} for h in hs]})
-            for h in hs:
-                best = max(best, h["rerank"] if h["rerank"] is not None else 1.0)
-                if h["id"] not in seen:
-                    seen.add(h["id"])
-                    sources.append(h)
-        # ordena por relevância e limita o contexto
-        sources = sorted(sources, key=lambda h: -(h["rerank"] if h["rerank"] is not None else h["score"]))[: self.max_sources]
+                                       "resultado": ids})
+        sources = sources[: self.max_sources]
+        best = gate_score(sources, self.rag_mode)
         tools_out = []
         for c in plan.get("pm25", [])[:3]:
             r = estimar_pm25(c.get("local", ""), c.get("data"), int(c.get("horizonte", 0) or 0))
@@ -151,8 +156,9 @@ class Agent:
         run["tempo_ferramentas_s"] = round(time.time() - t1, 2)
         run["trechos"] = [{"n": i + 1, "id": s["id"], "citacao": s["citacao"], "score": s["score"], "rerank": s["rerank"]}
                           for i, s in enumerate(sources)]
+        run["escore_relevancia"] = best
         # recusa sem gerar se a base claramente não cobre e não há ferramenta
-        if not tools_out and self.rag_mode.endswith("rerank") and best < RERANK_MIN:
+        if not tools_out and best is not None and best < (RERANK_MIN if self.rag_mode.endswith("rerank") else COS_MIN):
             return self._finish(run, t0, {"encontrado": False, "resposta": REFUSAL, "citacoes": []}, sources, tools_out,
                                 question, gate=True, log=log)
         # 3) resposta

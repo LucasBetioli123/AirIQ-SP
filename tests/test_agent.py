@@ -30,10 +30,12 @@ def patched(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_LOG", str(tmp_path / "runs.jsonl"))
     monkeypatch.setattr(A, "reference_today", lambda: __import__("pandas").Timestamp("2023-04-03"))
 
-    def fake_search(q, data=None, k=4, mode=None):
+    def fake_search(consultas, pergunta, data=None, k=4, mode=None):
         c = FAKE_CHUNKS[0]
-        return [{"id": c["id"], "citacao": f"{c['sigla']}, {c['label']}", "doc_id": c["doc_id"], "dispositivos": [],
-                 "texto": c["text"], "url": c["url"], "score": 0.9, "rerank": 0.9, "rank_bm25": 1, "rank_dense": 1}]
+        hit = {"id": c["id"], "citacao": f"{c['sigla']}, {c['label']}", "doc_id": c["doc_id"], "dispositivos": [],
+               "texto": c["text"], "url": c["url"], "score": 0.9, "rerank": 0.9, "cos": 0.8, "rank_bm25": 1,
+               "rank_dense": 1}
+        return [hit], {q: [c["id"]] for q in consultas}
 
     calls = []
 
@@ -41,7 +43,7 @@ def patched(monkeypatch, tmp_path):
         calls.append((local, data, horizonte))
         return {"local": local, "pm25_ug_m3": 18.2, "intervalo_90": [11.0, 29.5], "data_alvo": "2023-04-04"}
 
-    monkeypatch.setattr(A, "buscar_normas", fake_search)
+    monkeypatch.setattr(A, "buscar_normas_varias", fake_search)
     monkeypatch.setattr(A, "estimar_pm25", fake_pm25)
     return tmp_path, calls
 
@@ -88,3 +90,14 @@ def test_validate_numbers():
     assert A.validate("O prazo é de 3 anos e o padrão 60 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert not A.validate("O padrão é 61 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert A.validate("Ver [7].", [7], src, [], "q")["citacoes_invalidas"] == [7]
+
+
+def test_norm_date_and_query_cleanup():
+    assert A.norm_date("2015-06-01", "x") == "2015-06-01"
+    assert A.norm_date("2015", "x") == "2015-07-01"
+    assert A.norm_date(None, "Em 2015, qual resolução definia os padrões?") == "2015-07-01"
+    # o ano no número da norma não é data de vigência
+    assert A.norm_date(None, "O que diz a Resolução CONAMA 491/2018?") is None
+    assert A.norm_date("", "Em 2021-08-24 o ar em Sorocaba atendia ao padrão?") is None
+    assert A._clean_query('buscar_normas("padrão de MP2,5")') == "padrão de MP2,5"
+    assert A._clean_query("padrão de MP2,5 (24 h)") == "padrão de MP2,5 (24 h)"

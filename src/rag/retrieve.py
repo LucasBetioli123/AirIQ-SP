@@ -14,6 +14,7 @@ explicitamente (ex.: "Resolução CONAMA 03/1990") ou se a data pedida cair na s
 from __future__ import annotations
 
 import json
+import os
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -92,16 +93,17 @@ class Hit:
     rank_bm25: int | None = None
     rank_dense: int | None = None
     rerank: float | None = None
+    cos: float | None = None       # similaridade de cosseno (vetorial), usada no limiar de recusa
 
 
 class Retriever:
-    def __init__(self, mode: str = "hybrid", emb_path: str | None = None, rrf_k: int = 60, rerank_top: int = 20):
+    def __init__(self, mode: str = "hybrid", emb_path: str | None = None, rrf_k: int = 60, rerank_top: int | None = None):
         self.mode = mode
         self.chunks = load_chunks()
         self.texts = [index_text(c) for c in self.chunks]
         self.bm25 = BM25Okapi([tokenize(t) for t in self.texts], k1=1.2, b=0.6)
         self.rrf_k = rrf_k
-        self.rerank_top = rerank_top
+        self.rerank_top = rerank_top or int(os.environ.get("RAG_RERANK_TOP", "8"))
         self.emb = None
         if mode in ("dense", "hybrid", "hybrid_rerank", "dense_rerank"):
             from src.rag.embed import get_embedder
@@ -123,9 +125,11 @@ class Retriever:
         bm = np.where(allowed, bm, -np.inf)
         r_bm = np.empty(n, int)
         r_bm[np.argsort(-bm)] = np.arange(n)
+        cos = None
         if self.emb is not None and mode != "bm25":
             qv = self.emb.queries([query])[0]
-            dn = np.where(allowed, self.doc_vecs @ qv, -np.inf)
+            cos = self.doc_vecs @ qv
+            dn = np.where(allowed, cos, -np.inf)
             r_dn = np.empty(n, int)
             r_dn[np.argsort(-dn)] = np.arange(n)
         if mode == "bm25":
@@ -136,13 +140,21 @@ class Retriever:
             score = np.where(allowed, 1 / (self.rrf_k + r_bm + 1) + 1 / (self.rrf_k + r_dn + 1), -np.inf)
         order = [i for i in np.argsort(-score) if np.isfinite(score[i])]
         hits = [Hit(self.chunks[i], float(score[i]), int(r_bm[i]) + 1,
-                    int(r_dn[i]) + 1 if self.emb is not None and mode != "bm25" else None) for i in order]
+                    int(r_dn[i]) + 1 if cos is not None else None,
+                    cos=float(cos[i]) if cos is not None else None) for i in order]
         if mode.endswith("_rerank"):
-            from src.rag.embed import get_reranker
-            top = hits[: self.rerank_top]
-            s = get_reranker().score(query, [index_text(h.chunk) for h in top])
-            for h, v in zip(top, s):
-                h.rerank = float(v)
-                h.score = float(v)
-            hits = sorted(top, key=lambda h: -h.score) + hits[self.rerank_top:]
+            hits = rerank(query, hits, self.rerank_top)
         return hits[:k]
+
+
+def rerank(query: str, hits: list[Hit], top: int) -> list[Hit]:
+    """Reordena os `top` primeiros com o cross-encoder (o resto mantém a ordem original). Em CPU o
+    reranker custa segundos por trecho, então o agente chama isto UMA vez, sobre a união dos
+    candidatos de todas as buscas, e não uma vez por busca."""
+    from src.rag.embed import get_reranker
+
+    head = hits[:top]
+    for h, v in zip(head, get_reranker().score(query, [index_text(h.chunk) for h in head])):
+        h.rerank = float(v)
+        h.score = float(v)
+    return sorted(head, key=lambda h: -h.score) + hits[top:]

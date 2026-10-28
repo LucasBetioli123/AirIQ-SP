@@ -91,10 +91,34 @@ def nota_vigencia(c: dict) -> str | None:
     return f"REVOGADO: vigente de {c.get('vigencia_inicio')} até {fim}" + (f"; revogado por {por}" if por else "")
 
 
+def _as_dict(h) -> dict:
+    return {"id": h.chunk["id"], "citacao": f"{h.chunk['sigla']}, {h.chunk['label']}", "doc_id": h.chunk["doc_id"],
+            "dispositivos": h.chunk["dispositivos"], "texto": h.chunk["text"], "url": h.chunk.get("url"),
+            "vigencia": nota_vigencia(h.chunk), "score": round(h.score, 4), "rerank": h.rerank, "cos": h.cos,
+            "rank_bm25": h.rank_bm25, "rank_dense": h.rank_dense}
+
+
 def buscar_normas(consulta: str, data: str | None = None, k: int = 5, mode: str | None = None) -> list[dict]:
-    hits = get_retriever(mode).search(consulta, k=k, date=data)
-    return [{"id": h.chunk["id"], "citacao": f"{h.chunk['sigla']}, {h.chunk['label']}", "doc_id": h.chunk["doc_id"],
-             "dispositivos": h.chunk["dispositivos"], "texto": h.chunk["text"], "url": h.chunk.get("url"),
-             "vigencia": nota_vigencia(h.chunk),
-             "score": round(h.score, 4), "rerank": h.rerank, "rank_bm25": h.rank_bm25, "rank_dense": h.rank_dense}
-            for h in hits]
+    mode = mode or os.environ.get("RAG_MODE", "hybrid_rerank")
+    return [_as_dict(h) for h in get_retriever(mode).search(consulta, k=k, date=data, mode=mode)]
+
+
+def buscar_normas_varias(consultas: list[str], pergunta: str, data: str | None = None, k: int = 4,
+                         mode: str | None = None) -> tuple[list[dict], dict[str, list[str]]]:
+    """Várias consultas do plano -> união dos candidatos (intercalando os rankings) -> reranker UMA vez,
+    contra a pergunta original. Devolve os trechos e, para o log, os ids que cada consulta trouxe."""
+    from src.rag.retrieve import rerank
+
+    mode = mode or os.environ.get("RAG_MODE", "hybrid_rerank")
+    base = mode.removesuffix("_rerank")
+    ret = get_retriever(mode)
+    per_query = {q: ret.search(q, k=k, date=data, mode=base) for q in consultas}
+    union, seen = [], set()
+    for rank in range(k):  # intercala: 1º de cada consulta, depois 2º de cada...
+        for hs in per_query.values():
+            if rank < len(hs) and hs[rank].chunk["id"] not in seen:
+                seen.add(hs[rank].chunk["id"])
+                union.append(hs[rank])
+    if mode.endswith("_rerank"):
+        union = rerank(pergunta, union, ret.rerank_top)
+    return [_as_dict(h) for h in union], {q: [h.chunk["id"] for h in hs] for q, hs in per_query.items()}
