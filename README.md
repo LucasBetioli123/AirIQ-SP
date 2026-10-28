@@ -15,8 +15,12 @@ Decisões, resultados com números, limitações e próximos passos estão no
 
 ## Requisitos de máquina
 
-- Linux/macOS (ou Docker), Python 3.13, `make`, compilador C/C++ e `cmake` (para o llama.cpp)
-- CPU x86-64 com AVX2. **Não precisa de GPU.** Desenvolvido e medido em 4 vCPU / 16 GB RAM
+- Linux/macOS (ou Docker), Python 3.12 ou 3.13, `make`, compilador C/C++ e `cmake` (para o llama.cpp)
+- **Windows também funciona** (testado no Windows 10, Python 3.12): o `make setup` usa a wheel
+  pronta de CPU do llama-cpp-python, sem compilar. Sem `make`, use os comandos `python -m ...`
+  da seção "Sem make" abaixo
+- CPU x86-64 com AVX2. **Não precisa de GPU.** Medido em duas máquinas: 4 vCPU / 16 GB RAM
+  (nuvem, Linux) e notebook i5-9300H (4 núcleos) / 12 GB RAM (Windows). Os tempos abaixo são do notebook
 - Disco: ~1 GB para a amostra. Para os dados completos, ~6 GB de brutos e ~12 GB com
   todos os modelos GGUF do benchmark (~4 GB só com os padrões)
 - Internet só para baixar dados e modelos. A inferência é 100% local e gratuita
@@ -53,6 +57,34 @@ docker run --rm -it -v $PWD/models:/app/models -v $PWD/data:/app/data teste-ia m
 | Notebooks de evidência (com saída) | `make notebooks` | ~2 min |
 
 `make help` lista todos os alvos.
+
+### Normas que o script não consegue baixar
+
+`make rag-download` tenta as URLs de `configs/normas.yaml` e valida o conteúdo. Dois sites
+recusam clientes automatizados: o **DOU (in.gov.br)** responde 403 e o **Planalto** derruba a
+conexão (em algumas redes). Por isso:
+
+- a 491/2018 e a 506/2024 vêm de cópias públicas da página do DOU (FAOLEX/FAO e Prefeitura do
+  Rio), com a URL registrada em `data/raw/normas/<id>.url`;
+- se uma URL falhar, o script avisa `FALHOU (coloque o arquivo manualmente em data/raw/normas/)`.
+  Basta abrir a URL de `configs/normas.yaml` no navegador e salvar como
+  `data/raw/normas/<id>.html` (ou `.pdf`); o `make rag-ingest` usa o arquivo local;
+- **não é preciso baixar nada para rodar o agente**: os chunks das 7 normas estão versionados
+  em `data/sample/rag_chunks.jsonl` e são usados quando `data/processed/rag/` não existe.
+
+### Sem make (Windows)
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pip install -r requirements-llm.txt --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+$env:PYTHONPATH="."; $env:PYTHONIOENCODING="utf-8"
+.venv\Scripts\python -m src.rag.models_dl                  # make models
+.venv\Scripts\python -m src.aq.build_dataset --from-sample # make sample
+.venv\Scripts\python -m src.aq.train                       # make train (recria models/estimativa.joblib)
+.venv\Scripts\python -m src.rag.cli "qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?"
+.venv\Scripts\python -m uvicorn src.rag.app:app --port 7860 # make chat -> http://localhost:7860
+```
 
 ## LLM configurável (sempre com opção gratuita)
 

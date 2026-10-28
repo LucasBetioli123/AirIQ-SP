@@ -198,6 +198,53 @@ Mitigações possíveis (próximos passos): perda quantílica/assimétrica para 
 
 <!--RESULTADOS_P1-->
 
-<!--P2-->
+## 5. Parte 2: agente com RAG sobre normas ambientais
+
+### 5.1 Base de conhecimento (`configs/normas.yaml`)
+
+| Documento | Por que está na base | Fonte do texto | Chunks |
+|---|---|---|---|
+| Res. CONAMA 491/2018 | padrões de qualidade do ar (pedida no desafio); Anexos III e IV ainda vigentes | impressão da página do DOU guardada na FAOLEX (FAO) | 35 |
+| Res. CONAMA 506/2024 | padrões **vigentes hoje**, que revogaram parte da 491 | impressão da página do DOU publicada pela Prefeitura do Rio | 31 |
+| Res. CONAMA 03/1990 | padrões até 2018 (perguntas "o que valia em 2015") | conama.mma.gov.br | 14 |
+| Res. CONAMA 05/1989 | PRONAR | conama.mma.gov.br | 18 |
+| Lei 6.938/1981 | Política Nacional do Meio Ambiente (pedida no desafio); competência do CONAMA | Planalto (texto compilado) | 183 |
+| Decreto 99.274/1990 | regulamenta a 6.938 (CONAMA, licenças LP/LI/LO) | Planalto | 71 |
+| Lei 9.605/1998 | crimes ambientais (art. 54: poluição) | Planalto | 100 |
+
+- **Premissas sobre as fontes.**
+  - O DOU (in.gov.br) responde 403 a qualquer acesso automatizado. Para a 491 e a 506, usei cópias públicas da própria página do DOU (o PDF traz o cabeçalho "Imprensa Nacional" e a URL original). A URL de cada arquivo fica em `data/raw/normas/<id>.url`.
+  - O Planalto derruba a conexão de clientes que não se identificam como navegador, pelo menos na rede onde rodei. O script avisa, e o arquivo pode ser salvo à mão pelo navegador (README). Os chunks das 7 normas estão versionados em `data/sample/rag_chunks.jsonl`, então o agente roda sem baixar nada.
+- **A 05/1989 foi revogada pela Res. CONAMA 513/2026** (DOU de 09/04/2026), conforme a nota de correlação no próprio PDF do CONAMA. O texto da 513 só está no DOU, então ficou fora da base. A 05/1989 entra como norma revogada (útil para perguntas históricas), e a pergunta sobre a 513 faz parte do conjunto de recusa.
+
+### 5.2 Divisão em trechos (`src/rag/parse.py`, `src/rag/chunk.py`)
+
+O texto normativo tem hierarquia explícita (LC 95/1998): artigo > parágrafo > inciso > alínea, além dos anexos. A divisão segue essa estrutura e não um tamanho fixo:
+
+- **Unidade = artigo inteiro** (caput + §§ + incisos). Um inciso solto ("II - 60 µg/m³") não diz nada sem o caput. Um artigo com mais de 320 palavras é dividido em blocos de §§/incisos, e **cada bloco repete o caput**.
+- **Cada chunk carrega o caminho citável** (documento › capítulo › seção › artigo) e a lista de dispositivos que contém ("art. 4º, § 2º", "art. 2º, inciso III"). É o que permite citar o dispositivo exato.
+- **Tabelas dos anexos: uma linha por chunk, com o nome da coluna ao lado de cada valor.** O PDF perde a grade: a linha sai como "Material Particulado - MP2,5 24 horas 60 50 37 25 15 -", e um LLM de 4B erra a coluna com facilidade. Reescrevo como "MP2,5 | 24 horas | PI-1: 60 µg/m³ | PI-2: 50 µg/m³ | … | PF: 15 µg/m³", repetindo o título e as notas. O rótulo da linha vira a citação ("Anexo I (Material Particulado - MP2,5, 24 horas)"). As células vazias somem no PDF e são alinhadas à direita (o "9" do CO cai na coluna PF em ppm).
+- **Resoluções sem artigos** (a 05/1989 usa itens "2.2.1 -"): o item numerado é a unidade citável.
+- **Dispositivo riscado no Planalto** (redação revogada) fica fora do índice.
+
+Problemas que só apareceram com os textos reais, e o que fiz:
+
+| Problema | Correção |
+|---|---|
+| cabeçalho/rodapé de impressão do DOU ("4/20/23, 9:46 AM …", URL, "3/6") no meio do texto | filtro de linhas de ruído |
+| ligaduras (ﬁ), "μ g/m ᶟ", subscritos (MP₂,₅) | normalização pontual (NFKC trocaria "º" por "o") |
+| HTML do Planalto malformado (`<p></font><font>texto`): o inciso II do art. 6º da 6.938 (o que define o CONAMA) sumia | o texto fora de qualquer bloco também vira parágrafo, na ordem do documento |
+| "Art. 1º - Esta Lei" virava "art. 1º-E"; "Art. 9 o -A." não era reconhecido | a letra só é sufixo se vier seguida de ponto ou travessão |
+
+**Descartado:** chunk de tamanho fixo (corta inciso do caput), um chunk por inciso (perde o caput), tabela como texto corrido (troca de coluna) e a tabela inteira num chunk só (passa do contexto do modelo de embedding).
+
+### 5.3 Vigência das normas (diferencial)
+
+- Cada chunk tem `vigencia_inicio`/`vigencia_fim`. **A revogação é por dispositivo**: a 506/2024 (art. 11, I) revogou os arts. 1º a 8º, 12 a 14 e o Anexo I da 491/2018, mas **os arts. 9º a 11 e os Anexos II a IV continuam valendo** (os níveis de atenção/alerta/emergência do Anexo III ainda são da 491). O mesmo vale para os itens 2.2.1 e 2.3 da 05/1989, revogados pela 491.
+- A busca filtra pelo que estava vigente na data da pergunta: hoje, ou a data que o plano extrai ("em 2015" → 2015). Uma norma citada pelo número ("CONAMA 491", "03/1990") entra mesmo se revogada, porque a pergunta é sobre ela.
+- Trecho revogado vai para o LLM com a nota "REVOGADO: vigente de … até …; revogado por …". É isso que responde "a 03/1990 ainda está em vigor?" sem inventar.
+- A ferramenta de PM2.5 compara com o padrão vigente **na data-alvo** (`src/aq/aqi.py`): PI-1 de 60 µg/m³ da 491 até 08/07/2024, PI-1 da 506 até 31/12/2024 e PI-2 de 50 µg/m³ a partir de 01/01/2025.
+
+<!--P2_RECUPERACAO-->
 
 <!--FIM-->
