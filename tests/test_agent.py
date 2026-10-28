@@ -90,6 +90,9 @@ def test_validate_numbers():
     assert A.validate("O prazo é de 3 anos e o padrão 60 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert not A.validate("O padrão é 61 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert A.validate("Ver [7].", [7], src, [], "q")["citacoes_invalidas"] == [7]
+    # o texto cita [1]; o campo `citacoes` listou também um trecho inexistente: vale o texto
+    assert A.validate("O padrão é 60 µg/m³ [1] [F1].", [1, 7], src, [], "q")["ok"]
+    assert A.used_citations("Sem número no texto.", [1]) == {1}
 
 
 def test_norm_date_and_query_cleanup():

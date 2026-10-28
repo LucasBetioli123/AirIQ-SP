@@ -112,17 +112,24 @@ def _numbers(s: str) -> set[str]:
     return out
 
 
+def used_citations(answer: str, cited: list[int]) -> set[int]:
+    """As citações [n] do texto valem; o campo `citacoes` do JSON só quando o texto não cita nenhum trecho.
+    Na avaliação, o Qwen3-4B citou [1] no texto e listou [1..7] no campo (inclusive um trecho inexistente)."""
+    inline = {int(x) for x in re.findall(r"\[(\d+)\]", answer)}
+    return inline or {c for c in cited if isinstance(c, int)}
+
+
 def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dict], question: str) -> dict:
     valid_ids = set(range(1, len(sources) + 1))
-    bad = [c for c in cited if c not in valid_ids]
-    inline = {int(x) for x in re.findall(r"\[(\d+)\]", answer)}
+    used = used_citations(answer, cited)
+    bad = sorted(c for c in used if c not in valid_ids)
     support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] + " " + (sources[i - 1].get("vigencia") or "")
-                       for i in (set(cited) | inline) & valid_ids)
+                       for i in used & valid_ids)
     support += " " + json.dumps(tools, ensure_ascii=False) + " " + question
     nums = {n for n in _numbers(re.sub(r"\[(?:F?\d+)\]", "", answer)) if len(n) > 0}
     sup_nums = _numbers(support)
     unsupported = sorted(n for n in nums if n not in sup_nums and not (n.isdigit() and int(n) < 10))
-    return {"citacoes_invalidas": bad, "numeros_sem_suporte": unsupported, "cita_algo": bool((set(cited) | inline) & valid_ids),
+    return {"citacoes_invalidas": bad, "numeros_sem_suporte": unsupported, "cita_algo": bool(used & valid_ids),
             "ok": not bad and not unsupported}
 
 
@@ -212,8 +219,7 @@ class Agent:
         text = ans.get("resposta", "") if found else REFUSAL
         if found and not ans.get("resposta"):
             text, found = REFUSAL, False
-        cited = sorted({c for c in ans.get("citacoes", []) if 1 <= c <= len(sources)} |
-                       {int(x) for x in re.findall(r"\[(\d+)\]", text) if 1 <= int(x) <= len(sources)})
+        cited = sorted(c for c in used_citations(text, ans.get("citacoes", [])) if 1 <= c <= len(sources))
         refs = [f"[{c}] {sources[c - 1]['citacao']} — {sources[c - 1].get('url') or ''}".rstrip(" —") for c in cited]
         final = text + ("\n\nFontes:\n" + "\n".join(refs) if found and refs else "")
         if found and tools_out:
