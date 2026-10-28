@@ -371,7 +371,18 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 - nas perguntas de ferramenta, o acerto passou a exigir a chamada, porque a q31 contava acerto citando só o PF.
 - As notas foram recalculadas a partir das respostas registradas (`--rescore`), sem rodar o LLM de novo.
 
-<!--P2_LLMS-->
+### 5.7 Comparação de LLMs (mesmo conjunto, mesma recuperação, juiz cruzado)
+
+| LLM local (GGUF Q4_K_M, CPU) | Acerto | fato | multi | temporal | ferramenta | Recusa correta | Recusa indevida | Fidelidade auto / juiz | Tempo médio |
+|---|---|---|---|---|---|---|---|---|---|
+| **Qwen3-4B-Instruct-2507 (padrão)** | **87,1%** | 17/17 | 4/6 | 5/5 | 1/3 → **3/3*** | 6/6 | **6,5%** | **1,00 / 1,00** | 293 s |
+| Gemma3-4B-it | 71,0% | 16/17 | 3/6 | 2/5 | 1/3 | 6/6 | 19,4% | 0,96 / 0,64 | 216 s |
+
+\* Depois do reforço da ferramenta e da comparação calculada (seção 5.6). O Gemma rodou já com esse código e mesmo assim acertou só 1 das 3: recusou Campinas e errou a faixa de Ribeirão Preto. Juiz cruzado: o Gemma julgou o Qwen e o Qwen julgou o Gemma.
+
+- **O Gemma3-4B recusa demais** (19% de recusas indevidas): em q14, q18, q20, q23 e q25 o trecho certo estava no contexto. Ele também erra a vigência: disse que em 2020 o padrão de MP2,5 era 25 µg/m³, o PF, quando o vigente era o PI-1 de 60. É mais rápido porque gera respostas mais curtas.
+- **Por isso o padrão é o Qwen3-4B-Instruct-2507** (`DEFAULT_GGUF` em `src/rag/llm.py`). O Qwen2.5-7B foi baixado, mas não entrou na avaliação completa: com 4,7 GB, ele dobraria um tempo que nesta CPU já é de 3 h por rodada. Fica como próximo passo, em máquina com GPU.
+- Os dois **recusaram corretamente as 6 perguntas sem resposta**. A recusa vem principalmente do limiar do reranker, que não depende do LLM.
 
 ## 6. O que foi descartado e por quê
 
