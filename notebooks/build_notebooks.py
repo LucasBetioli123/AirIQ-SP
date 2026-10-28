@@ -76,6 +76,9 @@ NB3 = [
     "c = next(c for c in ch if c['doc_id']=='conama_491_2018' and c['label'].startswith('art.')); print(json.dumps({k: c[k] for k in ['id','sigla','path','label','dispositivos','vigencia_inicio','vigencia_fim']}, ensure_ascii=False, indent=1)); print(c['text'][:1200])",
     "md:## Benchmark de recuperação (recall@k, MRR)",
     "met('rag_retrieval.csv').round(3)",
+    "md:Limiar de recusa: maior escore do reranker por pergunta (respondíveis x sem resposta na base)",
+    "lim = met('rag_limiar_recusa.csv'); lim = lim[lim['modo']=='hybrid_rerank']\n"
+    "lim.assign(sem_resposta=lim['tipo'].eq('sem_resposta')).groupby('sem_resposta')['top_rerank'].describe().round(3)",
     "md:## Avaliação ponta a ponta (acerto, citação, fidelidade, recusa, ferramenta)",
     "met('rag_eval_resumo.csv').round(3).T",
     "import glob\nfor f in sorted(glob.glob('reports/metrics/rag_eval_detalhe_*.csv'))[:1]:\n    d = pd.read_csv(f); display(Markdown(f'`{f}`')); display(d.drop(columns=['resposta']).round(2))",
