@@ -29,7 +29,7 @@ Decisões, resultados com números, limitações e próximos passos estão no
 
 ```bash
 make setup      # cria .venv, instala requirements.txt (versões fixas) e compila llama-cpp-python (~10 min)
-make models     # baixa os GGUF padrão: LLM Qwen3-4B, embeddings Qwen3-0.6B, reranker Qwen3-0.6B (~4 GB)
+make models     # baixa os GGUF padrão: LLM Qwen3-4B, embeddings Granite-278M, reranker Qwen3-0.6B (~4,3 GB)
 cp .env.example .env   # opcional: trocar o provedor de LLM (ver "LLM configurável")
 ```
 
@@ -42,17 +42,18 @@ docker run --rm -it -v $PWD/models:/app/models -v $PWD/data:/app/data teste-ia m
 
 ## Como rodar (um comando por parte)
 
-| O quê | Comando | Tempo esperado (4 vCPU) |
+| O quê | Comando | Tempo esperado (i5-9300H, só CPU) |
 |---|---|---|
-| **Parte 1 com a amostra versionada** (base → treino → métricas → SHAP → mapas) | `make all-sample` | ~10 min |
+| **Parte 1 com a amostra versionada** (base → treino → métricas → SHAP → mapas) | `make all-sample` | ~10 min (4 vCPU); só `make sample train`: 7,5 min |
 | Parte 1 completa: baixar todos os dados brutos (2021-01 a 2023-04) | `make data` | ~1 h (rede) |
 | Parte 1 completa: benchmark + treino + avaliação + mapas | `make bench train evaluate maps` | ~25 min |
 | Estimativa para uma coordenada/data | `make predict LAT=-22.90 LON=-47.06 DATE=2022-09-10 H=1` | ~5 s |
 | API HTTP (`GET /predict`) | `make api` | — |
-| **Parte 2**: baixar normas → índice | `make rag-download rag-ingest` | ~1 min |
-| Pergunta ao agente | `make ask Q="qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?"` | ~30-90 s em CPU |
-| Benchmark de recuperação | `make rag-bench` | ~10 min |
-| Avaliação ponta a ponta do agente (≥ 25 perguntas) | `make rag-eval` | ~30-60 min em CPU |
+| **Parte 2**: baixar normas → índice | `make rag-download rag-ingest` | ~1 min (ingestão: 3 s; 1ª consulta indexa os vetores: ~5 min) |
+| Pergunta ao agente | `make ask Q="qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?"` | 4-8 min em CPU (o prompt do LLM sai a ~16 tokens/s) |
+| Chat no navegador | `make chat` → http://localhost:7860 | idem por pergunta |
+| Benchmark de recuperação (3 embeddings + reranker) | `make rag-bench` | ~1 h 20 (35 min de indexação + 38 min de reranker) |
+| Avaliação ponta a ponta do agente (37 perguntas) | `make rag-eval` | ~4-5 h em CPU (com GPU ou API, minutos) |
 | Testes | `make test` | ~10 s |
 | Notebooks de evidência (com saída) | `make notebooks` | ~2 min |
 
