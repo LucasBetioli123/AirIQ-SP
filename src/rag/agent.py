@@ -21,6 +21,8 @@ import re
 import time
 import uuid
 
+import pandas as pd
+
 from src.rag.llm import get_llm
 from src.rag.runlog import log_run
 from src.rag.tools import buscar_normas_varias, estimar_pm25, reference_today
@@ -32,6 +34,7 @@ REFUSAL = ("Não encontrei essa informação na base de normas consultada "
 # (modo *_rerank) ou maior cosseno da busca vetorial (modos dense/hybrid)
 RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.8"))
 COS_MIN = float(os.environ.get("RAG_COS_MIN", "0.675"))
+KEEP_MIN = 0.05  # trechos (além dos 2 primeiros) com rerank abaixo disto não vão para o LLM
 
 
 def gate_score(sources: list[dict], mode: str) -> float | None:
@@ -60,7 +63,7 @@ ANSWER_SYS = """Você é um assistente técnico de normas ambientais. Responda e
 Regras:
 1. Toda afirmação sobre norma deve citar a fonte entre colchetes, ex.: [1] ou [2][3]. Cite o dispositivo exato (ex.: "art. 4º, inciso II", "Anexo I") e o documento.
 2. Valores de PM2.5 estimados/previstos vêm das ferramentas [F1], [F2]...; informe o valor e o intervalo de 90%, e a data.
-3. Ao comparar com um padrão legal, use o valor do padrão que está nas FONTES e diga claramente se ultrapassa ou não.
+3. Ao comparar uma estimativa com um padrão legal, use o padrão que valia NA DATA DA ESTIMATIVA (campo padrao_24h_vigente da ferramenta), confirme o valor no trecho da norma nas FONTES e diga claramente se ultrapassa ou não. Uma norma revogada depois dessa data ainda vale para ela.
 4. Se as fontes não contêm a resposta, retorne encontrado=false. Não invente números, artigos ou normas.
 5. Se precisar juntar dois trechos, cite ambos.
 6. Fonte marcada como REVOGADO só vale para a época indicada; diga que foi revogada (e por qual norma) se isso for relevante.
@@ -82,6 +85,10 @@ def norm_date(plan_date, question: str) -> str | None:
     """Data em que a norma deve estar vigente. Vem do plano ('AAAA-MM-DD' ou só 'AAAA') ou, se o
     plano não trouxer, de um ano citado na pergunta ('Em 2015, ...'). Sem data = vigente hoje."""
     d = str(plan_date or "").strip()
+    # o plano às vezes inventa uma data (ex.: "2018-03-28" para "padrão da CONAMA 491"); só vale se a
+    # própria pergunta tiver um ano ou uma data
+    if not re.search(r"\b(?:19|20)\d{2}\b(?!\s*\?)", re.sub(r"\b\d+\s*/\s*(?:19|20)?\d{2}\b", "", question)):
+        d = ""
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
         return d
     if re.fullmatch(r"(?:19|20)\d{2}", d):
@@ -108,7 +115,8 @@ def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dic
     valid_ids = set(range(1, len(sources) + 1))
     bad = [c for c in cited if c not in valid_ids]
     inline = {int(x) for x in re.findall(r"\[(\d+)\]", answer)}
-    support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] for i in (set(cited) | inline) & valid_ids)
+    support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] + " " + (sources[i - 1].get("vigencia") or "")
+                       for i in (set(cited) | inline) & valid_ids)
     support += " " + json.dumps(tools, ensure_ascii=False) + " " + question
     nums = {n for n in _numbers(re.sub(r"\[(?:F?\d+)\]", "", answer)) if len(n) > 0}
     sup_nums = _numbers(support)
@@ -148,8 +156,15 @@ class Agent:
                                        "resultado": ids})
         sources = sources[: self.max_sources]
         best = gate_score(sources, self.rag_mode)
-        tools_out = []
+        # trecho com escore de reranker muito baixo só gasta prompt (o prompt domina o tempo em CPU)
+        if best is not None and self.rag_mode.endswith("_rerank"):
+            sources = [s for i, s in enumerate(sources) if i < 2 or (s["rerank"] or 0) >= KEEP_MIN]
+        tools_out, seen_calls = [], set()
         for c in plan.get("pm25", [])[:3]:
+            key = json.dumps(c, sort_keys=True, ensure_ascii=False)
+            if key in seen_calls:  # o plano às vezes repete a mesma chamada
+                continue
+            seen_calls.add(key)
             r = estimar_pm25(c.get("local", ""), c.get("data"), int(c.get("horizonte", 0) or 0))
             tools_out.append(r)
             run["ferramentas"].append({"ferramenta": "estimar_pm25", "args": c, "resultado": r})
@@ -165,7 +180,9 @@ class Agent:
         ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}" + (f" ({s['vigencia']})" if s.get("vigencia") else "") +
                           f"\n{s['texto']}" for i, s in enumerate(sources))
         tctx = "\n".join(f"[F{i + 1}] {json.dumps(t, ensure_ascii=False)}" for i, t in enumerate(tools_out))
-        user = f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else "")
+        today = reference_today()
+        user = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
+                f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else ""))
         a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=700)
         run["chamadas_llm"].append(_usage("resposta", a))
         ans = a.data or {"encontrado": False, "resposta": REFUSAL, "citacoes": []}

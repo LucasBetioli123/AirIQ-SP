@@ -93,8 +93,10 @@ def test_validate_numbers():
 
 
 def test_norm_date_and_query_cleanup():
-    assert A.norm_date("2015-06-01", "x") == "2015-06-01"
-    assert A.norm_date("2015", "x") == "2015-07-01"
+    assert A.norm_date("2015-06-01", "Em 2015, qual era o padrão?") == "2015-06-01"
+    assert A.norm_date("2015", "Em 2015, qual era o padrão?") == "2015-07-01"
+    # data inventada pelo plano sem ano na pergunta é descartada
+    assert A.norm_date("2018-03-28", "Campinas amanhã ultrapassa o padrão da CONAMA 491?") is None
     assert A.norm_date(None, "Em 2015, qual resolução definia os padrões?") == "2015-07-01"
     # o ano no número da norma não é data de vigência
     assert A.norm_date(None, "O que diz a Resolução CONAMA 491/2018?") is None
