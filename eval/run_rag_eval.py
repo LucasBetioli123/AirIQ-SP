@@ -168,7 +168,8 @@ def summarize(df: pd.DataFrame, tag: str) -> dict:
             "cit_recall": ans.get("cit_recall", pd.Series(dtype=float)).mean(),
             "fidelidade_auto": ans["fidelidade_auto"].mean(),
             "fidelidade_juiz": ans["fidelidade_juiz"].mean() if "fidelidade_juiz" in ans else None,
-            "recusa_correta (sem resposta)": df.loc[df["tipo"] == "sem_resposta", "recusa_correta"].mean(),
+            "recusa_correta (sem resposta)": (df.loc[df["tipo"] == "sem_resposta", "recusa_correta"].mean()
+                                              if "recusa_correta" in df else None),
             "recusa_indevida": ans["recusa_indevida"].mean(),
             "ferramenta_ok": df["ferramenta_ok"].mean() if "ferramenta_ok" in df else None,
             "tempo_medio_s": df["tempo_s"].mean(), "tokens_medio": df["tokens"].mean()}
