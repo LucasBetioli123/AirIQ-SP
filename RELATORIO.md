@@ -19,11 +19,11 @@
 - **Vigência por dispositivo**: a 506/2024 revogou só parte da 491, e o agente responde "o que valia em 2015".
 - **Recuperação**: BM25 + Granite-278M com RRF dá **recall@5 de 0,983 e MRR de 0,864**, contra 0,917 do BM25 sozinho.
 - **Agente** (Qwen3-4B local, custo zero), em 37 perguntas próprias:
-  - **acerto de 87%** na rodada completa e **93,5%** depois das correções das perguntas de ferramenta;
-  - fato 17/17 e vigência 5/5;
+  - **acerto de 93,5% (29/31)** com o código final (87% na 1ª rodada, corrigida pelo que o log mostrou);
+  - fato 17/17, ferramenta 3/3, multi 5/6, vigência 4/5;
   - **6/6 recusas corretas**, 5 delas pelo limiar do reranker, sem chamar o LLM;
-  - fidelidade automática de 1,0 nas respostas dadas.
-- **Ferramenta**: o agente chama o modelo da Parte 1 e compara a estimativa com o padrão vigente **na data da estimativa**.
+  - fidelidade automática de 1,0 nas respostas dadas; número sem fonte depois da correção vira recusa.
+- **Ferramentas**: o agente chama o modelo da Parte 1 e compara a estimativa com o padrão vigente **na data da estimativa**. A comparação e a etapa vigente são calculadas fora do LLM (`padrao_mp25_vigente`).
 - **Custo**: 4 a 8 min por pergunta numa CPU de notebook. Com GPU ou API gratuita (provedor configurável), cai para segundos.
 
 **Prioridade**: a Parte 1 recebeu a maior parte do tempo, com a validação espaço-temporal como eixo. Na Parte 2, priorizei citação exata, vigência e recusa honesta, em vez de interface.
@@ -300,6 +300,7 @@ Poucas chamadas ao LLM, porque em CPU cada uma custa minutos:
 2. **Executar as ferramentas.**
    - `buscar_normas`: as buscas do plano mais a pergunta original. Os candidatos são unidos e reordenados uma vez pelo reranker. Trechos com escore < 0,05 ficam fora do contexto, que tem no máximo 6 trechos.
    - `estimar_pm25`: o modelo da Parte 1. Devolve PM2.5, IC 90%, faixa do IQAr e o padrão vigente na data-alvo.
+   - `padrao_mp25_vigente`: quando a pergunta é sobre qual etapa do padrão de MP2,5 vale numa data, ou quando uma etapa entra em vigor, e não há estimativa. Devolve a etapa vigente, desde quando vale e o cronograma do art. 4º da 506, que também entra no contexto. É determinística, porque o LLM de 4B errava a etapa vigente.
 3. **Recusa sem gerar**: se não há ferramenta e o melhor escore do reranker fica abaixo de 0,8, o agente responde que não encontrou a informação na base.
 4. **Responder** (LLM, JSON `{encontrado, resposta, citacoes}`): cita [n] para os trechos e [Fn] para as ferramentas. O prompt traz a data de referência ("hoje"/"amanhã") e a regra de comparar com o padrão vigente **na data da estimativa**.
 5. **Validar sem LLM**:
@@ -341,30 +342,33 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 - **Recusa**: nas sem resposta, a taxa de recusa correta; nas outras, a taxa de recusa indevida.
 - **Tempo e tokens** por pergunta, em CPU.
 
-**Resultado: Qwen3-4B-Instruct-2507 (Q4_K_M) + BM25 + Granite + reranker**, rodada completa (`rag_eval_detalhe_qwen3-4b-instruct-2507-q4_k_m.csv`):
+**Resultado final: Qwen3-4B-Instruct-2507 (Q4_K_M) + BM25 + Granite + reranker** (`rag_eval_detalhe_qwen3-4b_final.csv`, log `eval_runs_qwen3-4b_final.jsonl`):
 
 | Métrica | Valor |
 |---|---|
-| **Acerto** (31 perguntas com resposta) | **87,1%** (27/31); parcial 91,9% |
-| por tipo | fato 17/17 · temporal 5/5 · multi 4/6 · ferramenta 1/3 |
-| Citação: precisão / recall | 0,89 / 0,95 |
+| **Acerto** (31 perguntas com resposta) | **93,5%** (29/31); parcial 95,2% |
+| por tipo | fato 17/17 · ferramenta 3/3 · multi 5/6 · temporal 4/5 |
+| Citação: precisão / recall | 0,92 / 0,95 |
 | Fidelidade automática / LLM-juiz | 1,00 / 1,00 (nas respostas dadas) |
 | **Recusa correta** (6 sem resposta) | **6/6**: 5 pelo limiar do reranker, sem chamar o LLM; 1 pelo próprio LLM (validade da LO) |
-| Recusa indevida | 2/31 (6,5%) |
-| Tempo médio / tokens médios | 293 s / 2.345 por pergunta (3 h para as 37) |
+| Recusa indevida | 1/31 (3,2%) |
+| Tempo médio / tokens médios | 290 s / 2.484 por pergunta (3 h para as 37) |
 | Custo | US$ 0 (local) |
 
-**Os 4 erros**, todos lidos no log:
-1. **q30 (Ribeirão Preto)**: o plano veio vazio, o LLM não pediu a ferramenta e o agente recusou.
-2. **q31 (Sorocaba, 24/08/2021)**: também sem ferramenta. O modelo respondeu só com o padrão legal; sem a estimativa, a resposta não conta.
-3. **q23 ("padrão de MP2,5 em vigor hoje")**: o plano inventou uma "CONAMA 375/2006". O art. 4º da 506 (cronograma) foi recuperado pela pergunta original, mas o reranker deu nota abaixo de `KEEP_MIN` e ele saiu do contexto. O LLM disse PI-1 = 60 com uma data errada, a validação barrou os números e a saída final virou recusa. Errou, mas não entregou informação falsa.
-4. **q20 (competência do CONAMA)**: a resposta está certa (CONAMA, com base na Lei 6.938), mas não cita o art. 8º. Ele veio em 4º numa das consultas e ficou fora dos 8 candidatos que o reranker avalia.
+Como chegou a esse número: a rodada completa com o código final da manhã deu 27/31 (commit `dfabcc2`). Depois, duas correções (abaixo) mudaram só as perguntas sobre vigência do padrão de MP2,5 (q23, q27, q28): só nelas a ferramenta nova dispara, e só nelas a validação tinha barrado a resposta. As três foram rodadas de novo (`--only`, que substitui as linhas na mesma tag). Nas outras 34, o prompt do código final é idêntico ao da rodada.
 
-**Correções depois da rodada** (as 3 perguntas de ferramenta rodadas de novo: `rag_eval_detalhe_qwen3-4b_ferramenta_v2.csv`):
-- Quando a pergunta cita PM2.5/qualidade do ar, um município de SP e uma data, e o plano esquece a ferramenta, ela é **chamada por regra** (o log marca `ferramenta_por_regra`).
+**Os 2 erros que restam**, lidos no log:
+1. **q20 (competência do CONAMA)**: a resposta está certa (CONAMA, com base na Lei 6.938), mas não cita o art. 8º. Ele veio em 4º numa das consultas e ficou fora dos 8 candidatos que o reranker avalia.
+2. **q27 (quando entram PI-3 e PI-4)**: o rascunho tinha as datas certas (2033 e 2044), mas inventou "intervalo de 90% não disponível", confundindo o cronograma com uma estimativa de PM2.5. A validação achou o "90" sem fonte e o agente recusou (`resposta_bloqueada` no log). Errou, mas não entregou número inventado.
+
+**Histórico das correções, todas tiradas do log** (`git log src/rag/agent.py`):
+- **1ª rodada (87,1%, `rag_eval_detalhe_qwen3-4b-instruct-2507-q4_k_m.csv`)**: o plano esqueceu a ferramenta em q30 e q31. Agora, quando a pergunta cita PM2.5/qualidade do ar, um município de SP e uma data, ela é **chamada por regra** (o log marca `ferramenta_por_regra`).
 - Numa rodada intermediária, o modelo escreveu que "51,4 µg/m³ ultrapassou o PI-1 de 60". Isso é falso, e o critério automático não pegou. A **comparação numérica saiu do LLM**: a ferramenta devolve "51,4 NÃO ultrapassa o PI-1 de 60…; ULTRAPASSA o PF de 25", e a resposta só copia.
-- Resultado: **ferramenta 3/3**, todas com a estimativa e a comparação certas. Com isso, o acerto estimado do sistema final é **29/31 (93,5%)**.
-- Na q31, a checagem automática ainda marcou uma citação [7] inexistente (havia 6 trechos). O juiz deu nota 0, mas as afirmações apontadas por ele estão na saída da ferramenta, então é limite do juiz de 4B.
+- Na q31, o modelo citou [1] no texto e listou [1..7] no campo `citacoes`, com um trecho inexistente. Agora **as citações do texto definem as fontes**, e o campo só vale quando o texto não cita nada.
+- **Rodada final, 27/31**: o modelo respondeu o PF (25) para "em 2020" (q28), quando valia o PI-1 (60), e inventou "desde 12 de abril de 2024" para o padrão atual (q23). Agora há a ferramenta determinística **`padrao_mp25_vigente(data)`**: etapa vigente na data, desde quando vale e o cronograma do art. 4º da 506. O art. 4º entra no contexto para ser citado.
+- Se, depois da regeneração, ainda sobra **número sem fonte, o agente recusa** em vez de entregar. Antes, ele entregava a resposta com a validação marcada como falha.
+- A validação deixou de tratar nomes de poluente (MP2,5, PM10) como valores.
+- **O juiz de 4B é fraco**: deu nota 1 à q23 com a data inventada. Por isso a checagem automática, sem LLM, é a métrica de fidelidade em que mais confio.
 
 **Ajustes de gabarito/critério, feitos às claras** (`git log eval/`):
 - o fato-chave "emissão" da q13 virou o radical "emiss", porque a resposta certa dizia "emissões";
@@ -375,10 +379,11 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 
 | LLM local (GGUF Q4_K_M, CPU) | Acerto | fato | multi | temporal | ferramenta | Recusa correta | Recusa indevida | Fidelidade auto / juiz | Tempo médio |
 |---|---|---|---|---|---|---|---|---|---|
-| **Qwen3-4B-Instruct-2507 (padrão)** | **87,1%** | 17/17 | 4/6 | 5/5 | 1/3 → **3/3*** | 6/6 | **6,5%** | **1,00 / 1,00** | 293 s |
-| Gemma3-4B-it | 71,0% | 16/17 | 3/6 | 2/5 | 1/3 | 6/6 | 19,4% | 0,96 / 0,64 | 216 s |
+| **Qwen3-4B-Instruct-2507 (padrão), código final** | **93,5%** | 17/17 | 5/6 | 4/5 | 3/3 | 6/6 | **3,2%** | **1,00 / 1,00** | 290 s |
+| Qwen3-4B-Instruct-2507, 1ª rodada | 87,1% | 17/17 | 4/6 | 5/5 | 1/3 | 6/6 | 6,5% | 1,00 / 1,00 | 293 s |
+| Gemma3-4B-it* | 71,0% | 16/17 | 3/6 | 2/5 | 1/3 | 6/6 | 19,4% | 0,96 / 0,64 | 216 s |
 
-\* Depois do reforço da ferramenta e da comparação calculada (seção 5.6). O Gemma rodou já com esse código e mesmo assim acertou só 1 das 3: recusou Campinas e errou a faixa de Ribeirão Preto. Juiz cruzado: o Gemma julgou o Qwen e o Qwen julgou o Gemma.
+\* O Gemma rodou com o reforço da ferramenta e a comparação calculada, mas antes de `padrao_mp25_vigente`. Mesmo assim acertou só 1 das 3 de ferramenta: recusou Campinas e errou a faixa de Ribeirão Preto. Juiz cruzado: o Gemma julgou o Qwen e o Qwen julgou o Gemma.
 
 - **O Gemma3-4B recusa demais** (19% de recusas indevidas): em q14, q18, q20, q23 e q25 o trecho certo estava no contexto. Ele também erra a vigência: disse que em 2020 o padrão de MP2,5 era 25 µg/m³, o PF, quando o vigente era o PI-1 de 60. É mais rápido porque gera respostas mais curtas.
 - **Por isso o padrão é o Qwen3-4B-Instruct-2507** (`DEFAULT_GGUF` em `src/rag/llm.py`). O Qwen2.5-7B foi baixado, mas não entrou na avaliação completa: com 4,7 GB, ele dobraria um tempo que nesta CPU já é de 3 h por rodada. Fica como próximo passo, em máquina com GPU.
