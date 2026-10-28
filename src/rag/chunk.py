@@ -21,9 +21,10 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, field
 
-from src.rag.parse import Line
+from src.rag.parse import RE, Line
 
 MAX_WORDS = 320
+RE_NUM = RE["num"]
 
 
 @dataclass
@@ -81,11 +82,16 @@ def _table_chunks(base: dict, label: str, rows: list[Line], start_idx: int) -> l
     if _words(" ".join(texts)) <= MAX_WORDS:
         return [Chunk(id=f"{base['doc_id']}:{_slug(label)}", label=label, dispositivos=[label],
                       text="\n".join(texts), **_b(base))]
-    header = [t for t in texts[:3] if "|" in t][:2]
+    # título/notas + linha de cabeçalho repetidos em cada linha; o rótulo nomeia a linha pelas 1as células
+    rows = [t for t in texts if "|" in t]
+    first = texts.index(rows[0])
+    title = [t for t in texts if "|" not in t and _words(t) <= 60][:8]  # título e notas curtas
+    head, data = rows[:1], rows[1:]
     out = []
-    for i, t in enumerate(texts[len(header):], start=1):
-        out.append(Chunk(id=f"{base['doc_id']}:{_slug(label)}:l{i}", label=f"{label}, linha {i}",
-                         dispositivos=[label], text="\n".join(header + [t]), **_b(base)))
+    for i, t in enumerate(data, start=1):
+        name = ", ".join(c.strip() for c in t.split("|")[:2])
+        out.append(Chunk(id=f"{base['doc_id']}:{_slug(label)}:l{i}", label=f"{label} ({name})",
+                         dispositivos=[label], text="\n".join(title + head + [t]), **_b(base)))
     return out
 
 
@@ -98,7 +104,46 @@ def _b(base: dict) -> dict:
     return {k: v for k, v in base.items()}
 
 
+def _numbered_as_units(lines: list[Line]) -> list[Line]:
+    """Norma sem artigos (a CONAMA 05/1989 se organiza em itens "I -", "2 -", "2.2.1 -"): cada item
+    numerado vira a unidade citável, no papel do artigo. O inciso "I -" anterior ao primeiro item
+    numerado é o item I da parte dispositiva."""
+    out, started = [], False
+    for l in lines:
+        if l.kind == "num" or (l.kind == "inciso" and not started):
+            started = True
+            num = RE_NUM.match(l.text)
+            lab = f"item {num.group(1) if num else l.label.replace('inciso ', '')}"
+            out.append(Line("art", lab, l.text, l.revogado, l.extra))
+        else:
+            out.append(l)
+    return out
+
+
+def _apply_partial_revocations(doc: dict, chunks: list[Chunk]) -> None:
+    """Revogação de dispositivos específicos (ex.: a 506/2024 revogou os arts. 1º-8º, 12-14 e o
+    Anexo I da 491/2018, mas manteve os arts. 9º-11 e os Anexos II-IV). O chunk fica no índice, com
+    vigencia_fim própria, para responder "o que valia na data X"."""
+    for rv in doc.get("revogacoes_parciais", []):
+        alvo = set(rv["dispositivos"])
+        for c in chunks:
+            if c.label.split(" (")[0].split(",")[0] in alvo:
+                c.vigencia_fim = rv["vigencia_fim"]
+                c.meta["revogado_por"] = rv["revogado_por"]
+    if doc.get("revogada_por"):
+        for c in chunks:
+            c.meta.setdefault("revogado_por", doc["revogada_por"])
+
+
 def chunk_document(doc: dict, lines: list[Line], url: str | None = None) -> list[Chunk]:
+    if not any(l.kind == "art" for l in lines):
+        lines = _numbered_as_units(lines)
+    chunks = _chunk_lines(doc, lines, url)
+    _apply_partial_revocations(doc, chunks)
+    return chunks
+
+
+def _chunk_lines(doc: dict, lines: list[Line], url: str | None = None) -> list[Chunk]:
     base = dict(doc_id=doc["id"], sigla=doc["sigla"], titulo=doc["titulo"],
                 vigencia_inicio=doc.get("vigencia_inicio"), vigencia_fim=doc.get("vigencia_fim"),
                 url=url, path="")
@@ -173,8 +218,10 @@ def chunk_document(doc: dict, lines: list[Line], url: str | None = None) -> list
             b = {**base, "path": ""}
             rows = [x for x in body[1:] if "|" in x.text]
             if rows and len(rows) >= 0.5 * (len(body) - 1):
-                title = [x.text for x in body if "|" not in x.text]
-                tbl = [Line("texto", "", "\n".join(title))] + rows if title else rows
+                k = next(n for n, x in enumerate(body) if "|" in x.text)
+                title = [x.text for x in body[:k]] + [x.text for x in body[k:] if "|" not in x.text and
+                                                     re.match(r"^Nota \d", x.text)]
+                tbl = [Line("texto", "", t) for t in title] + rows
                 chunks.extend(_table_chunks(b, label, tbl, 0))
             else:
                 # anexo em texto corrido: blocos de ~MAX_WORDS
