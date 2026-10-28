@@ -76,7 +76,9 @@ def pull(ref: str, sub: str, fname: str) -> str:
     repo, tag = ref.split(":")
     tok = _token(repo)
     m = _manifest(repo, tag, tok)
-    layer = next(l for l in m["layers"] if l["mediaType"] in GGUF_TYPES)
+    # artefatos novos usam o formato CNCF (vnd.cncf.model.weight.v1.raw) com o nome do arquivo na anotação
+    layer = next(l for l in m["layers"] if l["mediaType"] in GGUF_TYPES or
+                 l.get("annotations", {}).get("org.cncf.model.filepath", "").endswith(".gguf"))
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
     print(f"baixando {ref} ({layer['size'] / 1e9:.2f} GB) -> {dest.relative_to(ROOT)}")
@@ -95,7 +97,8 @@ if __name__ == "__main__":
     ap.add_argument("refs", nargs="*")
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args()
-    items = [(r, "llm", r.split("/")[-1].replace(":", "-") + ".gguf") for r in a.refs] or \
+    known = {it[0]: it for it in DEFAULT + BENCH}  # refs conhecidas vão para a pasta/nome esperados pelo código
+    items = [known.get(r, (r, "llm", r.split("/")[-1].replace(":", "-") + ".gguf")) for r in a.refs] or \
         (DEFAULT + BENCH if a.all else DEFAULT)
     for it in items:
         try:
