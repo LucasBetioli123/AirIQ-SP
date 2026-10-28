@@ -79,6 +79,7 @@ conexão (em algumas redes). Por isso:
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python -m pip install -r requirements-llm.txt --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+.venv\Scripts\python -m pip install -r requirements-nn.txt # torch CPU, usado pelo benchmark (make bench)
 $env:PYTHONPATH="."; $env:PYTHONIOENCODING="utf-8"
 .venv\Scripts\python -m src.rag.models_dl                  # make models
 .venv\Scripts\python -m src.aq.build_dataset --from-sample # make sample
