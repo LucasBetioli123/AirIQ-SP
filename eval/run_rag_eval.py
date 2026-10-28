@@ -132,6 +132,32 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             print(f"juiz {r['id']}: {r['fidelidade_juiz']}")
     df = pd.DataFrame(rows)
     df.to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)
+    return summarize(df, tag)
+
+
+def rescore(tag: str):
+    """Recalcula acerto/recusa com o gabarito atual a partir das respostas completas do log da avaliação
+    (sem rodar o LLM de novo). As notas do juiz e os tempos são mantidos."""
+    qs = {q["pergunta"]: q for q in load_questions()}
+    runs = {}
+    with open(data_path("logs", f"eval_runs_{tag}.jsonl"), encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            runs[r["pergunta"]] = r  # a última execução de cada pergunta
+    p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
+    df = pd.read_csv(p)
+    for i, row in df.iterrows():
+        q = next(q for q in qs.values() if q["id"] == row["id"])
+        run = runs[q["pergunta"]]
+        if not q.get("deve_recusar"):
+            pres = [fact_present(f, run["resposta"]) for f in q.get("fatos_chave", [])]
+            df.at[i, "acerto"] = bool(run["encontrado"] and all(pres))
+            df.at[i, "acerto_parcial"] = float(np.mean(pres)) if pres else float(run["encontrado"])
+    df.to_csv(p, index=False)
+    return summarize(df, tag)
+
+
+def summarize(df: pd.DataFrame, tag: str) -> dict:
     ans = df[df["tipo"] != "sem_resposta"]
     summ = {"modelo": tag, "n": len(df),
             "acerto": ans["acerto"].mean(), "acerto_parcial": ans["acerto_parcial"].mean(),
@@ -159,5 +185,9 @@ if __name__ == "__main__":
     ap.add_argument("--judge")
     ap.add_argument("--tag")
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--rescore", metavar="TAG", help="recalcula as notas de uma avaliação já feita")
     a = ap.parse_args()
-    main(a.llm, a.judge, a.tag, a.only)
+    if a.rescore:
+        rescore(a.rescore)
+    else:
+        main(a.llm, a.judge, a.tag, a.only)
