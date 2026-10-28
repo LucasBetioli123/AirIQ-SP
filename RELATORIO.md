@@ -355,8 +355,8 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 **Os 4 erros**, todos lidos no log:
 1. **q30 (Ribeirão Preto)**: o plano veio vazio, o LLM não pediu a ferramenta e o agente recusou.
 2. **q31 (Sorocaba, 24/08/2021)**: também sem ferramenta. O modelo respondeu só com o padrão legal; sem a estimativa, a resposta não conta.
-3. **q23 ("padrão de MP2,5 em vigor hoje")**: o plano inventou uma "CONAMA 375/2006", e o art. 4º da 506 (cronograma) não entrou no contexto. O LLM disse PI-1 = 60 com uma data errada, a validação barrou os números e a saída final virou recusa. Errou, mas não entregou informação falsa.
-4. **q20 (competência do CONAMA)**: a resposta está certa (CONAMA, com base na Lei 6.938), mas não cita o art. 8º, que não foi recuperado.
+3. **q23 ("padrão de MP2,5 em vigor hoje")**: o plano inventou uma "CONAMA 375/2006". O art. 4º da 506 (cronograma) foi recuperado pela pergunta original, mas o reranker deu nota abaixo de `KEEP_MIN` e ele saiu do contexto. O LLM disse PI-1 = 60 com uma data errada, a validação barrou os números e a saída final virou recusa. Errou, mas não entregou informação falsa.
+4. **q20 (competência do CONAMA)**: a resposta está certa (CONAMA, com base na Lei 6.938), mas não cita o art. 8º. Ele veio em 4º numa das consultas e ficou fora dos 8 candidatos que o reranker avalia.
 
 **Correções depois da rodada** (as 3 perguntas de ferramenta rodadas de novo: `rag_eval_detalhe_qwen3-4b_ferramenta_v2.csv`):
 - Quando a pergunta cita PM2.5/qualidade do ar, um município de SP e uma data, e o plano esquece a ferramenta, ela é **chamada por regra** (o log marca `ferramenta_por_regra`).
@@ -417,4 +417,4 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 1. **D+1 operacional**: trocar o ERA5 do dia seguinte pela previsão do GFS/ECMWF aberto e medir a perda em relação ao *perfect prognosis*.
 2. **Mais dados de PM2.5**: QUALAR com login (2019 em diante) e MonitorAr, para treinar com mais estações secas e melhorar os episódios.
 3. **Episódios de fumaça**: perda quantílica ou peso maior nos dias altos, e altura da pluma do CAMS como variável.
-4. **Agente**: rodar em GPU ou com API gratuita; ampliar a base (CONAMA 237, 357, 382, a 513/2026 e normas da CETESB); conjunto de avaliação maior, com um conjunto separado para calibrar os limiares.
+4. **Agente**: rodar em GPU ou com API gratuita; ampliar a base (CONAMA 237, 357, 382, a 513/2026 e normas da CETESB); conjunto de avaliação maior, com um conjunto separado para calibrar os limiares (inclusive o `KEEP_MIN`, que cortou o art. 4º da 506 na q23); com GPU, rerankear a união inteira dos candidatos, e não só os 8 primeiros (q20).
