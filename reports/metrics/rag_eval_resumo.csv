@@ -1,0 +1,4 @@
+modelo,n,acerto,acerto_parcial,cit_precisao,cit_recall,fidelidade_auto,fidelidade_juiz,recusa_correta (sem resposta),recusa_indevida,ferramenta_ok,tempo_medio_s,tokens_medio,acerto_fato,acerto_ferramenta,acerto_multi,acerto_temporal
+qwen3-4b-instruct-2507-q4_k_m,37,0.8710,0.9194,0.8914,0.9483,1.0000,1.0000,1.0,0.0645,0.3333,292.8557,2345.3784,1.0000,0.3333,0.6667,1.0000
+qwen3-4b_ferramenta_regra,3,1.0000,1.0000,0.7500,1.0000,0.6667,,,0.0000,1.0000,413.8533,3916.0000,,1.0000,,
+qwen3-4b_ferramenta_v2,3,1.0000,1.0000,0.8333,1.0000,0.6667,0.6667,,0.0000,1.0000,484.5167,5611.3333,,1.0000,,
