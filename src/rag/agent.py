@@ -181,13 +181,16 @@ class Agent:
         ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}" + (f" ({s['vigencia']})" if s.get("vigencia") else "") +
                           f"\n{s['texto']}" for i, s in enumerate(sources))
         tctx = "\n".join(f"[F{i + 1}] {json.dumps(t, ensure_ascii=False)}" for i, t in enumerate(tools_out))
+        # a data de referência só interessa quando há estimativa de PM2.5 ("hoje"/"amanhã"); nas perguntas
+        # só de norma ela distrai o modelo
         today = reference_today()
-        user = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
-                f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else ""))
+        ref = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
+               if tools_out else "")
+        user = (f"{ref}PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else ""))
         a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=450)
         run["chamadas_llm"].append(_usage("resposta", a))
         ans = a.data or {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
-        v = validate(ans.get("resposta", ""), ans.get("citacoes", []), sources, tools_out, question)
+        v = validate(ans.get("resposta", ""), ans.get("citacoes", []), sources, tools_out, ref + question)
         if ans.get("encontrado") and not v["ok"]:
             # 4) uma regeneração apontando o problema
             fix = (f"{user}\nATENÇÃO: sua resposta anterior tinha problemas: {json.dumps(v, ensure_ascii=False)}. "
@@ -195,7 +198,7 @@ class Agent:
             a2 = self.llm.chat_json(ANSWER_SYS, fix, ANSWER_SCHEMA, max_tokens=450)
             run["chamadas_llm"].append(_usage("correcao", a2))
             if a2.data:
-                v2 = validate(a2.data.get("resposta", ""), a2.data.get("citacoes", []), sources, tools_out, question)
+                v2 = validate(a2.data.get("resposta", ""), a2.data.get("citacoes", []), sources, tools_out, ref + question)
                 if v2["ok"] or len(v2["numeros_sem_suporte"]) < len(v["numeros_sem_suporte"]):
                     ans, v = a2.data, v2
         return self._finish(run, t0, ans, sources, tools_out, question, validation=v, log=log)
