@@ -88,7 +88,9 @@ def nota_vigencia(c: dict) -> str | None:
     fim, por = c.get("vigencia_fim"), (c.get("meta") or {}).get("revogado_por")
     if not fim:
         return None
-    return f"REVOGADO: vigente de {c.get('vigencia_inicio')} até {fim}" + (f"; revogado por {por}" if por else "")
+    desde = (pd.Timestamp(fim) + pd.Timedelta(days=1)).date()
+    return (f"REVOGADO a partir de {desde}" + (f" por {por}" if por else "") +
+            f"; valia de {c.get('vigencia_inicio')} a {fim}")
 
 
 def _as_dict(h) -> dict:
