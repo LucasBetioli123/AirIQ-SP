@@ -69,6 +69,18 @@ def judge(llm, run: dict, sources_text: str) -> dict:
     return r.data or {"nota": None, "sem_suporte": []}
 
 
+def _merge(rows: list[dict], tag: str, only) -> pd.DataFrame:
+    """Com --only, as perguntas refeitas substituem as linhas da avaliação já gravada com a mesma tag."""
+    df = pd.DataFrame(rows)
+    p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
+    if only and p.exists():
+        prev = pd.read_csv(p)
+        order = [q["id"] for q in load_questions()]
+        df = pd.concat([prev[~prev["id"].isin(df["id"])], df])
+        df = df.sort_values("id", key=lambda s: s.map(order.index)).reset_index(drop=True)
+    return df
+
+
 def main(llm_model=None, judge_model=None, tag=None, only=None):
     qs = load_questions()
     if only:
@@ -115,7 +127,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             r["acerto"] = bool(r.get("acerto")) and r["ferramenta_ok"]
         r["resposta"] = run["resposta"][:600]
         rows.append(r)
-        pd.DataFrame(rows).to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)  # parcial
+        _merge(rows, tag, only).to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)  # parcial
         print(f"{q['id']} [{q['tipo']}] encontrado={run['encontrado']} acerto={r.get('acerto', r.get('recusa_correta'))} "
               f"t={run['tempo_total_s']}s")
     if judge_model:
@@ -132,7 +144,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             r["fidelidade_juiz"] = j.get("nota")
             r["juiz_sem_suporte"] = "; ".join(j.get("sem_suporte", []))[:300]
             print(f"juiz {r['id']}: {r['fidelidade_juiz']}")
-    df = pd.DataFrame(rows)
+    df = _merge(rows, tag, only)
     df.to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)
     return summarize(df, tag)
 
