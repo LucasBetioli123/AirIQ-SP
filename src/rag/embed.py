@@ -23,6 +23,8 @@ FORMATS = {
     "granite-embedding": (lambda q: q, lambda d: d),
 }
 
+# padrão escolhido no benchmark (reports/metrics/rag_retrieval.csv): melhor híbrido e o mais rápido em CPU
+DEFAULT_EMB = "granite-multilingual-278m"
 EMB_MODELS = {
     "qwen3-emb-0.6b": "models/emb/qwen3-embedding-0.6b-q8_0.gguf",
     "embeddinggemma-300m": "models/emb/embeddinggemma-300m-q8_0.gguf",
@@ -39,7 +41,7 @@ class Embedder:
     def __init__(self, path: str | None = None, n_ctx: int = 1024):
         from llama_cpp import Llama
 
-        self.path = str(ROOT / (path or os.environ.get("EMB_MODEL", EMB_MODELS["qwen3-emb-0.6b"])))
+        self.path = str(ROOT / (path or os.environ.get("EMB_MODEL", EMB_MODELS[DEFAULT_EMB])))
         self.fmt_q, self.fmt_d = FORMATS[_family(self.path)]
         self.llm = Llama(model_path=self.path, embedding=True, n_ctx=n_ctx, n_batch=n_ctx, n_ubatch=n_ctx,
                          n_threads=os.cpu_count(), verbose=False)

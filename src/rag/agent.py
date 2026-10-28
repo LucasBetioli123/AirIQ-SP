@@ -30,8 +30,8 @@ REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "Lei 9.605/1998). Prefiro não responder sem uma fonte.")
 # limiares de recusa sem gerar (calibrados em reports/metrics/rag_limiar_recusa.csv): escore do reranker
 # (modo *_rerank) ou maior cosseno da busca vetorial (modos dense/hybrid)
-RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.08"))
-COS_MIN = float(os.environ.get("RAG_COS_MIN", "0.0"))
+RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.8"))
+COS_MIN = float(os.environ.get("RAG_COS_MIN", "0.675"))
 
 
 def gate_score(sources: list[dict], mode: str) -> float | None:
