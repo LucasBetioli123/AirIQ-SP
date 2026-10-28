@@ -74,11 +74,10 @@ q22,multi,True,332.78,2663,True,1.0,False,1.0,1.0,1.0,"O padrão final (PF) de M
 
 Fontes:
 [1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24",1.0,,,
-q23,multi,True,297.33,3279,False,0.0,False,1.0,0.5,0.0,"O padrão nacional de MP2,5 para 24 horas em vigor é de 15 µg/m³, estabelecido como padrão final (PF) na Resolução CONAMA 506/2024, Anexo I [1]. Este padrão vale desde a data de publicação da resolução, que é 12 de abril de 2024 [1]. O valor é definido como o valor guia da Organização Mundial da Saúde (OMS) de 2021, conforme definido no art. 2º, inciso IV [2].
+q23,multi,True,338.81,2628,True,1.0,False,1.0,1.0,1.0,"O padrão nacional de MP2,5 para 24 horas em vigor hoje é de 50 µg/m³, correspondente à etapa PI-2, estabelecido na Resolução CONAMA 506/2024, art. 4º, § 2º e Anexo I. Este padrão entra em vigor a partir de 1º de janeiro de 2025 e substitui o PI-1 (60 µg/m³), que vigorava até 31 de dezembro de 2024. O valor de 50 µg/m³ é o padrão de qualidade do ar intermediário (PI-2) definido no Anexo I da resolução. O padrão final (PF) de 15 µg/m³ ainda não entra em vigor, conforme previsto no art. 4º, § 5º.
 
 Fontes:
-[1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24 horas) — https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf
-[2] Resolução CONAMA ",1.0,,,
+[1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24 horas) — https://am",1.0,,,
 q24,temporal,True,337.68,2834,True,1.0,False,0.75,1.0,1.0,"A Resolução CONAMA 03/1990 definia os padrões nacionais de qualidade do ar em 2015. Ela foi publicada em 1990 e, embora revogada a partir de 2018-11-21, era válida em 2015 [2][3]. O texto estabelece os conceitos de padrões primários e secundários de qualidade do ar [5], e define que os padrões primários são os níveis máximos toleráveis que podem afetar a saúde da população [4]. A resolução complementa a Resolução CONAMA 05/1989, que instituiu o PRONAR [2]. A Resolução CONAMA 03/1990 foi a que estabeleceu os padrões de qualidade do ar em vigor naquele período.
 
 Fontes:
@@ -93,11 +92,11 @@ q26,temporal,True,323.55,2169,True,1.0,False,1.0,1.0,1.0,"Não, a Resolução CO
 Fontes:
 [1] Resolução CONAMA 506/2024, art. 11 — https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf
 [3] Resolução CONAMA 506/2",1.0,,,
-q27,temporal,False,432.21,2949,False,0.0,True,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,
-q28,temporal,True,252.36,2044,False,0.0,False,1.0,0.5,1.0,"Em 2020, o padrão nacional para MP2,5 em 24 horas previsto na Resolução CONAMA 491/2018 (valendo até 2024-07-08) era de 25 µg/m³ no nível PF (Ponto Final), conforme estabelecido no Anexo I [1]. Esse valor era o limite de qualidade do ar para o período de 24 horas. A norma estava em vigor em 2020, pois sua vigência foi de 2018-11-21 a 2024-07-08 [1]. Não há indicação de alteração ou revogação específica para esse período. O padrão de 25 µg/m³ foi aplicado como limite para a qualidade do ar em 24 horas.
+q27,temporal,False,523.68,5805,False,0.0,True,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,
+q28,temporal,True,358.76,3259,True,1.0,False,1.0,0.5,1.0,"Em 2020, o padrão nacional de MP2,5 para 24 horas em vigor era o PI-1, com valor de 60 µg/m³, definido na Resolução CONAMA 491/2018, Anexo I [1]. Este padrão era válido desde 21 de novembro de 2018 e permaneceu em vigor até 31 de dezembro de 2024 [F1]. A norma foi revogada a partir de 9 de julho de 2024 pela Resolução CONAMA 506/2024 [1], mas em 2020 ainda estava em vigor.
 
 Fontes:
-[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — ht",1.0,,,
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — https://faolex.fao.org/docs/pdf/bra215752.pdf",1.0,,,
 q29,ferramenta,True,453.07,3621,True,1.0,False,0.5,1.0,1.0,"O PM2.5 previsto para Campinas amanhã é de 20,7 µg/m³ (intervalo de 90%: 11,7 a 29,1 µg/m³). O padrão vigente na data é o da Resolução CONAMA 491/2018, Anexo I, para o período de 24 horas, com o PI-1 de 60 µg/m³. O valor previsto (20,7 µg/m³) não ultrapassa esse padrão, conforme confirmado na comparação com os padrões (PI-1, PI-2, PI-3 e PF) [F1]. A Resolução CONAMA 491/2018 ainda era válida na data de amanhã (2023-04-05), pois foi revogada apenas a partir de 2024-07-09 [1] e [6]. O diagnóstico indica que a qualidade do ar está na faixa ""Boa"".
 
 Fontes:
