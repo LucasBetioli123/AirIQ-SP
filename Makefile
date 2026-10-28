@@ -1,7 +1,16 @@
 # Uso: `make help`. Todos os alvos usam o venv em .venv (criado por `make setup`).
+ifeq ($(OS),Windows_NT)
+PY ?= .venv/Scripts/python
+BOOT_PY ?= python
+# wheel pronta do llama-cpp-python para CPU (no Windows compilar exige Visual Studio + CMake)
+LLAMA_WHEEL := --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+else
 PY ?= .venv/bin/python
+BOOT_PY ?= python3
 SHELL := /bin/bash
+endif
 export PYTHONPATH := $(CURDIR)
+export PYTHONIOENCODING := utf-8
 
 .PHONY: help setup models data sample dataset bench train evaluate maps predict api \
         rag-download rag-ingest rag-bench rag-eval ask chat notebooks test docker all-sample
@@ -10,10 +19,10 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 setup: ## cria .venv e instala dependências com versões fixas
-	python3 -m venv .venv
+	$(BOOT_PY) -m venv .venv
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
-	CMAKE_ARGS="-DGGML_NATIVE=OFF" $(PY) -m pip install -r requirements-llm.txt
+	CMAKE_ARGS="-DGGML_NATIVE=OFF" $(PY) -m pip install -r requirements-llm.txt $(LLAMA_WHEEL)
 	$(PY) -m pip install -r requirements-nn.txt
 
 models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
