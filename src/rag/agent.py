@@ -25,7 +25,7 @@ import pandas as pd
 
 from src.rag.llm import get_llm
 from src.rag.runlog import log_run
-from src.rag.tools import buscar_normas_varias, estimar_pm25, reference_today
+from src.rag.tools import buscar_normas_varias, estimar_pm25, pm25_call_from_question, reference_today
 
 REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
@@ -161,7 +161,11 @@ class Agent:
         if best is not None and self.rag_mode.endswith("_rerank"):
             sources = [s for i, s in enumerate(sources) if i < 2 or (s["rerank"] or 0) >= KEEP_MIN]
         tools_out, seen_calls = [], set()
-        for c in plan.get("pm25", [])[:3]:
+        calls = [c for c in plan.get("pm25", []) if isinstance(c, dict)][:3]
+        if not calls and (c := pm25_call_from_question(question)):
+            calls = [c]
+            run["ferramenta_por_regra"] = True  # o plano não pediu; a regra da pergunta pediu
+        for c in calls:
             key = json.dumps(c, sort_keys=True, ensure_ascii=False)
             if key in seen_calls:  # o plano às vezes repete a mesma chamada
                 continue

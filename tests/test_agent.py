@@ -103,3 +103,17 @@ def test_norm_date_and_query_cleanup():
     assert A.norm_date("", "Em 2021-08-24 o ar em Sorocaba atendia ao padrão?") is None
     assert A._clean_query('buscar_normas("padrão de MP2,5")') == "padrão de MP2,5"
     assert A._clean_query("padrão de MP2,5 (24 h)") == "padrão de MP2,5 (24 h)"
+
+
+def test_agent_calls_tool_when_plan_forgets(patched):
+    # o plano não pede a ferramenta, mas a pergunta cita PM2.5, município e data: a regra chama
+    tmp, calls = patched
+    llm = FakeLLM([
+        {"buscas": [], "pm25": []},
+        {"encontrado": True, "citacoes": [], "resposta": "Estimativa de 18.2 µg/m³ [F1], faixa Boa."},
+    ])
+    ag = A.Agent.__new__(A.Agent)
+    ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
+    r = ag.ask("Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10?")
+    assert calls == [("Ribeirão Preto", "2022-09-10", 0)]
+    assert r["ferramenta_por_regra"] and r["encontrado"]

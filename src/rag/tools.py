@@ -56,6 +56,33 @@ def resolve_date(text: str | None, horizon: int = 0) -> tuple[pd.Timestamp, int]
     return today, horizon
 
 
+_AQ_WORDS = re.compile(r"\b(?:pm\s?2[.,]?5|mp\s?2[.,]?5|qualidade do ar|polui)", re.I)
+
+
+def pm25_call_from_question(question: str) -> dict | None:
+    """Reforço determinístico ao plano: se a pergunta fala de PM2.5/qualidade do ar num município de SP
+    e numa data (ou hoje/amanhã) e o LLM não pediu a ferramenta, monta a chamada. Na avaliação, o
+    Qwen3-4B deixou de chamar a ferramenta em 1 de 3 perguntas desse tipo."""
+    if not _AQ_WORDS.search(question):
+        return None
+    from src.aq.data.geo import municipios_sp
+
+    q = _strip(question)
+    q = re.sub(r"estado de sao paulo", " ", q)
+    names = sorted(municipios_sp()["nome"], key=len, reverse=True)
+    local = next((n for n in names if re.search(rf"\b{re.escape(_strip(n))}\b", q)), None)
+    if local is None:
+        return None
+    m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", question) or re.search(r"\b(\d{2}/\d{2}/\d{4})\b", question)
+    if m:
+        return {"local": local, "data": m.group(1), "horizonte": 0}
+    if "amanha" in q:
+        return {"local": local, "data": "amanhã", "horizonte": 1}
+    if "hoje" in q or "agora" in q:
+        return {"local": local, "data": "hoje", "horizonte": 0}
+    return None
+
+
 def estimar_pm25(local: str, data: str | None = None, horizonte: int = 0) -> dict:
     from src.aq.data.geo import geocode
     from src.aq.predict import DataUnavailable, predict_one
