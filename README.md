@@ -53,7 +53,7 @@ docker run --rm -it -v $PWD/models:/app/models -v $PWD/data:/app/data teste-ia m
 | Pergunta ao agente | `make ask Q="qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?"` | 4-8 min em CPU (o prompt do LLM sai a ~16 tokens/s) |
 | Chat no navegador | `make chat` → http://localhost:7860 | idem por pergunta |
 | Benchmark de recuperação (3 embeddings + reranker) | `make rag-bench` | ~1 h 20 (35 min de indexação + 38 min de reranker) |
-| Avaliação ponta a ponta do agente (37 perguntas) | `make rag-eval` | ~4-5 h em CPU (com GPU ou API, minutos) |
+| Avaliação ponta a ponta do agente (37 perguntas + juiz) | `make rag-eval` | ~3 h em CPU com Qwen3-4B (com GPU ou API, minutos) |
 | Testes | `make test` | ~10 s |
 | Notebooks de evidência (com saída) | `make notebooks` | ~2 min |
 
