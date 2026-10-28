@@ -49,3 +49,45 @@ def test_chunks_preserve_structure(tmp_path: Path):
     assert art2.path.startswith("CAPÍTULO I")
     anexo = next(c for c in chunks if c.id == "teste:anexoi")
     assert "MP2,5 | 24 horas | 60 | 50" in anexo.text
+
+
+def test_classify_suffix_and_planalto_ordinal():
+    # "Art. 1º - Esta Lei" não é art. 1º-E; "Art. 9 o -A." (HTML do Planalto) é art. 9º-A
+    assert classify("Art. 1º - Esta Lei estabelece")[1] == "art. 1º"
+    assert classify("Art. 5º - A política")[1] == "art. 5º"
+    assert classify("Art. 9 o -A. O proprietário")[1] == "art. 9º-A"
+    assert classify("Art. 17-A. São estabelecidos")[1] == "art. 17-A"
+    assert classify("2.2.1 - Ficam estabelecidos")[1] == "item 2.2.1"
+
+
+def test_rewrite_standards_table():
+    from src.rag.parse import _rewrite_tables
+
+    paras = ["ANEXO I", "PADRÕES DE QUALIDADE DO AR",
+             "Poluente Atmosférico Período deReferência PI-1 PI-2 PI-3 PI-4 PF",
+             "µg/m³ µg/m³ µg/m³ µg/m³ µg/m³ ppm",
+             "Material Particulado - MP2,5 24 horas 60 50 37 25 15 -",
+             "Anual¹ 20 17 15 10 5 -",
+             "Monóxido de Carbono - CO 8 horas ³ - - - - 9",
+             "1 - média aritmética anual"]
+    out = _rewrite_tables(paras)
+    assert "Material Particulado - MP2,5 | 24 horas | PI-1: 60 µg/m³ | PI-2: 50 µg/m³ | PI-3: 37 µg/m³ | " \
+           "PI-4: 25 µg/m³ | PF: 15 µg/m³" in out
+    assert any(r.startswith("Material Particulado - MP2,5 | Anual |") and "PF: 5 µg/m³" in r for r in out)
+    # célula vazia some no PDF: a linha do CO é alinhada à direita (9 ppm cai na coluna PF em ppm)
+    assert any(r.startswith("Monóxido de Carbono - CO | 8 horas") and r.endswith("PF (ppm): 9") for r in out)
+    assert "Nota 1 - média aritmética anual" in out
+
+
+def test_partial_revocation_and_numbered_items(tmp_path: Path):
+    p = tmp_path / "doc.txt"
+    p.write_text("RESOLUÇÃO Nº 5\nO CONSELHO resolve:\nI - Instituir o programa.\n2 - ESTRATÉGIAS\n"
+                 "A estratégia básica.\n2.1 - LIMITES\nTexto do item.\n", encoding="utf-8")
+    doc = {"id": "r5", "sigla": "Res. 5", "titulo": "Res. 5", "vigencia_inicio": "1989-08-25",
+           "revogacoes_parciais": [{"dispositivos": ["item 2.1"], "vigencia_fim": "2018-11-20",
+                                    "revogado_por": "Res. 491, art. 14"}]}
+    chunks = {c.id: c for c in chunk_document(doc, read_lines(p))}
+    assert {"r5:itemi", "r5:item2", "r5:item21"} <= set(chunks)
+    assert chunks["r5:item21"].vigencia_fim == "2018-11-20"
+    assert chunks["r5:item21"].meta["revogado_por"] == "Res. 491, art. 14"
+    assert chunks["r5:item2"].vigencia_fim is None
