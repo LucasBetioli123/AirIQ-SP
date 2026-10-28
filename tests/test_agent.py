@@ -122,3 +122,14 @@ def test_agent_calls_tool_when_plan_forgets(patched):
     r = ag.ask("Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10?")
     assert calls == [("Ribeirão Preto", "2022-09-10", 0)]
     assert r["ferramenta_por_regra"] and r["encontrado"]
+
+
+def test_padrao_vigente_tool():
+    from src.rag.tools import padrao_call_from_question, padrao_mp25_vigente
+    assert padrao_call_from_question("Em 2020, qual era o padrão nacional de MP2,5 para 24 horas aplicado?")
+    assert padrao_call_from_question("Quando entram em vigor os padrões PI-3 e PI-4 da 506?")
+    assert not padrao_call_from_question("Qual o PF de MP2,5 em 24 horas na CONAMA 491/2018?")  # valor, não vigência
+    r = padrao_mp25_vigente("2020-07-01")
+    assert r["padrao_24h_vigente_na_data"]["etapa"] == "PI-1" and r["vigente_desde"] == "2018-11-21"
+    r = padrao_mp25_vigente("2026-10-28")
+    assert r["padrao_24h_vigente_na_data"]["valor"] == 50 and r["vigente_desde"] == "2025-01-01"

@@ -2,6 +2,7 @@
 
   buscar_normas(consulta, data)        -> trechos normativos com citação (RAG)
   estimar_pm25(local, data, horizonte) -> modelo da Parte 1 (estimativa/previsão + IC 90%)
+  padrao_mp25_vigente(data)            -> etapa do padrão de MP2,5 vigente na data + cronograma (art. 4º)
 
 Datas relativas ("hoje", "amanhã") são resolvidas contra a DATA DE REFERÊNCIA do
 sistema. Como não há feed em tempo real (os dados públicos usados vão até abr/2023),
@@ -81,6 +82,47 @@ def pm25_call_from_question(question: str) -> dict | None:
     if "hoje" in q or "agora" in q:
         return {"local": local, "data": "hoje", "horizonte": 0}
     return None
+
+
+_STD_WORDS = re.compile(r"\b(?:mp|pm)\s?2[.,]?5\b|\bPI-[1-4]\b", re.I)
+_WHEN_WORDS = re.compile(r"\b(?:em vigor|vigente|vigora|vale|valia|aplicad[oa]|desde quando|quando entra|hoje|atual|"
+                         r"(?:em|no ano de) (?:19|20)\d{2})\b", re.I)
+
+
+def padrao_call_from_question(question: str) -> bool:
+    """A pergunta é sobre QUAL etapa do padrão de MP2,5 vale numa data (ou quando entra em vigor)? Então o
+    agente consulta o cronograma, em vez de deixar o LLM deduzir a etapa vigente: na avaliação, o Qwen3-4B
+    respondeu o PF (25) para 2020, quando valia o PI-1 (60). Perguntas sobre o valor de uma etapa numa
+    norma não disparam (o cronograma da 506 só distrairia)."""
+    return bool(_STD_WORDS.search(question) and _WHEN_WORDS.search(question))
+
+
+# início de cada etapa do MP2,5, conferido no art. 4º de cada resolução
+_STAGE_SINCE = {("Resolução CONAMA 491/2018", "PI-1"): "2018-11-21", ("Resolução CONAMA 506/2024", "PI-1"): "2024-07-09",
+                ("Resolução CONAMA 506/2024", "PI-2"): "2025-01-01", ("Resolução CONAMA 506/2024", "PI-3"): "2033-01-01",
+                ("Resolução CONAMA 506/2024", "PI-4"): "2044-01-01"}
+CRONOGRAMA_506 = {"PI-1": "60 µg/m³, vigora até 2024-12-31 (art. 4º, § 1º)",
+                  "PI-2": "50 µg/m³, em vigor a partir de 2025-01-01 (art. 4º, § 2º)",
+                  "PI-3": "37 µg/m³, em vigor a partir de 2033-01-01 (art. 4º, § 3º)",
+                  "PI-4": "25 µg/m³, em vigor a partir de 2044-01-01, data que pode ser antecipada ou prorrogada "
+                          "uma única vez por até quatro anos (art. 4º, § 4º)",
+                  "PF": "15 µg/m³, em data a ser definida em resolução do Conama (art. 4º, § 5º)"}
+
+
+def padrao_mp25_vigente(data: str | None = None) -> dict:
+    """Etapa do padrão nacional de MP2,5 (24 h) vigente na data (padrão: hoje, data real) e o cronograma da
+    Resolução CONAMA 506/2024. Determinístico: a regra vem do art. 4º das resoluções."""
+    d = pd.Timestamp(data) if data else pd.Timestamp.today().normalize()
+    from src.aq.aqi import legal_standard_24h
+    std = legal_standard_24h(d)
+    norma = std["norma"].split(",")[0]
+    out = {"data": str(d.date()), "padrao_24h_vigente_na_data": std,
+           "vigente_desde": _STAGE_SINCE.get((norma, std["etapa"])),
+           "cronograma_mp25_24h_conama_506_2024": CRONOGRAMA_506}
+    if norma == "Resolução CONAMA 491/2018":
+        out["obs"] = ("na 491/2018, PI-2, PI-3 e PF seriam adotados de forma subsequente, conforme os planos "
+                      "estaduais (art. 4º, § 3º); nacionalmente valia o PI-1")
+    return out
 
 
 def estimar_pm25(local: str, data: str | None = None, horizonte: int = 0) -> dict:

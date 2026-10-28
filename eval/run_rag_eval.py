@@ -103,7 +103,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
                 # só os trechos CITADOS: fidelidade = o que foi afirmado está nas fontes que a resposta cita
                 src = "\n\n".join(f"[{t['n']}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
                                   for t in run["trechos"] if t["id"] in chunks and t["n"] in run["citacoes"])
-                tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
+                tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] != "buscar_normas"]
                 if tools:
                     src += "\n\nFERRAMENTA:\n" + json.dumps(tools, ensure_ascii=False)
                 to_judge.append((r, run, src))

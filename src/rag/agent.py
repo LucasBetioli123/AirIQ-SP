@@ -25,7 +25,8 @@ import pandas as pd
 
 from src.rag.llm import get_llm
 from src.rag.runlog import log_run
-from src.rag.tools import buscar_normas_varias, estimar_pm25, pm25_call_from_question, reference_today
+from src.rag.tools import (buscar_normas_varias, estimar_pm25, padrao_call_from_question, padrao_mp25_vigente,
+                           pm25_call_from_question, reference_today)
 
 REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
@@ -184,12 +185,18 @@ class Agent:
             r = estimar_pm25(c.get("local", ""), c.get("data"), int(c.get("horizonte", 0) or 0))
             tools_out.append(r)
             run["ferramentas"].append({"ferramenta": "estimar_pm25", "args": c, "resultado": r})
+        pm25_used = bool(tools_out)
+        if not pm25_used and padrao_call_from_question(question):
+            # (com estimar_pm25 a etapa vigente já vem no resultado, em comparacao_com_padroes)
+            r = padrao_mp25_vigente(date)
+            tools_out.append(r)
+            run["ferramentas"].append({"ferramenta": "padrao_mp25_vigente", "args": {"data": date}, "resultado": r})
         run["tempo_ferramentas_s"] = round(time.time() - t1, 2)
         run["trechos"] = [{"n": i + 1, "id": s["id"], "citacao": s["citacao"], "score": s["score"], "rerank": s["rerank"]}
                           for i, s in enumerate(sources)]
         run["escore_relevancia"] = best
         # recusa sem gerar se a base claramente não cobre e não há ferramenta
-        if not tools_out and best is not None and best < (RERANK_MIN if self.rag_mode.endswith("rerank") else COS_MIN):
+        if not pm25_used and best is not None and best < (RERANK_MIN if self.rag_mode.endswith("rerank") else COS_MIN):
             return self._finish(run, t0, {"encontrado": False, "resposta": REFUSAL, "citacoes": []}, sources, tools_out,
                                 question, gate=True, log=log)
         # 3) resposta
@@ -200,7 +207,7 @@ class Agent:
         # só de norma ela distrai o modelo
         today = reference_today()
         ref = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
-               if tools_out else "")
+               if pm25_used else "")
         user = (f"{ref}PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else ""))
         a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=450)
         run["chamadas_llm"].append(_usage("resposta", a))
@@ -231,7 +238,7 @@ class Agent:
         cited = sorted(c for c in used_citations(text, ans.get("citacoes", [])) if 1 <= c <= len(sources))
         refs = [f"[{c}] {sources[c - 1]['citacao']} — {sources[c - 1].get('url') or ''}".rstrip(" —") for c in cited]
         final = text + ("\n\nFontes:\n" + "\n".join(refs) if found and refs else "")
-        if found and tools_out:
+        if found and any(f["ferramenta"] == "estimar_pm25" for f in run["ferramentas"]):
             final += ("\n\nObs.: estimativa do modelo da Parte 1 (satélite GOES-16 + ERA5 + rede CETESB); "
                       f"data de referência do sistema = {run['data_referencia_sistema']}.")
         run.update({"encontrado": found, "recusa_por_limiar": gate, "resposta": final, "citacoes": cited,
