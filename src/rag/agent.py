@@ -35,6 +35,7 @@ Ferramentas:
 - buscar_normas(consulta): busca trechos em resoluções CONAMA e leis ambientais. Use 1 a 3 consultas curtas e específicas (termos técnicos da norma; separe assuntos diferentes em consultas diferentes).
 - estimar_pm25(local, data, horizonte): modelo de PM2.5 (µg/m³) com intervalo de confiança para um município de SP ou "lat,lon". data = "hoje", "amanhã" ou "AAAA-MM-DD". horizonte = 1 se for previsão para o dia seguinte (amanhã), senão 0.
 Só peça estimar_pm25 se a pergunta pedir concentração/qualidade do ar de um lugar e data. Se a pergunta comparar com um padrão legal, peça também uma busca sobre esse padrão.
+data_da_norma: preencha com AAAA-MM-DD só se a pergunta for sobre a regra que valia numa data passada (ex.: "em 2015"); senão deixe vazio.
 Responda apenas o JSON."""
 
 PLAN_SCHEMA = {"type": "object", "properties": {
@@ -52,12 +53,35 @@ Regras:
 3. Ao comparar com um padrão legal, use o valor do padrão que está nas FONTES e diga claramente se ultrapassa ou não.
 4. Se as fontes não contêm a resposta, retorne encontrado=false. Não invente números, artigos ou normas.
 5. Se precisar juntar dois trechos, cite ambos.
+6. Fonte marcada como REVOGADO só vale para a época indicada; diga que foi revogada (e por qual norma) se isso for relevante.
 Responda apenas o JSON."""
 
 ANSWER_SCHEMA = {"type": "object", "properties": {
     "encontrado": {"type": "boolean"}, "resposta": {"type": "string"},
     "citacoes": {"type": "array", "items": {"type": "integer"}}},
     "required": ["encontrado", "resposta", "citacoes"]}
+
+
+def _clean_query(q: str) -> str:
+    """Modelos pequenos às vezes devolvem a chamada inteira: 'buscar_normas("padrão MP2,5")'."""
+    m = re.match(r'^\s*\w+\(\s*["\']?(.*?)["\']?\s*\)\s*$', q, flags=re.S)
+    return (m.group(1) if m else q).strip()
+
+
+def norm_date(plan_date, question: str) -> str | None:
+    """Data em que a norma deve estar vigente. Vem do plano ('AAAA-MM-DD' ou só 'AAAA') ou, se o
+    plano não trouxer, de um ano citado na pergunta ('Em 2015, ...'). Sem data = vigente hoje."""
+    d = str(plan_date or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+        return d
+    if re.fullmatch(r"(?:19|20)\d{2}", d):
+        return f"{d}-07-01"
+    m = re.search(r"\b(\d{2})/(\d{2})/((?:19|20)\d{2})\b", question)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    # ano solto ("em 2015", "no ano de 2020"), mas não o ano no número da norma ("491/2018")
+    m = re.search(r"\b(?:em|no ano de|durante|até)\s+((?:19|20)\d{2})\b(?!\s*[-/])", question, flags=re.I)
+    return f"{m.group(1)}-07-01" if m else None
 
 
 def _numbers(s: str) -> set[str]:
@@ -100,12 +124,10 @@ class Agent:
         p = self.llm.chat_json(PLAN_SYS, plan_user, PLAN_SCHEMA, max_tokens=300)
         run["chamadas_llm"].append(_usage("plano", p))
         plan = p.data or {"buscas": [question], "pm25": []}
-        buscas = [b for b in plan.get("buscas", []) if b.strip()] or [question]
+        buscas = [_clean_query(b) for b in plan.get("buscas", []) if isinstance(b, str) and b.strip()] or [question]
         if question not in buscas:
             buscas.append(question)  # a pergunta original sempre entra como consulta
-        date = plan.get("data_da_norma") or None
-        if date and not re.match(r"\d{4}-\d{2}-\d{2}$", date):
-            date = None
+        date = norm_date(plan.get("data_da_norma"), question)
         # 2) ferramentas
         t1 = time.time()
         sources, seen = [], set()
@@ -134,7 +156,8 @@ class Agent:
             return self._finish(run, t0, {"encontrado": False, "resposta": REFUSAL, "citacoes": []}, sources, tools_out,
                                 question, gate=True, log=log)
         # 3) resposta
-        ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}\n{s['texto']}" for i, s in enumerate(sources))
+        ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}" + (f" ({s['vigencia']})" if s.get("vigencia") else "") +
+                          f"\n{s['texto']}" for i, s in enumerate(sources))
         tctx = "\n".join(f"[F{i + 1}] {json.dumps(t, ensure_ascii=False)}" for i, t in enumerate(tools_out))
         user = f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else "")
         a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=700)

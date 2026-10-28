@@ -83,9 +83,18 @@ def get_retriever(mode: str | None = None) -> Retriever:
     return Retriever(mode or os.environ.get("RAG_MODE", "hybrid_rerank"))
 
 
+def nota_vigencia(c: dict) -> str | None:
+    """Texto curto sobre a vigência do trecho, para o LLM não apresentar regra revogada como atual."""
+    fim, por = c.get("vigencia_fim"), (c.get("meta") or {}).get("revogado_por")
+    if not fim:
+        return None
+    return f"REVOGADO: vigente de {c.get('vigencia_inicio')} até {fim}" + (f"; revogado por {por}" if por else "")
+
+
 def buscar_normas(consulta: str, data: str | None = None, k: int = 5, mode: str | None = None) -> list[dict]:
     hits = get_retriever(mode).search(consulta, k=k, date=data)
     return [{"id": h.chunk["id"], "citacao": f"{h.chunk['sigla']}, {h.chunk['label']}", "doc_id": h.chunk["doc_id"],
              "dispositivos": h.chunk["dispositivos"], "texto": h.chunk["text"], "url": h.chunk.get("url"),
+             "vigencia": nota_vigencia(h.chunk),
              "score": round(h.score, 4), "rerank": h.rerank, "rank_bm25": h.rank_bm25, "rank_dense": h.rank_dense}
             for h in hits]
