@@ -25,8 +25,8 @@ import pandas as pd
 
 from src.rag.llm import get_llm
 from src.rag.runlog import log_run
-from src.rag.tools import (buscar_normas_varias, estimar_pm25, padrao_call_from_question, padrao_mp25_vigente,
-                           pm25_call_from_question, reference_today)
+from src.rag.tools import (base_legal_padrao, buscar_normas_varias, estimar_pm25, padrao_call_from_question,
+                           padrao_mp25_vigente, pm25_call_from_question, reference_today, trecho_por_id)
 
 REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
@@ -127,7 +127,9 @@ def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dic
     support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] + " " + (sources[i - 1].get("vigencia") or "")
                        for i in used & valid_ids)
     support += " " + json.dumps(tools, ensure_ascii=False) + " " + question
-    nums = {n for n in _numbers(re.sub(r"\[(?:F?\d+)\]", "", answer)) if len(n) > 0}
+    # nomes de poluente (MP2,5, PM10) não são valores
+    plain = re.sub(r"\b(?:MP|PM)\s?(?:2[.,]5|10)\b", " ", re.sub(r"\[(?:F?\d+)\]", "", answer), flags=re.I)
+    nums = {n for n in _numbers(plain) if len(n) > 0}
     sup_nums = _numbers(support)
     unsupported = sorted(n for n in nums if n not in sup_nums and not (n.isdigit() and int(n) < 10))
     return {"citacoes_invalidas": bad, "numeros_sem_suporte": unsupported, "cita_algo": bool(used & valid_ids),
@@ -191,6 +193,11 @@ class Agent:
             r = padrao_mp25_vigente(date)
             tools_out.append(r)
             run["ferramentas"].append({"ferramenta": "padrao_mp25_vigente", "args": {"data": date}, "resultado": r})
+            # o art. 4º (cronograma) entra no contexto: sem ele, o modelo recusou mesmo com a ferramenta (q23)
+            have = {s["id"] for s in sources}
+            extra = [t for i in base_legal_padrao(r) if i not in have and (t := trecho_por_id(i, self.rag_mode))]
+            if extra:
+                sources = sources[: max(2, self.max_sources - len(extra))] + extra
         run["tempo_ferramentas_s"] = round(time.time() - t1, 2)
         run["trechos"] = [{"n": i + 1, "id": s["id"], "citacao": s["citacao"], "score": s["score"], "rerank": s["rerank"]}
                           for i, s in enumerate(sources)]
@@ -227,6 +234,7 @@ class Agent:
             # número sem fonte mesmo depois da correção: melhor recusar do que entregar um valor inventado
             # (na avaliação, o modelo inventou "desde 12 de abril de 2024" para o padrão de MP2,5)
             run["bloqueado_pela_validacao"] = v["numeros_sem_suporte"]
+            run["resposta_bloqueada"] = ans.get("resposta", "")
             ans = {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
         return self._finish(run, t0, ans, sources, tools_out, question, validation=v, log=log)
 

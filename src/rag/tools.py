@@ -171,6 +171,21 @@ def _as_dict(h) -> dict:
             "rank_bm25": h.rank_bm25, "rank_dense": h.rank_dense}
 
 
+def trecho_por_id(chunk_id: str, mode: str | None = None) -> dict | None:
+    from src.rag.retrieve import Hit
+    c = next((c for c in get_retriever(mode or os.environ.get("RAG_MODE", "hybrid_rerank")).chunks
+              if c["id"] == chunk_id), None)
+    return _as_dict(Hit(c, 0.0)) if c else None
+
+
+def base_legal_padrao(r: dict) -> list[str]:
+    """Trechos em que padrao_mp25_vigente se apoia (art. 4º das resoluções), para a resposta poder citá-los."""
+    ids = ["conama_506_2024:art4"]
+    if r["padrao_24h_vigente_na_data"]["norma"].startswith("Resolução CONAMA 491/2018"):
+        ids.insert(0, "conama_491_2018:art4")
+    return ids
+
+
 def buscar_normas(consulta: str, data: str | None = None, k: int = 5, mode: str | None = None) -> list[dict]:
     mode = mode or os.environ.get("RAG_MODE", "hybrid_rerank")
     return [_as_dict(h) for h in get_retriever(mode).search(consulta, k=k, date=data, mode=mode)]
