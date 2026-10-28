@@ -18,6 +18,7 @@ reais das normas, que o ambiente de nuvem não conseguia baixar. Não usei Copil
 | Parte 2 com os textos reais | Localizou cópias públicas do DOU para a 491/2018 (FAOLEX/FAO) e a 506/2024 (Prefeitura do Rio), porque o in.gov.br bloqueia acesso automatizado. Ajustou o parser ao formato real (cabeçalho de impressão do DOU, tabelas dos anexos, HTML malformado do Planalto) e modelou a revogação parcial da 491 pela 506 | Conferir no texto das normas os valores, as datas de vigência e os dispositivos revogados, e os gabaritos do conjunto de avaliação |
 | Depuração | Achou um defeito no reranker (o llama-cpp-python 0.3 deixou de preencher os logits que o código lia) e reorganizou a recuperação para caber em CPU | Validar a correção com exemplos conhecidos |
 | Escolha de modelos | Montou e rodou os benchmarks (modelos de ML, embeddings, LLMs locais) | Interpretar os resultados e escolher com base nos números |
+| Avaliação final e correções | Rodou a avaliação completa do agente, leu os erros no log e propôs as correções: a etapa vigente do padrão calculada fora do LLM (`padrao_mp25_vigente`), recusa quando sobra número sem fonte, citações do texto como fonte da lista. Também rodou `make all-sample` num clone limpo | Conferir cada erro no log e decidir quais perguntas rodar de novo, sem mexer no gabarito |
 | Documentação | Redigiu README, RELATORIO e o roteiro do vídeo | Revisar e ajustar |
 
 ## Cuidados tomados

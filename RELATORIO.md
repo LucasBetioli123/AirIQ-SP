@@ -425,3 +425,12 @@ Como chegou a esse número: a rodada completa com o código final da manhã deu 
 2. **Mais dados de PM2.5**: QUALAR com login (2019 em diante) e MonitorAr, para treinar com mais estações secas e melhorar os episódios.
 3. **Episódios de fumaça**: perda quantílica ou peso maior nos dias altos, e altura da pluma do CAMS como variável.
 4. **Agente**: rodar em GPU ou com API gratuita; ampliar a base (CONAMA 237, 357, 382, a 513/2026 e normas da CETESB); conjunto de avaliação maior, com um conjunto separado para calibrar os limiares (inclusive o `KEEP_MIN`, que cortou o art. 4º da 506 na q23); com GPU, rerankear a união inteira dos candidatos, e não só os 8 primeiros (q20).
+
+## 9. Uso de ferramentas de IA
+
+Detalhado, etapa por etapa, em [USO_DE_IA.md](USO_DE_IA.md). Em resumo:
+- **Ferramenta**: Claude Code (Anthropic), primeiro num ambiente de nuvem e depois na minha máquina, para rodar a Parte 2 com os textos reais das normas.
+- **A IA escreveu** a maior parte do código (coletores, variáveis, benchmark, CQR, parser, chunking, recuperação, agente, avaliação) e redigiu a documentação. Também montou e rodou os benchmarks.
+- **Eu decidi e validei**: as trocas de fonte, o desenho da validação (estação nunca vista × período posterior), a física das variáveis, as perguntas e os gabaritos do conjunto de avaliação, conferidos no texto das normas, e a escolha final de cada componente pelos números.
+- **Nenhum número foi escrito de memória**: todos saem dos CSVs em `reports/metrics/`, gerados pelo código. Nenhuma norma foi transcrita de memória: os textos vêm de fontes oficiais ou de cópias públicas do DOU, com a URL ao lado de cada arquivo.
+- O LLM local do agente (Qwen3-4B) é um componente do sistema, separado da IA usada para programar.

@@ -3,12 +3,13 @@
 Fluxo (poucas chamadas ao LLM, porque em CPU cada chamada custa segundos):
   1. PLANEJAR (LLM, JSON): quais buscas na base normativa e quais consultas de PM2.5
      (local, data, horizonte) a pergunta exige
-  2. EXECUTAR as ferramentas (buscar_normas, estimar_pm25)
+  2. EXECUTAR as ferramentas (buscar_normas, estimar_pm25 e, nas perguntas sobre qual
+     etapa do padrão de MP2,5 vale numa data, padrao_mp25_vigente)
   3. RESPONDER (LLM, JSON): resposta em português, citando os trechos [n] e os
      resultados de ferramenta [F1..]. `encontrado=false` quando a base não cobre
   4. VALIDAR (sem LLM): citações existem? Os números da resposta aparecem nos trechos
-     citados, nas ferramentas ou na pergunta? Se não, a resposta vai marcada (e uma
-     regeneração é tentada)
+     citados, nas ferramentas ou na pergunta? Se não, uma regeneração é tentada; se
+     ainda sobrar número sem fonte, o agente recusa
   5. REGISTRAR tudo em logs/agent_runs.jsonl
 Recusa honesta: se o melhor trecho tem relevância abaixo do limiar e nenhuma
 ferramenta foi pedida, o agente recusa sem gerar, para não inventar.
