@@ -76,13 +76,9 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
     agent = Agent(model=llm_model)
     tag = tag or agent.llm.name.replace(".gguf", "")
     os.environ["AGENT_LOG"] = str(data_path("logs", f"eval_runs_{tag}.jsonl"))
-    jl = None
-    if judge_model:
-        from src.rag.llm import LLM
-        jl = LLM(model=judge_model)
     from src.rag.tools import get_retriever
     chunks = {c["id"]: c for c in get_retriever(agent.rag_mode).chunks}
-    rows = []
+    rows, to_judge = [], []
     for q in qs:
         run = agent.ask(q["pergunta"])
         cited = run["trechos_citados"]
@@ -103,23 +99,37 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
                 r["cit_recall"] = float(np.mean([any(gold_match(c, [g]) for c in cited) for g in gold])) if gold else None
             v = run.get("validacao") or {}
             r["fidelidade_auto"] = float(v.get("ok", False)) if run["encontrado"] else None
-            if jl is not None:
-                src = "\n\n".join(f"[{i + 1}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
-                                  for i, t in enumerate(run["trechos"]) if t["id"] in chunks)
+            if judge_model and run["encontrado"]:
+                # só os trechos CITADOS: fidelidade = o que foi afirmado está nas fontes que a resposta cita
+                src = "\n\n".join(f"[{t['n']}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
+                                  for t in run["trechos"] if t["id"] in chunks and t["n"] in run["citacoes"])
                 tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
                 if tools:
                     src += "\n\nFERRAMENTA:\n" + json.dumps(tools, ensure_ascii=False)
-                j = judge(jl, run, src)
-                r["fidelidade_juiz"] = j.get("nota")
-                r["juiz_sem_suporte"] = "; ".join(j.get("sem_suporte", []))[:300]
+                to_judge.append((r, run, src))
         if q.get("deve_chamar_ferramenta"):
             calls = [t for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
             loc = _norm(q.get("local", ""))
             r["ferramenta_ok"] = bool(calls) and any(loc in _norm(json.dumps(c["args"], ensure_ascii=False)) for c in calls)
         r["resposta"] = run["resposta"][:600]
         rows.append(r)
+        pd.DataFrame(rows).to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)  # parcial
         print(f"{q['id']} [{q['tipo']}] encontrado={run['encontrado']} acerto={r.get('acerto', r.get('recusa_correta'))} "
               f"t={run['tempo_total_s']}s")
+    if judge_model:
+        # o juiz roda depois, com o gerador descarregado: dois LLMs de 4B juntos apertam 12 GB de RAM
+        import gc
+
+        from src.rag.llm import LLM, get_llm
+        del agent
+        get_llm.cache_clear()
+        gc.collect()
+        jl = LLM(model=judge_model)
+        for r, run, src in to_judge:
+            j = judge(jl, run, src)
+            r["fidelidade_juiz"] = j.get("nota")
+            r["juiz_sem_suporte"] = "; ".join(j.get("sem_suporte", []))[:300]
+            print(f"juiz {r['id']}: {r['fidelidade_juiz']}")
     df = pd.DataFrame(rows)
     df.to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)
     ans = df[df["tipo"] != "sem_resposta"]
