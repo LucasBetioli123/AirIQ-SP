@@ -217,8 +217,6 @@ Mitigações possíveis (próximos passos): perda quantílica/assimétrica para 
   - Devolvem PM2.5, IC 90%, faixa do IQAr, padrão legal vigente e se ele é ultrapassado, além de um diagnóstico (AOD disponível? quantas estações no IDW? distância da mais próxima).
 - **Modelos finais** (`models/meta.json`): treinados com **todos os dados** (11.543 estação-dias, 30 estações). Os folds serviram só para as métricas.
 
-<!--RESULTADOS_P1-->
-
 ## 5. Parte 2: agente com RAG sobre normas ambientais
 
 ### 5.1 Base de conhecimento (`configs/normas.yaml`)
@@ -420,5 +418,3 @@ Depois das correções, a resposta ficou assim (log `538dc57c86`):
 2. **Mais dados de PM2.5**: QUALAR com login (2019 em diante) e MonitorAr, para treinar com mais estações secas e melhorar os episódios.
 3. **Episódios de fumaça**: perda quantílica ou peso maior nos dias altos, e altura da pluma do CAMS como variável.
 4. **Agente**: rodar em GPU ou com API gratuita; ampliar a base (CONAMA 237, 357, 382, a 513/2026 e normas da CETESB); conjunto de avaliação maior, com um conjunto separado para calibrar os limiares.
-
-<!--FIM-->
