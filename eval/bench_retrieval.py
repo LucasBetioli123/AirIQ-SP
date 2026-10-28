@@ -32,7 +32,9 @@ def gold_match(chunk_id: str, gold: list[str]) -> bool:
     return any(base == g or base.startswith(g + ":") for g in gold)
 
 
-def evaluate(ret: Retriever, qs, mode: str, ks=(1, 3, 5, 10)) -> dict:
+def evaluate(ret: Retriever, qs, mode: str, ks=(1, 3, 5, 10), record: list | None = None) -> dict:
+    """Métricas só nas perguntas com gold. Se `record` for uma lista, guarda para TODAS as perguntas
+    (inclusive as sem resposta) o melhor escore do top-1, que serve para calibrar o limiar de recusa."""
     rec = {k: [] for k in ks}
     hit = {k: [] for k in ks}
     rr, lat = [], []
@@ -40,8 +42,14 @@ def evaluate(ret: Retriever, qs, mode: str, ks=(1, 3, 5, 10)) -> dict:
         t0 = time.time()
         hits = ret.search(q["pergunta"], k=max(ks), date=q.get("data"), mode=mode)
         lat.append(time.time() - t0)
+        if record is not None:
+            record.append({"id": q["id"], "tipo": q["tipo"], "modo": mode,
+                           "top_cos": max((h.cos for h in hits if h.cos is not None), default=None),
+                           "top_rerank": max((h.rerank for h in hits if h.rerank is not None), default=None)})
+        gold = q.get("gold")
+        if not gold:
+            continue
         ids = [h.chunk["id"] for h in hits]
-        gold = q["gold"]
         first = next((i for i, c in enumerate(ids) if gold_match(c, gold)), None)
         rr.append(0 if first is None else 1 / (first + 1))
         for k in ks:
@@ -50,28 +58,49 @@ def evaluate(ret: Retriever, qs, mode: str, ks=(1, 3, 5, 10)) -> dict:
             hit[k].append(float(bool(found)))
     out = {f"recall@{k}": float(np.mean(v)) for k, v in rec.items()}
     out.update({f"hit@{k}": float(np.mean(v)) for k, v in hit.items()})
-    out.update({"MRR": float(np.mean(rr)), "latencia_ms": 1000 * float(np.mean(lat)), "n": len(qs)})
+    out.update({"MRR": float(np.mean(rr)), "latencia_ms": 1000 * float(np.mean(lat)), "n": len(rr)})
     return out
 
 
-def main(emb_models=None, rerank=True):
-    qs = [q for q in load_questions() if q.get("gold")]
-    rows = []
-    bm = Retriever("bm25")
-    rows.append({"config": "BM25", **evaluate(bm, qs, "bm25")})
+def _save(rows, gate):
+    df = pd.DataFrame(rows)
+    df.to_csv(data_path("metrics", "rag_retrieval.csv"), index=False, float_format="%.4f")
+    pd.DataFrame(gate).to_csv(data_path("metrics", "rag_limiar_recusa.csv"), index=False, float_format="%.4f")
+    return df
+
+
+def main(emb_models=None, rerank=True, rerank_top=8):
+    allq = load_questions()
+    qs = [q for q in allq if q.get("gold")]
+    rows, gate = [], []
+    rows.append({"config": "BM25", **evaluate(Retriever("bm25"), qs, "bm25")})
+    best = None
     for name in emb_models or EMB_MODELS:
         path = EMB_MODELS[name]
         if not (ROOT / path).exists():
             print(f"[pulando] {name}: {path} não baixado")
             continue
+        t0 = time.time()
         r = Retriever("hybrid", emb_path=path)
-        rows.append({"config": f"Vetorial ({name})", **evaluate(r, qs, "dense")})
-        rows.append({"config": f"Híbrido RRF (BM25 + {name})", **evaluate(r, qs, "hybrid")})
-        if rerank and name == "qwen3-emb-0.6b" and (ROOT / "models/rerank/qwen3-reranker-0.6b.gguf").exists():
-            rows.append({"config": f"Híbrido + reranker Qwen3-0.6B ({name})", **evaluate(r, qs, "hybrid_rerank")})
-        print(pd.DataFrame(rows).tail(3).to_string(index=False))
-    df = pd.DataFrame(rows)
-    df.to_csv(data_path("metrics", "rag_retrieval.csv"), index=False, float_format="%.4f")
+        t_index = time.time() - t0
+        rec = []
+        rows.append({"config": f"Vetorial ({name})", **evaluate(r, allq, "dense", record=rec),
+                     "indexacao_s": t_index})
+        gate += [{**g, "emb": name} for g in rec]
+        hyb = evaluate(r, qs, "hybrid")
+        rows.append({"config": f"Híbrido RRF (BM25 + {name})", **hyb})
+        if best is None or (hyb["recall@5"], hyb["MRR"]) > (best[1]["recall@5"], best[1]["MRR"]):
+            best = (name, hyb, r)
+        print(_save(rows, gate).tail(2).to_string(index=False))
+    # reranker só sobre o melhor híbrido: em CPU ele custa segundos por trecho
+    if rerank and best and (ROOT / "models/rerank/qwen3-reranker-0.6b.gguf").exists():
+        name, _, r = best
+        r.rerank_top = rerank_top
+        rec = []
+        rows.append({"config": f"Híbrido + reranker Qwen3-0.6B (top {rerank_top}, {name})",
+                     **evaluate(r, allq, "hybrid_rerank", record=rec)})
+        gate += [{**g, "emb": name} for g in rec]
+    df = _save(rows, gate)
     print(df[["config", "recall@1", "recall@3", "recall@5", "hit@5", "MRR", "latencia_ms"]].to_string(index=False))
 
 
@@ -79,5 +108,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--emb", nargs="*")
     ap.add_argument("--no-rerank", action="store_true")
+    ap.add_argument("--rerank-top", type=int, default=8)
     a = ap.parse_args()
-    main(a.emb, not a.no_rerank)
+    main(a.emb, not a.no_rerank, a.rerank_top)
