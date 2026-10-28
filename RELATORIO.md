@@ -271,6 +271,71 @@ Método: as 31 perguntas do conjunto de avaliação que têm trecho-ouro. O **re
   - **Ressalva honesta:** o limiar foi calibrado no próprio conjunto de avaliação; com mais perguntas, ele deveria ser escolhido num conjunto separado.
 - O agente roda o reranker **uma vez**, sobre a união dos candidatos das buscas do plano e contra a pergunta original. Reordenar a cada busca multiplicaria o custo pelo número de buscas.
 
-<!--P2_AGENTE-->
+### 5.5 Agente (`src/rag/agent.py`)
+
+Poucas chamadas ao LLM, porque em CPU cada uma custa minutos:
+
+1. **Planejar** (LLM, saída JSON restrita por gramática): até 3 buscas curtas na base, as consultas de PM2.5 (local, data, horizonte) e, se a pergunta for sobre uma data passada, a data da norma.
+2. **Executar as ferramentas.**
+   - `buscar_normas`: as buscas do plano mais a pergunta original. Os candidatos são unidos e reordenados uma vez pelo reranker. Trechos com escore < 0,05 ficam fora do contexto, que tem no máximo 6 trechos.
+   - `estimar_pm25`: o modelo da Parte 1. Devolve PM2.5, IC 90%, faixa do IQAr e o padrão vigente na data-alvo.
+3. **Recusa sem gerar**: se não há ferramenta e o melhor escore do reranker fica abaixo de 0,8, o agente responde que não encontrou a informação na base.
+4. **Responder** (LLM, JSON `{encontrado, resposta, citacoes}`): cita [n] para os trechos e [Fn] para as ferramentas. O prompt traz a data de referência ("hoje"/"amanhã") e a regra de comparar com o padrão vigente **na data da estimativa**.
+5. **Validar sem LLM**:
+   - as citações existem?
+   - cada número da resposta aparece nos trechos citados, na nota de vigência, na saída da ferramenta ou na pergunta?
+   - Se não, há uma regeneração que aponta o problema.
+6. **Registrar** em `logs/agent_runs.jsonl`: pergunta, plano, trechos (com escores), chamadas de ferramenta com argumentos e resultados, saída bruta de cada chamada ao LLM, tokens, tempo e custo estimado.
+
+**"Hoje" é a data de referência do sistema**, o último dia com dados completos (04/04/2023), porque não há feed em tempo real (seção 1). Dá para trocar com `AGENT_TODAY`. A vigência das normas, por outro lado, usa a data real, a menos que a pergunta fale de outra época.
+
+**Erros que a primeira execução real mostrou** (log da pergunta de Campinas), e que corrigi:
+- o LLM recusou porque não sabia que "amanhã" era 05/04/2023 e achou que não podia comparar com a 491, revogada depois;
+- o plano inventou uma "data da norma" (2018-03-28) e repetiu a chamada da ferramenta.
+
+Depois das correções, a resposta ficou assim (log `538dc57c86`):
+
+> O PM2.5 previsto para Campinas amanhã (2023-04-05) é de 20,7 µg/m³, com intervalo de 90% entre 11,7 e 29,1 µg/m³. O padrão vigente na data de referência é o da Resolução CONAMA 491/2018, art. 4º, § 1º e Anexo I, PI-1 de 60 µg/m³ (24 h) [1][6]. O valor previsto é menor que 60 µg/m³, portanto não ultrapassa o padrão legal. A 491/2018 foi revogada pela 506/2024 (art. 11, I), mas na data da estimativa ainda era vigente [1].
+
+**LLM configurável** (`LLM_PROVIDER`): `llamacpp` (padrão, GGUF local, grátis), `ollama` (local, grátis) ou `openai_compat` (Groq, Gemini, OpenRouter, com camadas gratuitas). Os provedores remotos recebem `response_format=json_object`; no llama.cpp a saída é restrita por gramática JSON, o que torna modelos de 4B confiáveis no formato.
+
+<!--P2_AVALIACAO-->
+
+## 6. O que foi descartado e por quê
+
+| Descartado | Por quê |
+|---|---|
+| Validação aleatória como resultado principal | vaza a mesma estação e o mesmo dia pelas vizinhas (R² 0,84 contra 0,72 na validação correta); fica só como referência |
+| Alvo absoluto de PM2.5 (sem offset do IDW) | as árvores não extrapolam o nível do dia; MAE 3,72 contra 3,00 |
+| MLP, Ridge, XGBoost profundo | pior que o LightGBM regularizado em estação nunca vista (seção 4.1) |
+| Conformal do resíduo absoluto | largura fixa: cobre mal os dias poluídos (56,5% acima de 25 µg/m³) |
+| Chunk de tamanho fixo / um chunk por inciso | corta o inciso do caput, ou perde o caput |
+| Tabela dos anexos como texto corrido | o LLM troca a coluna (PI-1 × PF) |
+| Qwen3-Embedding-0.6B (o padrão inicial) | pior no benchmark (recall@5 de 0,917 no híbrido, contra 0,983) e 10x mais lento em CPU |
+| Reranker a cada busca do plano | ~60 s por reordenação em CPU; passou a rodar uma vez sobre a união dos candidatos |
+| GPU (GTX 1050) para o LLM | a wheel CUDA do llama-cpp-python usa instruções que o i5-9300H não tem (*illegal instruction*); compilar exigiria o CUDA Toolkit |
+| Res. CONAMA 513/2026 na base | o texto só está no DOU, que bloqueia acesso automatizado |
+
+## 7. Limitações
+
+**Parte 1**
+- **Período de 2021 a abr/2023 e ~50% dos dias**, por causa da única fonte pública e anônima de PM2.5 da CETESB que encontrei (seção 1). Não há feed em tempo real: "hoje" é o último dia com dados.
+- **D+1 em *perfect prognosis***: a meteorologia de amanhã vem do ERA5 do próprio dia. Na operação viria de uma previsão numérica, com erro maior.
+- **Episódios de fumaça são subestimados** (viés de −3,7 µg/m³; seção 4.5), e o IC 90% cobre só 80,8% acima de 50 µg/m³.
+- O AOD do GOES-16 tem sinal fraco para o PM2.5 de superfície em SP; o ganho do satélite é real, mas pequeno perto do lag espacial.
+
+**Parte 2**
+- **Tempo em CPU**: 4 a 8 min por pergunta num notebook i5 sem GPU, porque o prompt de ~2.500 tokens sai a ~16 tokens/s. Com Ollama em GPU ou uma API gratuita (`LLM_PROVIDER=openai_compat`), cai para segundos sem mudar o código.
+- **Conjunto de avaliação pequeno (37 perguntas)**, escrito por mim. Os limiares de recusa foram calibrados nele mesmo, então os números de recusa são otimistas.
+- **O LLM-juiz é outro modelo de 4B** e pode errar. Por isso também reporto a checagem automática (números e citações com suporte), que não depende de LLM.
+- A base tem 7 normas. Perguntas sobre licenciamento detalhado (CONAMA 237), água (CONAMA 357) ou normas estaduais de SP são recusadas, por design.
+- A fonte de 2 das 7 normas é uma cópia pública do DOU, não o próprio DOU (o texto é a impressão da página oficial, com a URL de origem).
+
+## 8. Próximos passos
+
+1. **D+1 operacional**: trocar o ERA5 do dia seguinte pela previsão do GFS/ECMWF aberto e medir a perda em relação ao *perfect prognosis*.
+2. **Mais dados de PM2.5**: QUALAR com login (2019 em diante) e MonitorAr, para treinar com mais estações secas e melhorar os episódios.
+3. **Episódios de fumaça**: perda quantílica ou peso maior nos dias altos, e altura da pluma do CAMS como variável.
+4. **Agente**: rodar em GPU ou com API gratuita; ampliar a base (CONAMA 237, 357, 382, a 513/2026 e normas da CETESB); conjunto de avaliação maior, com um conjunto separado para calibrar os limiares.
 
 <!--FIM-->
