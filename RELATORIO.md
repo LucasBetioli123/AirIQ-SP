@@ -5,7 +5,28 @@
 
 ## 0. Resumo
 
-<!--RESUMO-->
+**Parte 1, PM2.5 em SP com satélite e meteorologia** (seções 2 a 4):
+- **Dados**: 30 estações CETESB, de jan/2021 a abr/2023, com AOD e focos de fogo do GOES-16, NO2 do Sentinel-5P, ERA5, WorldCover e DEM. O pipeline é reprodutível e só usa fontes anônimas.
+- **Validação**: estação nunca vista × período posterior (GroupKFold por estação × origem móvel T1/T2).
+- **Estimativa**: o LightGBM com alvo relativo ao IDW faz **MAE 3,00 µg/m³ e R² 0,72**, contra 3,11 do IDW e 3,08 da krigagem. O ganho é de **−30% a 25–50 km da estação mais próxima**.
+- **Intervalo**: o IC 90% por CQR cobre **90,5%** no teste.
+- **D+1**: **−21%** (local com estação) e **−19%** (sem estação) de MAE contra a persistência.
+- SHAP com sinais físicos coerentes; mapas diários de PM2.5 e de incerteza; CLI e API.
+- **Ponto fraco**: episódios de fumaça (viés de −3,7 µg/m³), analisados na seção 4.5.
+
+**Parte 2, agente com RAG sobre normas ambientais** (seção 5):
+- **Base**: 7 normas (CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). O chunk é o artigo; as tabelas dos anexos são reescritas com o nome da coluna em cada valor.
+- **Vigência por dispositivo**: a 506/2024 revogou só parte da 491, e o agente responde "o que valia em 2015".
+- **Recuperação**: BM25 + Granite-278M com RRF dá **recall@5 de 0,983 e MRR de 0,864**, contra 0,917 do BM25 sozinho.
+- **Agente** (Qwen3-4B local, custo zero), em 37 perguntas próprias:
+  - **acerto de 87%** na rodada completa e **93,5%** depois das correções das perguntas de ferramenta;
+  - fato 17/17 e vigência 5/5;
+  - **6/6 recusas corretas**, 5 delas pelo limiar do reranker, sem chamar o LLM;
+  - fidelidade automática de 1,0 nas respostas dadas.
+- **Ferramenta**: o agente chama o modelo da Parte 1 e compara a estimativa com o padrão vigente **na data da estimativa**.
+- **Custo**: 4 a 8 min por pergunta numa CPU de notebook. Com GPU ou API gratuita (provedor configurável), cai para segundos.
+
+**Prioridade**: a Parte 1 recebeu a maior parte do tempo, com a validação espaço-temporal como eixo. Na Parte 2, priorizei citação exata, vigência e recusa honesta, em vez de interface.
 
 ## 1. Premissas e restrições
 
