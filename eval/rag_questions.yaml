@@ -96,7 +96,7 @@ perguntas:
     tipo: fato
     pergunta: "Quais são os objetivos do PRONAR instituído pela Resolução CONAMA 05/1989?"
     resposta_esperada: "Limitar os níveis de emissão de poluentes por fontes de poluição atmosférica, com vistas à melhoria da qualidade do ar, ao atendimento dos padrões e ao não comprometimento da qualidade do ar em áreas não degradadas (item I)."
-    fatos_chave: [["emissao", "emissão"], ["qualidade do ar"]]
+    fatos_chave: [["emiss"], ["qualidade do ar"]]  # radical: "emissão" ou "emissões"
     gold: [conama_005_1989:itemi]
 
   - id: q14

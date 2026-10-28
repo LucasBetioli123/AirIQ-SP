@@ -111,6 +111,8 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             calls = [t for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
             loc = _norm(q.get("local", ""))
             r["ferramenta_ok"] = bool(calls) and any(loc in _norm(json.dumps(c["args"], ensure_ascii=False)) for c in calls)
+            # sem a estimativa não há resposta: citar só o padrão legal não conta como acerto
+            r["acerto"] = bool(r.get("acerto")) and r["ferramenta_ok"]
         r["resposta"] = run["resposta"][:600]
         rows.append(r)
         pd.DataFrame(rows).to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)  # parcial
@@ -151,7 +153,8 @@ def rescore(tag: str):
         run = runs[q["pergunta"]]
         if not q.get("deve_recusar"):
             pres = [fact_present(f, run["resposta"]) for f in q.get("fatos_chave", [])]
-            df.at[i, "acerto"] = bool(run["encontrado"] and all(pres))
+            df.at[i, "acerto"] = bool(run["encontrado"] and all(pres)) and \
+                (not q.get("deve_chamar_ferramenta") or bool(row.get("ferramenta_ok")))
             df.at[i, "acerto_parcial"] = float(np.mean(pres)) if pres else float(run["encontrado"])
     df.to_csv(p, index=False)
     return summarize(df, tag)
