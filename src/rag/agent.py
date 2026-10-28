@@ -67,6 +67,7 @@ Regras:
 4. Se as fontes não contêm a resposta, retorne encontrado=false. Não invente números, artigos ou normas.
 5. Se precisar juntar dois trechos, cite ambos.
 6. Fonte marcada como REVOGADO só vale para a época indicada; diga que foi revogada (e por qual norma) se isso for relevante.
+7. Seja direto: no máximo 5 frases, sem repetir a pergunta.
 Responda apenas o JSON."""
 
 ANSWER_SCHEMA = {"type": "object", "properties": {
@@ -183,7 +184,7 @@ class Agent:
         today = reference_today()
         user = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
                 f"PERGUNTA: {question}\n\nFONTES:\n{ctx}\n\n" + (f"FERRAMENTAS:\n{tctx}\n" if tools_out else ""))
-        a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=700)
+        a = self.llm.chat_json(ANSWER_SYS, user, ANSWER_SCHEMA, max_tokens=450)
         run["chamadas_llm"].append(_usage("resposta", a))
         ans = a.data or {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
         v = validate(ans.get("resposta", ""), ans.get("citacoes", []), sources, tools_out, question)
@@ -191,7 +192,7 @@ class Agent:
             # 4) uma regeneração apontando o problema
             fix = (f"{user}\nATENÇÃO: sua resposta anterior tinha problemas: {json.dumps(v, ensure_ascii=False)}. "
                    "Corrija usando apenas números e dispositivos presentes nas FONTES/FERRAMENTAS.")
-            a2 = self.llm.chat_json(ANSWER_SYS, fix, ANSWER_SCHEMA, max_tokens=700)
+            a2 = self.llm.chat_json(ANSWER_SYS, fix, ANSWER_SCHEMA, max_tokens=450)
             run["chamadas_llm"].append(_usage("correcao", a2))
             if a2.data:
                 v2 = validate(a2.data.get("resposta", ""), a2.data.get("citacoes", []), sources, tools_out, question)
