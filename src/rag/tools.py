@@ -28,8 +28,8 @@ def reference_today() -> pd.Timestamp:
         from src.aq.predict import available_index, station_obs
         idx = available_index()
         obs_days = pd.DatetimeIndex(station_obs()["date"].unique())
-        # último dia com medições nas estações (para o IDW) e com contexto para D+1
-        ok = [d for d in obs_days if d in idx and d + pd.Timedelta(days=1) in idx]
+        # Não exige dados observados de amanhã: somente o contexto até a emissão.
+        ok = [d for d in obs_days if d in idx]
         return max(ok)
     except Exception:
         return pd.Timestamp.today().normalize()

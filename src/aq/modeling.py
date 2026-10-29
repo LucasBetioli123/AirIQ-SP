@@ -32,9 +32,9 @@ FIRE = ["fire_n_50km", "fire_n_150km", "fire_n_400km", "fire_up_150km", "fire_up
         "fire_n_150km_lag1", "fire_up_400km_lag1"]
 LAG = ["idw", "idw_dmin", "idw_n"]
 EST_FEATURES = SAT + MET + PHYS + STATIC + CAL + FIRE + LAG
-# previsão D+1: o mesmo conjunto (variáveis de D) + meteorologia/calendário de D+1
-FC_EXTRA = ["next_blh_pm", "next_ws_pm", "next_rh", "next_tp", "next_tcc", "next_t2m", "next_log_vent",
-            "next_dow", "next_weekend"]
+# D+1: somente observações até D e calendário conhecido de amanhã.
+FEATURE_SCHEMA = "causal-spatial-aod-v2"
+FC_EXTRA = ["next_dow", "next_weekend"]
 
 
 # ----------------------------------------------------------------------------- métricas
@@ -210,9 +210,9 @@ class CQR:
     2. na calibração: escore E_i = max(q_lo(x_i) - y_i, y_i - q_hi(x_i))
     3. Q = quantil ceil((n+1)(1-α))/n dos escores
     4. intervalo final: [q_lo - Q, q_hi + Q]
-    Garantia de cobertura marginal >= 1-α se calibração e teste forem trocáveis. Como a
-    calibração usa previsões FORA da estação (cross-fitting por grupos), os escores
-    refletem o erro em locais não monitorados, que é o caso de uso."""
+    O split conformal clássico pressupõe trocabilidade. Aqui há dependência espaço-temporal
+    e cross-fitting por estações: reportamos cobertura empírica, sem prometer garantia
+    exata em locais, períodos ou regimes novos."""
 
     def __init__(self, alpha: float = SPLIT["interval_alpha"]):
         self.alpha = alpha

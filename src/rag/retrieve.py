@@ -55,7 +55,15 @@ def load_chunks() -> list[dict]:
     if not p.exists():
         p = data_path("sample", "rag_chunks.jsonl")
     with open(p, encoding="utf-8") as f:
-        return [json.loads(l) for l in f]
+        chunks = [json.loads(l) for l in f if l.strip()]
+    from src.rag.download import registry
+    expected = {d["id"] for d in registry()}
+    if not expected <= {c["doc_id"] for c in chunks}:
+        with open(data_path("sample", "rag_chunks.jsonl"), encoding="utf-8") as f:
+            chunks = [json.loads(l) for l in f if l.strip()]
+        if not expected <= {c["doc_id"] for c in chunks}:
+            raise RuntimeError("base normativa e amostra incompletas")
+    return chunks
 
 
 def index_text(c: dict) -> str:

@@ -4,10 +4,12 @@ PY ?= .venv/Scripts/python
 BOOT_PY ?= python
 # wheel pronta do llama-cpp-python para CPU (no Windows compilar exige Visual Studio + CMake)
 LLAMA_WHEEL := --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+LLAMA_ENV :=
 else
 PY ?= .venv/bin/python
 BOOT_PY ?= python3
 SHELL := /bin/bash
+LLAMA_ENV := CMAKE_ARGS="-DGGML_NATIVE=OFF"
 endif
 export PYTHONPATH := $(CURDIR)
 export PYTHONIOENCODING := utf-8
@@ -22,7 +24,7 @@ setup: ## cria .venv e instala dependências com versões fixas
 	$(BOOT_PY) -m venv .venv
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
-	CMAKE_ARGS="-DGGML_NATIVE=OFF" $(PY) -m pip install -r requirements-llm.txt $(LLAMA_WHEEL)
+	$(LLAMA_ENV) $(PY) -m pip install -r requirements-llm.txt $(LLAMA_WHEEL)
 	$(PY) -m pip install -r requirements-nn.txt
 
 models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
@@ -89,9 +91,8 @@ notebooks: ## executa os notebooks com saída visível
 test: ## testes automatizados
 	$(PY) -m pytest -q
 
-all-sample: sample bench train evaluate ## pipeline de modelagem da Parte 1 sobre a amostra (+ mapas)
-	$(PY) -m src.aq.maps --date 2022-10-11
-	$(PY) -m src.aq.maps --date 2021-08-24
+all-sample: ## pipeline completo sobre a amostra (também disponível sem make)
+	$(PY) -m src.aq.pipeline
 
 docker: ## imagem Docker reprodutível
 	docker build -t teste-ia .

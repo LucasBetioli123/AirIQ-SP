@@ -14,10 +14,9 @@ Casamento espaço-temporal:
 Falhas de AOD por nuvem (nesta ordem):
   1) composição das 8 varreduras horárias do dia (já feita em goes_aod.py)
   2) célula → janela 3x3 → janela 9x9 (vizinhança espacial)
-  3) média de D-1 e D+1 na janela 3x3 (persistência temporal do aerossol). Para a
-     previsão D+1 usamos só D-1 (sem olhar o futuro)
-  4) se nada disso existir, fica NaN, e o LightGBM aprende um ramo próprio para
-     "sem AOD". A flag `aod_fill_level` (0-4) diz qual nível foi usado
+  3) se nada disso existir, fica NaN, e o LightGBM aprende um ramo próprio para
+     "sem AOD". Níveis: 0=célula, 1=3x3, 2=9x9, 4=ausente.
+     Não há preenchimento temporal: nenhuma observação futura é consultada.
 """
 from __future__ import annotations
 
@@ -68,16 +67,9 @@ def _aod_windows(aod: xr.Dataset) -> xr.Dataset:
     a = aod["aod_mean"].values
     w3 = _nanmean_window(a, 3)
     w9 = _nanmean_window(a, 9)
-    # temporal: média de D-1 e D+1 (janela 3x3); "prev" usa só D-1
-    prev = np.concatenate([np.full_like(w3[:1], np.nan), w3[:-1]])
-    nxt = np.concatenate([w3[1:], np.full_like(w3[:1], np.nan)])
-    with np.errstate(invalid="ignore"):
-        tmean = np.nanmean(np.stack([prev, nxt]), axis=0)
     out = aod.copy()
     out["aod_w3"] = (aod["aod_mean"].dims, w3)
     out["aod_w9"] = (aod["aod_mean"].dims, w9)
-    out["aod_t"] = (aod["aod_mean"].dims, tmean.astype("float32"))
-    out["aod_tprev"] = (aod["aod_mean"].dims, prev)
     return out
 
 
@@ -123,10 +115,9 @@ def _sel_grid(ds: xr.Dataset, names, dates, lats, lons) -> dict:
 
 
 def aod_features(ctx, dates, lats, lons, forecast: bool = False) -> pd.DataFrame:
-    a = _sel_grid(ctx["aod"], ["aod_mean", "aod_max", "aod_nscan", "aod_w3", "aod_w9", "aod_t", "aod_tprev"],
+    a = _sel_grid(ctx["aod"], ["aod_mean", "aod_max", "aod_nscan", "aod_w3", "aod_w9"],
                   dates, lats, lons)
-    temporal = a["aod_tprev"] if forecast else a["aod_t"]
-    levels = [a["aod_mean"], a["aod_w3"], a["aod_w9"], temporal]
+    levels = [a["aod_mean"], a["aod_w3"], a["aod_w9"]]
     filled = np.full(len(lats), np.nan, dtype="float32")
     level = np.full(len(lats), 4, dtype="int8")
     for i, arr in enumerate(levels):
@@ -221,7 +212,7 @@ def calendar_features(dates) -> pd.DataFrame:
     d = pd.DatetimeIndex(dates)
     doy = d.day_of_year.values
     return pd.DataFrame({"doy_sin": np.sin(2 * np.pi * doy / 365.25), "doy_cos": np.cos(2 * np.pi * doy / 365.25),
-                         "dow": d.dayofweek.values, "weekend": (d.dayofweek.values >= 5).astype(int)})
+                         "dow": d.day_of_week.values, "weekend": (d.day_of_week.values >= 5).astype(int)})
 
 
 def physics_features(df: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
@@ -249,9 +240,10 @@ def physics_features(df: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
 def point_features(ctx, dates, lats, lons, forecast: bool = False) -> pd.DataFrame:
     """Todas as variáveis "de contexto" (sem lag espacial de PM2.5) para pares (data, ponto).
 
-    forecast=True: o alvo é D+1. Usa satélite e fogo de D (o que se conhece hoje) e
-    meteorologia de D e de D+1. A de D+1 vem do ERA5, um "perfect prognosis": na
-    operação viria do GFS/WRF, e isso está declarado no relatório."""
+    forecast=True: o alvo é D+1. Usa satélite, fogo e meteorologia até D,
+    mais o calendário conhecido de D+1. Não acessa meteorologia realizada de D+1.
+    A emissão é ao fim de D, após completar as agregações diárias. ERA5 é uma
+    reanálise retrospectiva; a disponibilidade em tempo real não é simulada."""
     dates = pd.DatetimeIndex(dates)
     lats = np.asarray(lats, dtype="float64")
     lons = np.asarray(lons, dtype="float64")
@@ -264,9 +256,6 @@ def point_features(ctx, dates, lats, lons, forecast: bool = False) -> pd.DataFra
              fire_features(ctx, dates, lats, lons, base["wd"].to_numpy()),
              fire_features(ctx, dates - pd.Timedelta(days=1), lats, lons, base["wd"].to_numpy(), suffix="_lag1")]
     if forecast:
-        nxt = met_features(ctx, dates + pd.Timedelta(days=1), lats, lons, prefix="next_")
-        parts.append(nxt[["next_blh_pm", "next_ws_pm", "next_rh", "next_tp", "next_tcc", "next_t2m"]])
-        parts.append(pd.DataFrame({"next_log_vent": np.log1p(nxt["next_blh_pm"] * nxt["next_ws_pm"]).values}))
         parts.append(calendar_features(dates + pd.Timedelta(days=1)).add_prefix("next_")[["next_dow", "next_weekend"]])
     out = pd.concat([p.reset_index(drop=True) for p in parts], axis=1)
     out.insert(0, "date", dates)

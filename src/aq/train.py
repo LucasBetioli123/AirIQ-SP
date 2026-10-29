@@ -27,7 +27,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.aq.modeling import (CQR, EST_FEATURES, FC_EXTRA, SPLIT, TEMPORAL_FOLDS, OffsetLogTarget, QuantileTrio,
+from src.aq.modeling import (CQR, EST_FEATURES, FC_EXTRA, FEATURE_SCHEMA, SPLIT, TEMPORAL_FOLDS, OffsetLogTarget, QuantileTrio,
                              make_model, metrics, period_masks, station_folds, with_lag)
 from src.common.config import data_path
 
@@ -139,33 +139,59 @@ def forecast_eval(fc: pd.DataFrame) -> pd.DataFrame:
     folds = station_folds(fc["location_id"].values)
     fc["fold"] = fc["location_id"].map(folds)
     lag_all = with_lag(fc, refs_all)
-    res = {"A": {"y": [], "pers": [], "pred": [], "t": []}, "B": {"y": [], "pers": [], "pred": [], "t": []}}
+    results = []
+
+    def evaluate(tr, ca, te, feats, offset, scenario, tfold, fold, scores=None):
+        point = point_model(offset).fit(tr[feats], tr["pm25_next"].values).predict(te[feats])
+        qt = quantile_model(offset).fit(tr[feats], tr["pm25_next"].values)
+        lo, _, hi = qt.predict_log(te[feats])
+        if scores is None:
+            loc, _, hic = qt.predict_log(ca[feats])
+            scores = ca["pm25_next"].values, loc, hic
+        cqr = CQR(ALPHA).calibrate(*scores)
+        lower, upper = cqr.interval(lo, hi)
+        r = te[["location_id", "date", "lat", "lon", "pm25_next"]].copy()
+        r = r.rename(columns={"pm25_next": "pm25"})
+        r["data_alvo"] = r["date"] + pd.Timedelta(days=1)
+        r["cenario"], r["tfold"], r["fold"] = scenario, tfold, fold
+        r["pred"], r["pers"] = point, te[offset].values
+        r["cqr_lo"], r["cqr_hi"] = np.minimum(lower, point), np.maximum(upper, point)
+        results.append(r)
+
     for tf in TEMPORAL_FOLDS:
-        per = period_masks(fc["date"], tf)
+        # O alvo D+1, inclusive nos limites de treino/calibração, define o split.
+        per = period_masks(fc["date"] + pd.Timedelta(days=1), tf)
         # A) local com estação: split só temporal (todas as estações), offset = PM2.5 de hoje
-        tr, te = lag_all[per["train"]], lag_all[per["test"]]
-        m = point_model("pm25_today").fit(tr[FC_FEATURES_MON], tr["pm25_next"].values)
-        for key, v in zip(("y", "pers", "pred"), (te["pm25_next"], te["pm25_today"], m.predict(te[FC_FEATURES_MON]))):
-            res["A"][key].append(np.asarray(v))
-        res["A"]["t"].append(np.full(len(te), tf["name"]))
+        tr, ca, te = (lag_all[per[p]] for p in ("train", "calib", "test"))
+        evaluate(tr, ca, te, FC_FEATURES_MON, "pm25_today", "A) local com estação", tf["name"], -1)
         # B) local sem estação: folds de estação; "persistência" = IDW de hoje
         for k in sorted(fc["fold"].unique()):
             pool = refs_all[fc["fold"] != k]
             trk = with_lag(fc[(fc["fold"] != k) & per["train"]], pool)
             tek = with_lag(fc[(fc["fold"] == k) & per["test"]], pool)
-            mk = point_model("idw").fit(trk[FC_FEATURES_UNMON], trk["pm25_next"].values)
-            for key, v in zip(("y", "pers", "pred"), (tek["pm25_next"], tek["idw"], mk.predict(tek[FC_FEATURES_UNMON]))):
-                res["B"][key].append(np.asarray(v))
-            res["B"]["t"].append(np.full(len(tek), tf["name"]))
+            fp = fc[fc["fold"] != k]
+            yc, loc, hic, _ = crossfit_scores(fp, FC_FEATURES_UNMON, per["train"], per["calib"],
+                                             target="pm25_next", lag_col="pm25_today")
+            evaluate(trk, None, tek, FC_FEATURES_UNMON, "idw", "B) local sem estação", tf["name"], k,
+                     (yc, loc, hic))
+            print(f"D+1 {tf['name']} fold {k}: ponto e intervalo avaliados", flush=True)
+    oof = pd.concat(results, ignore_index=True)
+    oof.to_parquet(data_path("processed", "oof_previsao_d1.parquet"), index=False)
     rows = []
-    for cen, key, pname in [("A) local com estação", "A", "Persistência (amanhã = hoje)"),
-                            ("B) local sem estação", "B", "Persistência do IDW de hoje")]:
-        y, p, pr, t = (np.concatenate(res[key][c]) for c in ("y", "pers", "pred", "t"))
-        ok = np.isfinite(p)
-        for recorte, sel in [("todos", ok)] + [(tn, ok & (t == tn)) for tn in np.unique(t)]:
-            rows.append({"cenario": cen, "recorte": recorte, "metodo": pname, **metrics(y[sel], p[sel])})
+    intervals = []
+    for cen, g in oof.groupby("cenario"):
+        g = g[np.isfinite(g["pers"])]
+        pname = "Persistência (amanhã = hoje)" if cen.startswith("A") else "Persistência do IDW de hoje"
+        for recorte, s in [("todos", g)] + list(g.groupby("tfold")):
+            y = s["pm25"].values
+            rows.append({"cenario": cen, "recorte": recorte, "metodo": pname, **metrics(y, s["pers"])})
             rows.append({"cenario": cen, "recorte": recorte, "metodo": f"{POINT_LABEL} D+1",
-                         **metrics(y[sel], pr[sel], baseline=p[sel])})
+                         **metrics(y, s["pred"], s["cqr_lo"], s["cqr_hi"], baseline=s["pers"])})
+            intervals.append({"cenario": cen, "recorte": recorte, "n": len(s), "cobertura_nominal": 1 - ALPHA,
+                              "cobertura_real": _cov(s, "cqr_lo", "cqr_hi"),
+                              "largura_media": float((s.cqr_hi - s.cqr_lo).mean()),
+                              "cobertura_pm25_>25": _cov(s, "cqr_lo", "cqr_hi", s.pm25 > 25)})
+    pd.DataFrame(intervals).to_csv(data_path("metrics", "intervalos_d1.csv"), index=False, float_format="%.4f")
     tab = pd.DataFrame(rows)
     tab.to_csv(data_path("metrics", "previsao_d1.csv"), index=False, float_format="%.4f")
     print(tab[["cenario", "recorte", "metodo", "n", "MAE", "RMSE", "R2", "acerto_faixa_IQAr"]].to_string(index=False))
@@ -187,16 +213,23 @@ def fit_final(df: pd.DataFrame, fc: pd.DataFrame):
     fc_mon = point_model("pm25_today").fit(lagf[FC_FEATURES_MON], lagf["pm25_next"].values)
     fc_unmon = point_model("idw").fit(lagf[FC_FEATURES_UNMON], lagf["pm25_next"].values)
     qt_fc = quantile_model("idw").fit(lagf[FC_FEATURES_UNMON], lagf["pm25_next"].values)
+    qt_fc_mon = quantile_model("pm25_today").fit(lagf[FC_FEATURES_MON], lagf["pm25_next"].values)
     ycf, locf, hicf, _ = crossfit_scores(f, FC_FEATURES_UNMON, k_inner=5, target="pm25_next", lag_col="pm25_today")
     cqr_fc = CQR(ALPHA).calibrate(ycf, locf, hicf)
+    ycm, lom, him, _ = crossfit_scores(f, FC_FEATURES_MON, k_inner=5, target="pm25_next",
+                                      lag_col="pm25_today", offset_col="pm25_today")
+    cqr_fc_mon = CQR(ALPHA).calibrate(ycm, lom, him)
 
     mdir = data_path("models")
-    joblib.dump({"point": point, "quantiles": qt, "cqr_q": cqr.q, "features": EST_FEATURES, "modelo": POINT_LABEL},
+    joblib.dump({"point": point, "quantiles": qt, "cqr_q": cqr.q, "features": EST_FEATURES, "modelo": POINT_LABEL,
+                 "feature_schema": FEATURE_SCHEMA},
                 mdir / "estimativa.joblib")
     joblib.dump({"point_mon": fc_mon, "point_unmon": fc_unmon, "quantiles": qt_fc, "cqr_q": cqr_fc.q,
+                 "quantiles_mon": qt_fc_mon, "cqr_q_mon": cqr_fc_mon.q, "feature_schema": FEATURE_SCHEMA,
                  "features_mon": FC_FEATURES_MON, "features_unmon": FC_FEATURES_UNMON, "modelo": POINT_LABEL},
                 mdir / "previsao_d1.joblib")
-    meta = {"modelo": POINT_LABEL, "dados_de_treino": f"{d['date'].min().date()} a {d['date'].max().date()}",
+    meta = {"modelo": POINT_LABEL, "feature_schema": FEATURE_SCHEMA,
+            "dados_de_treino": f"{d['date'].min().date()} a {d['date'].max().date()}",
             "alpha": ALPHA, "cqr_q_estimativa": cqr.q, "cqr_q_d1": cqr_fc.q,
             "n_treino": int(len(d)), "estacoes": int(d["location_id"].nunique())}
     (mdir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
@@ -207,6 +240,9 @@ def main():
     df = pd.read_parquet(data_path("processed", "station_days.parquet")).sort_values(["date", "location_id"])
     df = df.reset_index(drop=True)
     fc = pd.read_parquet(data_path("processed", "station_days_fc.parquet"))
+    for table in (df, fc):
+        if "feature_schema" not in table or not table["feature_schema"].eq(FEATURE_SCHEMA).all():
+            raise ValueError("base antiga: rode `make sample` ou `make data` antes do treino")
     evaluate_intervals(df)
     forecast_eval(fc)
     fit_final(df, fc)

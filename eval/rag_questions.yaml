@@ -217,6 +217,9 @@ perguntas:
     gold: [conama_491_2018:anexoi:l3]
     deve_chamar_ferramenta: true
     local: "Campinas"
+    data_ferramenta: "amanhã"
+    horizonte_esperado: 1
+    etapa_comparacao: "PI-1"
 
   - id: q30
     tipo: ferramenta
@@ -226,6 +229,8 @@ perguntas:
     gold: []
     deve_chamar_ferramenta: true
     local: "Ribeirão Preto"
+    data_ferramenta: "2022-09-10"
+    horizonte_esperado: 0
 
   - id: q31
     tipo: ferramenta
@@ -235,6 +240,9 @@ perguntas:
     gold: [conama_491_2018:anexoi:l3]
     deve_chamar_ferramenta: true
     local: "Sorocaba"
+    data_ferramenta: "2021-08-24"
+    horizonte_esperado: 0
+    etapa_comparacao: "PF"
 
   # ---------------- sem resposta na base ----------------
   - id: q32

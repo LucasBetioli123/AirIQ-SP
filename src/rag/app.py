@@ -47,7 +47,9 @@ PAGE = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 </style></head><body>
 <h2>Agente de normas ambientais + PM2.5 (SP)</h2>
 <p class="meta">Base: Res. CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990;
-Lei 9.605/1998. LLM local em CPU: cada resposta leva de 1 a 5 minutos.</p>
+Lei 9.605/1998. LLM local em CPU: cada resposta pode levar vários minutos.
+Os dados de PM2.5 são históricos (2021–2023); "hoje/amanhã" usam uma data de demonstração,
+informada em cada resposta, e não a data atual.</p>
 <div id="log"></div>
 <form id="f"><input id="q" placeholder="Ex.: qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?" required>
 <button>Perguntar</button></form>
