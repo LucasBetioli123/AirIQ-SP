@@ -1,0 +1,44 @@
+T1 fold 0: CQR q=0.111 (log) | conformal |res| q=8.1 µg/m³
+T1 fold 1: CQR q=0.134 (log) | conformal |res| q=8.0 µg/m³
+T1 fold 2: CQR q=0.045 (log) | conformal |res| q=8.8 µg/m³
+T1 fold 3: CQR q=0.128 (log) | conformal |res| q=7.1 µg/m³
+T1 fold 4: CQR q=0.159 (log) | conformal |res| q=7.9 µg/m³
+T2 fold 0: CQR q=0.185 (log) | conformal |res| q=7.6 µg/m³
+T2 fold 1: CQR q=0.144 (log) | conformal |res| q=6.8 µg/m³
+T2 fold 2: CQR q=0.175 (log) | conformal |res| q=7.3 µg/m³
+T2 fold 3: CQR q=0.123 (log) | conformal |res| q=6.2 µg/m³
+T2 fold 4: CQR q=0.129 (log) | conformal |res| q=6.2 µg/m³
+recorte                                metodo    n  cobertura_nominal  cobertura_real  largura_media  cobertura_pm25_>25
+  todos Quantis LightGBM 5-95% (sem calibrar) 7859                0.9        0.797175       9.576185            0.730013
+  todos         CQR (quantis conformalizados) 7859                0.9        0.906095      13.485064            0.836173
+  todos         Conformal do resíduo absoluto 7859                0.9        0.920219      14.612042            0.572739
+     T1 Quantis LightGBM 5-95% (sem calibrar) 4102                0.9        0.813749      12.234428            0.752793
+     T1         CQR (quantis conformalizados) 4102                0.9        0.901755      16.342659            0.847765
+     T1         Conformal do resíduo absoluto 4102                0.9        0.885422      15.741773            0.581006
+     T2 Quantis LightGBM 5-95% (sem calibrar) 3757                0.9        0.779079       6.673839            0.382979
+     T2         CQR (quantis conformalizados) 3757                0.9        0.910833      10.365060            0.659574
+     T2         Conformal do resíduo absoluto 3757                0.9        0.958211      13.378569            0.446809
+D+1 T1 fold 0: ponto e intervalo avaliados
+D+1 T1 fold 1: ponto e intervalo avaliados
+D+1 T1 fold 2: ponto e intervalo avaliados
+D+1 T1 fold 3: ponto e intervalo avaliados
+D+1 T1 fold 4: ponto e intervalo avaliados
+D+1 T2 fold 0: ponto e intervalo avaliados
+D+1 T2 fold 1: ponto e intervalo avaliados
+D+1 T2 fold 2: ponto e intervalo avaliados
+D+1 T2 fold 3: ponto e intervalo avaliados
+D+1 T2 fold 4: ponto e intervalo avaliados
+             cenario recorte                         metodo    n      MAE     RMSE        R2  acerto_faixa_IQAr
+A) local com estação   todos   Persistência (amanhã = hoje) 7373 4.294169 6.429301  0.494071           0.922555
+A) local com estação   todos LightGBM reg. (offset IDW) D+1 7373 4.050740 6.073220  0.548561           0.926489
+A) local com estação      T1   Persistência (amanhã = hoje) 3898 5.200822 7.632989  0.504551           0.872755
+A) local com estação      T1 LightGBM reg. (offset IDW) D+1 3898 5.082672 7.374296  0.537565           0.872499
+A) local com estação      T2   Persistência (amanhã = hoje) 3475 3.277152 4.727461  0.082789           0.978417
+A) local com estação      T2 LightGBM reg. (offset IDW) D+1 3475 2.893195 4.154274  0.291722           0.987050
+B) local sem estação   todos    Persistência do IDW de hoje 7372 4.910917 7.169740  0.370907           0.910879
+B) local sem estação   todos LightGBM reg. (offset IDW) D+1 7372 4.472378 6.780696  0.437326           0.919967
+B) local sem estação      T1    Persistência do IDW de hoje 3898 5.912886 8.606428  0.370124           0.848640
+B) local sem estação      T1 LightGBM reg. (offset IDW) D+1 3898 5.635807 8.346407  0.407609           0.860954
+B) local sem estação      T2    Persistência do IDW de hoje 3474 3.786659 5.096414 -0.065658           0.980714
+B) local sem estação      T2 LightGBM reg. (offset IDW) D+1 3474 3.166952 4.404823  0.203941           0.986183
+modelos finais salvos: {'modelo': 'LightGBM reg. (offset IDW)', 'feature_schema': 'causal-spatial-aod-v2', 'dados_de_treino': '2021-01-13 a 2023-04-04', 'alpha': 0.1, 'cqr_q_estimativa': 0.10189316486266131, 'cqr_q_d1': 0.0853525878040382, 'n_treino': 11543, 'estacoes': 30}

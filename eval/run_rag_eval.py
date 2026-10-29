@@ -3,14 +3,15 @@
 Métricas (método no RELATORIO.md):
   acerto         todos os `fatos_chave` da resposta esperada aparecem na resposta
                  (números/termos normalizados); `acerto_parcial` = fração dos fatos
-  cit_precisao   fração dos trechos citados que pertencem aos documentos/dispositivos-ouro
+  cit_precisao   fração dos trechos citados que casam com o dispositivo-ouro (gold_match)
   cit_recall     fração dos chunks-ouro efetivamente citados
   fidelidade     (a) checagem automática: números e citações da resposta têm suporte nos
                  trechos citados/ferramentas; (b) LLM-juiz (modelo DIFERENTE do gerador)
                  nota de 0 a 1 para "tudo o que foi afirmado está nas fontes citadas?"
   recusa         nas perguntas sem resposta na base: taxa de recusa correta. Nas com
                  resposta: taxa de recusa indevida
-  ferramenta     nas perguntas de qualidade do ar: chamou estimar_pm25 com o local certo
+  ferramenta     local, data-alvo, horizonte, valor, limites do IC e faixa quando solicitada;
+                 checagem numérica usa a saída da ferramenta registrada na execução
 
   python -m eval.run_rag_eval [--llm caminho.gguf] [--judge caminho.gguf] [--tag nome]
 """
@@ -27,7 +28,7 @@ import pandas as pd
 
 from eval.bench_retrieval import gold_match, load_questions
 from src.common.config import data_path
-from src.rag.agent import Agent
+from src.rag.agent import Agent, blocked_by_validation
 
 
 def _norm(s: str) -> str:
@@ -53,6 +54,46 @@ def fact_present(fact, answer: str) -> bool:
     return False
 
 
+def tool_answer_checks(q: dict, run: dict) -> dict:
+    """Confere argumentos, saída e resposta, incluindo a faixa correta e o IC.
+
+    O resultado registrado da ferramenta é o gabarito numérico daquela execução.
+    Assim, modelos retreinados não exigem editar valores esperados à mão.
+    """
+    checks = {"local": False, "data_horizonte": False, "valor": False, "intervalo": False,
+              "faixa": True, "padrao_citado": True}
+    def has_value(value, text):
+        return any(abs(float(n.replace(",", ".")) - float(value)) < 0.051
+                   for n in re.findall(r"\d+(?:[.,]\d+)?", text))
+    for call in run.get("ferramentas", []):
+        if call["ferramenta"] != "estimar_pm25":
+            continue
+        args, result = call.get("args", {}), call.get("resultado", {})
+        if _norm(q.get("local", "")) not in _norm(args.get("local", "")) or "erro" in result:
+            continue
+        checks["local"] = True
+        horizon = q.get("horizonte_esperado", 0)
+        day = q.get("data_ferramenta")
+        if day == "amanhã":
+            expected = pd.Timestamp(run["data_referencia_sistema"]) + pd.Timedelta(days=1)
+        else:
+            expected = pd.Timestamp(day)
+        checks["data_horizonte"] = result.get("data_alvo") == str(expected.date()) and result.get("horizonte_dias") == horizon
+        answer = run.get("resposta", "").split("\n\nFontes:")[0]
+        checks["valor"] = result.get("pm25_ug_m3") is not None and has_value(result["pm25_ug_m3"], answer)
+        interval = result.get("intervalo_90", [])
+        checks["intervalo"] = len(interval) == 2 and all(has_value(v, answer) for v in interval)
+        if "faixa" in q["pergunta"].lower():
+            checks["faixa"] = fact_present(result.get("faixa_iqar", "__ausente__"), answer)
+        if q.get("etapa_comparacao"):
+            from src.aq.aqi import STAGES_24H
+            stage = q["etapa_comparacao"]
+            norm = result.get("padrao_24h_vigente", {}).get("norma", "").split(",")[0]
+            limit = STAGES_24H.get(norm, {}).get(stage)
+            checks["padrao_citado"] = limit is not None and has_value(limit, answer) and stage.lower() in answer.lower()
+    return checks
+
+
 JUDGE_SYS = ("Você avalia fidelidade de respostas. Dadas FONTES e uma RESPOSTA, verifique se TODAS as afirmações "
              "factuais da resposta (números, artigos, obrigações) estão sustentadas pelas fontes. Responda JSON com "
              "nota de 0 a 1 (1 = tudo sustentado) e a lista de afirmações sem suporte.")
@@ -69,6 +110,18 @@ def judge(llm, run: dict, sources_text: str) -> dict:
     return r.data or {"nota": None, "sem_suporte": []}
 
 
+def _merge(rows: list[dict], tag: str, only) -> pd.DataFrame:
+    """Com --only, as perguntas refeitas substituem as linhas da avaliação já gravada com a mesma tag."""
+    df = pd.DataFrame(rows)
+    p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
+    if only and p.exists():
+        prev = pd.read_csv(p)
+        order = [q["id"] for q in load_questions()]
+        df = pd.concat([prev[~prev["id"].isin(df["id"])], df])
+        df = df.sort_values("id", key=lambda s: s.map(order.index)).reset_index(drop=True)
+    return df
+
+
 def main(llm_model=None, judge_model=None, tag=None, only=None):
     qs = load_questions()
     if only:
@@ -76,18 +129,13 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
     agent = Agent(model=llm_model)
     tag = tag or agent.llm.name.replace(".gguf", "")
     os.environ["AGENT_LOG"] = str(data_path("logs", f"eval_runs_{tag}.jsonl"))
-    jl = None
-    if judge_model:
-        from src.rag.llm import LLM
-        jl = LLM(model=judge_model)
     from src.rag.tools import get_retriever
     chunks = {c["id"]: c for c in get_retriever(agent.rag_mode).chunks}
-    rows = []
+    rows, to_judge = [], []
     for q in qs:
         run = agent.ask(q["pergunta"])
         cited = run["trechos_citados"]
         gold = q.get("gold") or []
-        gold_docs = {g.split(":")[0] for g in gold}
         r = {"id": q["id"], "tipo": q["tipo"], "encontrado": run["encontrado"], "tempo_s": run["tempo_total_s"],
              "tokens": run["tokens_entrada"] + run["tokens_saida"]}
         if q.get("deve_recusar"):
@@ -99,37 +147,112 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             r["acerto_parcial"] = float(np.mean(pres)) if pres else float(run["encontrado"])
             r["recusa_indevida"] = not run["encontrado"]
             if run["encontrado"] and cited:
-                r["cit_precisao"] = float(np.mean([c.split(":")[0] in gold_docs for c in cited])) if gold else None
+                r["cit_precisao"] = float(np.mean([gold_match(c, gold) for c in cited])) if gold else None
                 r["cit_recall"] = float(np.mean([any(gold_match(c, [g]) for c in cited) for g in gold])) if gold else None
             v = run.get("validacao") or {}
             r["fidelidade_auto"] = float(v.get("ok", False)) if run["encontrado"] else None
-            if jl is not None:
-                src = "\n\n".join(f"[{i + 1}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
-                                  for i, t in enumerate(run["trechos"]) if t["id"] in chunks)
-                tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
+            if judge_model and run["encontrado"]:
+                # só os trechos CITADOS: fidelidade = o que foi afirmado está nas fontes que a resposta cita
+                src = "\n\n".join(f"[{t['n']}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
+                                  for t in run["trechos"] if t["id"] in chunks and t["n"] in run["citacoes"])
+                tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] != "buscar_normas"]
                 if tools:
                     src += "\n\nFERRAMENTA:\n" + json.dumps(tools, ensure_ascii=False)
-                j = judge(jl, run, src)
-                r["fidelidade_juiz"] = j.get("nota")
-                r["juiz_sem_suporte"] = "; ".join(j.get("sem_suporte", []))[:300]
+                to_judge.append((r, run, src))
         if q.get("deve_chamar_ferramenta"):
-            calls = [t for t in run["ferramentas"] if t["ferramenta"] == "estimar_pm25"]
-            loc = _norm(q.get("local", ""))
-            r["ferramenta_ok"] = bool(calls) and any(loc in _norm(json.dumps(c["args"], ensure_ascii=False)) for c in calls)
+            checks = tool_answer_checks(q, run)
+            r["ferramenta_ok"] = all(checks.values())
+            r["checagens_ferramenta"] = json.dumps(checks, ensure_ascii=False)
+            # sem a estimativa não há resposta: citar só o padrão legal não conta como acerto
+            r["acerto"] = bool(r.get("acerto")) and r["ferramenta_ok"]
         r["resposta"] = run["resposta"][:600]
         rows.append(r)
+        _merge(rows, tag, only).to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)  # parcial
         print(f"{q['id']} [{q['tipo']}] encontrado={run['encontrado']} acerto={r.get('acerto', r.get('recusa_correta'))} "
               f"t={run['tempo_total_s']}s")
-    df = pd.DataFrame(rows)
+    if judge_model:
+        # o juiz roda depois, com o gerador descarregado: dois LLMs de 4B juntos apertam 12 GB de RAM
+        import gc
+
+        from src.rag.llm import LLM, get_llm
+        del agent
+        get_llm.cache_clear()
+        gc.collect()
+        jl = LLM(model=judge_model)
+        for r, run, src in to_judge:
+            j = judge(jl, run, src)
+            r["fidelidade_juiz"] = j.get("nota")
+            r["juiz_sem_suporte"] = "; ".join(j.get("sem_suporte", []))[:300]
+            print(f"juiz {r['id']}: {r['fidelidade_juiz']}")
+    df = _merge(rows, tag, only)
     df.to_csv(data_path("metrics", f"rag_eval_detalhe_{tag}.csv"), index=False)
+    return summarize(df, tag)
+
+
+def rescore(tag: str):
+    """Recalcula acerto/recusa com o gabarito atual a partir das respostas completas do log da avaliação
+    (sem rodar o LLM de novo). As notas do juiz e os tempos são mantidos."""
+    qs = {q["pergunta"]: q for q in load_questions()}
+    runs = {}
+    with open(data_path("logs", f"eval_runs_{tag}.jsonl"), encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            runs[r["pergunta"]] = r  # a última execução de cada pergunta
+    p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
+    df = pd.read_csv(p)
+    if "checagens_ferramenta" not in df:
+        df["checagens_ferramenta"] = pd.Series(pd.NA, index=df.index, dtype="string")
+    # CSVs antigos podem codificar True como 1.0. Pandas 3 não permite atribuir
+    # bool numa coluna float; preserve também as células sem avaliação como NA.
+    for col in ("encontrado", "acerto", "recusa_correta", "recusa_indevida", "ferramenta_ok"):
+        if col in df:
+            df[col] = df[col].map(lambda v: pd.NA if pd.isna(v) else str(v).lower() in ("true", "1", "1.0")).astype("boolean")
+    for i, row in df.iterrows():
+        q = next(q for q in qs.values() if q["id"] == row["id"])
+        run = runs[q["pergunta"]]
+        if q.get("deve_chamar_ferramenta"):
+            checks = tool_answer_checks(q, run)
+            df.at[i, "ferramenta_ok"] = all(checks.values())
+            df.at[i, "checagens_ferramenta"] = json.dumps(checks, ensure_ascii=False)
+        found = bool(run["encontrado"])
+        if blocked_by_validation(run, run.get("validacao")):
+            # execução gravada antes da regra "número sem fonte depois da correção -> recusa"
+            # (src/rag/agent.py): a regra é determinística, então é aplicada aqui sobre o log
+            found = False
+            for c in ("cit_precisao", "cit_recall", "fidelidade_auto", "fidelidade_juiz"):
+                if c in df:
+                    df.at[i, c] = np.nan
+        df.at[i, "encontrado"] = found
+        gold = q.get("gold") or []
+        cited = run.get("trechos_citados", [])
+        if found and gold and cited:
+            df.at[i, "cit_precisao"] = float(np.mean([gold_match(c, gold) for c in cited]))
+            df.at[i, "cit_recall"] = float(np.mean([any(gold_match(c, [g]) for c in cited) for g in gold]))
+        if q.get("deve_recusar"):
+            df.at[i, "recusa_correta"] = not found
+        else:
+            pres = [fact_present(f, run["resposta"]) for f in q.get("fatos_chave", [])] if found else \
+                [False] * len(q.get("fatos_chave", []))
+            df.at[i, "acerto"] = bool(found and all(pres)) and \
+                (not q.get("deve_chamar_ferramenta") or bool(df.at[i, "ferramenta_ok"]))
+            df.at[i, "acerto_parcial"] = float(np.mean(pres)) if pres else float(found)
+            df.at[i, "recusa_indevida"] = not found
+    df.to_csv(p, index=False)
+    return summarize(df, tag)
+
+
+def summarize(df: pd.DataFrame, tag: str) -> dict:
     ans = df[df["tipo"] != "sem_resposta"]
-    summ = {"modelo": tag, "n": len(df),
+    summ = {"modelo": tag, "n": len(df), "metodo_avaliacao": "dispositivo-exato-e-ferramenta-v2",
+            "n_respondidas": int(ans["encontrado"].sum()),
+            "n_fidelidade_juiz": int(ans["fidelidade_juiz"].notna().sum()) if "fidelidade_juiz" in ans else 0,
             "acerto": ans["acerto"].mean(), "acerto_parcial": ans["acerto_parcial"].mean(),
             "cit_precisao": ans.get("cit_precisao", pd.Series(dtype=float)).mean(),
             "cit_recall": ans.get("cit_recall", pd.Series(dtype=float)).mean(),
             "fidelidade_auto": ans["fidelidade_auto"].mean(),
             "fidelidade_juiz": ans["fidelidade_juiz"].mean() if "fidelidade_juiz" in ans else None,
-            "recusa_correta (sem resposta)": df.loc[df["tipo"] == "sem_resposta", "recusa_correta"].mean(),
+            "recusa_correta (sem resposta)": (df.loc[df["tipo"] == "sem_resposta", "recusa_correta"].mean()
+                                              if "recusa_correta" in df else None),
             "recusa_indevida": ans["recusa_indevida"].mean(),
             "ferramenta_ok": df["ferramenta_ok"].mean() if "ferramenta_ok" in df else None,
             "tempo_medio_s": df["tempo_s"].mean(), "tokens_medio": df["tokens"].mean()}
@@ -149,5 +272,9 @@ if __name__ == "__main__":
     ap.add_argument("--judge")
     ap.add_argument("--tag")
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--rescore", metavar="TAG", help="recalcula as notas de uma avaliação já feita")
     a = ap.parse_args()
-    main(a.llm, a.judge, a.tag, a.only)
+    if a.rescore:
+        rescore(a.rescore)
+    else:
+        main(a.llm, a.judge, a.tag, a.only)

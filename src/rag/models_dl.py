@@ -29,7 +29,7 @@ GGUF_TYPES = ("application/vnd.docker.ai.gguf.v3", "application/vnd.docker.ai.gg
 # (referência no Docker Hub, pasta de destino, nome do arquivo)
 DEFAULT = [
     ("ai/qwen3:4b-instruct-2507-q4_K_M", "llm", "qwen3-4b-instruct-2507-q4_k_m.gguf"),
-    ("ai/qwen3-embedding:0.6b-q8_0", "emb", "qwen3-embedding-0.6b-q8_0.gguf"),
+    ("ai/granite-embedding-multilingual:278M-F16", "emb", "granite-embedding-multilingual-278m-f16.gguf"),
     ("ai/qwen3-reranker:0.6B", "rerank", "qwen3-reranker-0.6b.gguf"),
 ]
 BENCH = [
@@ -38,7 +38,7 @@ BENCH = [
     ("ai/gemma3:4B-Q4_K_M", "llm", "gemma3-4b-it-q4_k_m.gguf"),
     ("ai/qwen3:0.6B-Q4_K_M", "llm", "qwen3-0.6b-q4_k_m.gguf"),
     ("ai/embeddinggemma:300M-Q8_0", "emb", "embeddinggemma-300m-q8_0.gguf"),
-    ("ai/granite-embedding-multilingual:278M-F16", "emb", "granite-embedding-multilingual-278m-f16.gguf"),
+    ("ai/qwen3-embedding:0.6b-q8_0", "emb", "qwen3-embedding-0.6b-q8_0.gguf"),
     ("ai/nomic-embed-text-v1.5:137M-F16", "emb", "nomic-embed-text-v1.5-f16.gguf"),
 ]
 
@@ -76,7 +76,9 @@ def pull(ref: str, sub: str, fname: str) -> str:
     repo, tag = ref.split(":")
     tok = _token(repo)
     m = _manifest(repo, tag, tok)
-    layer = next(l for l in m["layers"] if l["mediaType"] in GGUF_TYPES)
+    # artefatos novos usam o formato CNCF (vnd.cncf.model.weight.v1.raw) com o nome do arquivo na anotação
+    layer = next(l for l in m["layers"] if l["mediaType"] in GGUF_TYPES or
+                 l.get("annotations", {}).get("org.cncf.model.filepath", "").endswith(".gguf"))
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
     print(f"baixando {ref} ({layer['size'] / 1e9:.2f} GB) -> {dest.relative_to(ROOT)}")
@@ -95,7 +97,8 @@ if __name__ == "__main__":
     ap.add_argument("refs", nargs="*")
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args()
-    items = [(r, "llm", r.split("/")[-1].replace(":", "-") + ".gguf") for r in a.refs] or \
+    known = {it[0]: it for it in DEFAULT + BENCH}  # refs conhecidas vão para a pasta/nome esperados pelo código
+    items = [known.get(r, (r, "llm", r.split("/")[-1].replace(":", "-") + ".gguf")) for r in a.refs] or \
         (DEFAULT + BENCH if a.all else DEFAULT)
     for it in items:
         try:

@@ -14,6 +14,7 @@ explicitamente (ex.: "Resolução CONAMA 03/1990") ou se a data pedida cair na s
 from __future__ import annotations
 
 import json
+import os
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -54,7 +55,15 @@ def load_chunks() -> list[dict]:
     if not p.exists():
         p = data_path("sample", "rag_chunks.jsonl")
     with open(p, encoding="utf-8") as f:
-        return [json.loads(l) for l in f]
+        chunks = [json.loads(l) for l in f if l.strip()]
+    from src.rag.download import registry
+    expected = {d["id"] for d in registry()}
+    if not expected <= {c["doc_id"] for c in chunks}:
+        with open(data_path("sample", "rag_chunks.jsonl"), encoding="utf-8") as f:
+            chunks = [json.loads(l) for l in f if l.strip()]
+        if not expected <= {c["doc_id"] for c in chunks}:
+            raise RuntimeError("base normativa e amostra incompletas")
+    return chunks
 
 
 def index_text(c: dict) -> str:
@@ -62,21 +71,37 @@ def index_text(c: dict) -> str:
     return f"{head}\n{c['text']}"
 
 
-# menções explícitas a uma norma: "491/2018", "nº 491", "03/1990", "6.938"
+# menções explícitas a uma norma: "491/2018", "nº 491", "03/1990", "6.938", e também sem o ano
+# ("CONAMA 491", "Resolução 506", "Lei 9605"), que é como a pergunta costuma vir
 def mentioned_docs(query: str, chunks: list[dict]) -> set[str]:
-    q = _strip(query.lower())
+    q = _strip(query.lower())  # sem acento; "nº" vira "no"
     out = set()
-    for c in chunks:
-        did = c["doc_id"]
-        m = re.match(r"[a-z]+_(\d+)_(\d{4})", did)
+    for did in {c["doc_id"] for c in chunks}:
+        m = re.match(r"([a-z]+)_(\d+)_(\d{4})", did)
         if not m:
             continue
-        num, year = str(int(m.group(1))), m.group(2)
+        tipo, num, year = m.group(1), str(int(m.group(2))), m.group(3)
+        dotted = rf"{num[:-3]}\.?{num[-3:]}" if len(num) > 3 else num
+        prefix = r"(?:conama|resolucao)\s*(?:conama\s*)?" if tipo == "conama" else rf"{tipo}\s*"
         pats = [rf"\b0*{num}\s*/\s*{year}\b", rf"\b0*{num}\s*/\s*{year[2:]}\b", rf"n[oº°]?\s*0*{num}\b.*{year}",
-                rf"\b{num[:-3]}\.{num[-3:]}\b" if len(num) > 3 else r"(?!x)x"]
+                rf"\b{prefix}(?:n[o.]?\s*)?0*{dotted}\b(?![.,/]?\d)"]
+        if len(num) > 3:
+            pats.append(rf"\b{num[:-3]}\.{num[-3:]}\b")
         if any(re.search(p, q) for p in pats):
             out.add(did)
     return out
+
+
+def diversify(hits: list, max_per_group: int = 2) -> list:
+    """No máximo `max_per_group` trechos do mesmo dispositivo (mesma tabela ou partes do mesmo artigo)
+    no topo; o excedente desce para o fim. Sem isso, as 15 linhas do Anexo I (que repetem título e
+    cabeçalho) tomam o top-k inteiro e o segundo trecho de uma pergunta composta fica de fora."""
+    head, tail, count = [], [], {}
+    for h in hits:
+        g = (h.chunk["doc_id"], h.chunk["label"].split(" (")[0])
+        count[g] = count.get(g, 0) + 1
+        (head if count[g] <= max_per_group else tail).append(h)
+    return head + tail
 
 
 def vigente(c: dict, date: pd.Timestamp) -> bool:
@@ -92,16 +117,18 @@ class Hit:
     rank_bm25: int | None = None
     rank_dense: int | None = None
     rerank: float | None = None
+    cos: float | None = None       # similaridade de cosseno (vetorial), usada no limiar de recusa
 
 
 class Retriever:
-    def __init__(self, mode: str = "hybrid", emb_path: str | None = None, rrf_k: int = 60, rerank_top: int = 20):
+    def __init__(self, mode: str = "hybrid", emb_path: str | None = None, rrf_k: int = 60, rerank_top: int | None = None):
         self.mode = mode
         self.chunks = load_chunks()
         self.texts = [index_text(c) for c in self.chunks]
         self.bm25 = BM25Okapi([tokenize(t) for t in self.texts], k1=1.2, b=0.6)
         self.rrf_k = rrf_k
-        self.rerank_top = rerank_top
+        self.rerank_top = rerank_top or int(os.environ.get("RAG_RERANK_TOP", "8"))
+        self.max_per_group = int(os.environ.get("RAG_MAX_PER_GROUP", "2"))  # 0 desliga a diversificação
         self.emb = None
         if mode in ("dense", "hybrid", "hybrid_rerank", "dense_rerank"):
             from src.rag.embed import get_embedder
@@ -123,9 +150,11 @@ class Retriever:
         bm = np.where(allowed, bm, -np.inf)
         r_bm = np.empty(n, int)
         r_bm[np.argsort(-bm)] = np.arange(n)
+        cos = None
         if self.emb is not None and mode != "bm25":
             qv = self.emb.queries([query])[0]
-            dn = np.where(allowed, self.doc_vecs @ qv, -np.inf)
+            cos = self.doc_vecs @ qv
+            dn = np.where(allowed, cos, -np.inf)
             r_dn = np.empty(n, int)
             r_dn[np.argsort(-dn)] = np.arange(n)
         if mode == "bm25":
@@ -136,13 +165,23 @@ class Retriever:
             score = np.where(allowed, 1 / (self.rrf_k + r_bm + 1) + 1 / (self.rrf_k + r_dn + 1), -np.inf)
         order = [i for i in np.argsort(-score) if np.isfinite(score[i])]
         hits = [Hit(self.chunks[i], float(score[i]), int(r_bm[i]) + 1,
-                    int(r_dn[i]) + 1 if self.emb is not None and mode != "bm25" else None) for i in order]
+                    int(r_dn[i]) + 1 if cos is not None else None,
+                    cos=float(cos[i]) if cos is not None else None) for i in order]
+        if self.max_per_group:
+            hits = diversify(hits, self.max_per_group)
         if mode.endswith("_rerank"):
-            from src.rag.embed import get_reranker
-            top = hits[: self.rerank_top]
-            s = get_reranker().score(query, [index_text(h.chunk) for h in top])
-            for h, v in zip(top, s):
-                h.rerank = float(v)
-                h.score = float(v)
-            hits = sorted(top, key=lambda h: -h.score) + hits[self.rerank_top:]
+            hits = rerank(query, hits, self.rerank_top)
         return hits[:k]
+
+
+def rerank(query: str, hits: list[Hit], top: int) -> list[Hit]:
+    """Reordena os `top` primeiros com o cross-encoder (o resto mantém a ordem original). Em CPU o
+    reranker custa segundos por trecho, então o agente chama isto UMA vez, sobre a união dos
+    candidatos de todas as buscas, e não uma vez por busca."""
+    from src.rag.embed import get_reranker
+
+    head = hits[:top]
+    for h, v in zip(head, get_reranker().score(query, [index_text(h.chunk) for h in head])):
+        h.rerank = float(v)
+        h.score = float(v)
+    return sorted(head, key=lambda h: -h.score) + hits[top:]

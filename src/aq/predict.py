@@ -14,7 +14,7 @@ import pandas as pd
 
 from src.aq.aqi import band, legal_standard_24h
 from src.aq.features import haversine, load_context, point_features
-from src.aq.modeling import with_lag
+from src.aq.modeling import FEATURE_SCHEMA, with_lag
 from src.common.config import ROOT, data_path
 
 
@@ -31,7 +31,10 @@ def models():
     mdir = ROOT / "models"
     if not (mdir / "estimativa.joblib").exists():
         raise FileNotFoundError("modelos não treinados: rode `make train` (ou `make all-sample`)")
-    return joblib.load(mdir / "estimativa.joblib"), joblib.load(mdir / "previsao_d1.joblib")
+    est, fc = joblib.load(mdir / "estimativa.joblib"), joblib.load(mdir / "previsao_d1.joblib")
+    if any(m.get("feature_schema") != FEATURE_SCHEMA for m in (est, fc)):
+        raise ValueError("modelos antigos: rode `make sample train` para treinar a versão causal")
+    return est, fc
 
 
 @functools.lru_cache(maxsize=1)
@@ -61,10 +64,12 @@ def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
     """horizon=0: estimativa para `dates`. horizon=1: previsão para `dates`+1, feita com
     o que se sabe em `dates` (satélite, fogo e medições de hoje)."""
     dates = pd.DatetimeIndex(pd.to_datetime(dates)).normalize()
+    if horizon not in (0, 1):
+        raise ValueError("horizon deve ser 0 ou 1")
     lats, lons = np.asarray(lats, float), np.asarray(lons, float)
     idx = available_index()
     need = dates + pd.Timedelta(days=horizon)
-    if not (dates.isin(idx).all() and need.isin(idx).all()):
+    if not dates.isin(idx).all():
         lo_d, hi_d = available_dates()
         extra = " (modo amostra: só algumas janelas de datas; rode `make data` para o período completo)" \
             if _use_sample() else ""
@@ -75,7 +80,8 @@ def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
     feats = point_features(ctx, dates, lats, lons, forecast=horizon == 1)
     obs = station_obs()
     feats = with_lag(feats, obs)
-    d_near = np.array([haversine(la, lo, obs["lat"].unique(), obs["lon"].unique()).min() for la, lo in zip(lats, lons)])
+    stations = obs[["lat", "lon"]].drop_duplicates()
+    d_near = np.array([haversine(la, lo, stations.lat.values, stations.lon.values).min() for la, lo in zip(lats, lons)])
     if horizon == 0:
         m = est
         X = feats[m["features"]]
@@ -90,11 +96,15 @@ def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
         own = np.array([today.get((d, la, lo), np.nan) if dn < 0.5 else np.nan
                         for d, la, lo, dn in zip(dates, lats, lons, d_near)])
         has = np.isfinite(own)
+        lo, _, hi = m["quantiles"].predict_log(X)
+        q = np.full(len(X), m["cqr_q"])
         if has.any():
             Xm = feats.loc[has, m["features_mon"][:-1]].assign(pm25_today=own[has])
             point[has] = m["point_mon"].predict(Xm)
-        lo, _, hi = m["quantiles"].predict_log(X)
-    q = m["cqr_q"]
+            lo[has], _, hi[has] = m["quantiles_mon"].predict_log(Xm)
+            q[has] = m["cqr_q_mon"]
+    if horizon == 0:
+        q = m["cqr_q"]
     lo, hi = np.expm1(lo - q).clip(0), np.expm1(hi + q)
     lo, hi = np.minimum(lo, point), np.maximum(hi, point)
     out = pd.DataFrame({"data_referencia": dates, "data_alvo": need, "lat": lats, "lon": lons,
@@ -121,4 +131,6 @@ def predict_one(lat: float, lon: float, date: str, horizon: int = 0) -> dict:
                         "estacoes_usadas_idw": int(r["estacoes_usadas_idw"]),
                         "dist_estacao_mais_proxima_km": round(float(r["dist_estacao_mais_proxima_km"]), 1)},
         "fonte": "modelo LightGBM + CQR (Parte 1); satélite GOES-16, ERA5, rede CETESB via OpenAQ",
+        "feature_schema": FEATURE_SCHEMA,
+        "emissao": "fim do dia de referência; dados históricos, sem feed em tempo real",
     }

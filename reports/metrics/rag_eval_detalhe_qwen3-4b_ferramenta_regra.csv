@@ -1,0 +1,12 @@
+id,tipo,encontrado,tempo_s,tokens,acerto,acerto_parcial,recusa_indevida,cit_precisao,cit_recall,fidelidade_auto,ferramenta_ok,resposta
+q29,ferramenta,True,405.7,3284,True,1.0,False,0.5,1.0,1.0,True,"O PM2.5 previsto para Campinas amanhã é de 20,7 µg/m³, com intervalo de 90% entre 11,7 e 29,1 µg/m³. O padrão legal vigente na data de amanhã (2023-04-05) é o da Resolução CONAMA 491/2018, Anexo I, para o período de 24 horas, com o valor de referência PI-1 de 60 µg/m³ [1]. O valor previsto (20,7 µg/m³) não ultrapassa esse padrão, portanto, não há excedência.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — https://faolex.fao.org/docs/pdf/bra215752.pdf
+[6] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24 horas) — https://ambienteclim"
+q30,ferramenta,True,365.47,4833,True,1.0,False,,,0.0,True,"A estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 é de 12,0 µg/m³, com intervalo de 90% entre 8,0 e 18,1 µg/m³. A faixa do IQAr correspondente é 'Boa'. O padrão de qualidade do ar vigente na data (Resolução CONAMA 491/2018, art. 4º, § 1º e Anexo I, PI-1) é de 60,0 µg/m³, e a concentração estimada não ultrapassa esse valor, portanto, não há violação do padrão.
+
+Fontes:
+[1] Resolução CONAMA 506/2024, art. 8º — https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf
+[2] Resolução CONAMA 506/2024, Anexo II — https://ambiente"
+q31,ferramenta,True,470.39,3631,True,1.0,False,1.0,1.0,1.0,True,"Em 2021-08-24, a qualidade do ar em Sorocaba, de acordo com a estimativa da ferramenta [F1], apresentava uma média de PM2,5 de 51,4 µg/m³ (intervalo de 90%: 32,5–89,8), que ultrapassou o padrão de qualidade do ar final (PF) de 25 µg/m³ definido na Resolução CONAMA 491/2018 para MP2,5 de 24 horas. No entanto, na data de 2021-08-24, o padrão vigente era o PI-1 (60 µg/m³), conforme estabelecido no art. 4º, § 1º da Resolução CONAMA 491/2018 e no Anexo I, e a estimativa (51,4 µg/m³) ultrapassou esse valor. Assim, a qualidade do ar não atendeu ao padrão PI-1, que era o vigente na época, e, portanto,"

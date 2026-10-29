@@ -1,0 +1,32 @@
+src.aq.evaluate []
+exemplo local: Osasco 2021-08-24 medido=85.0
+  variavel  shap_medio_abs
+       idw        0.079931
+ built_5km        0.029744
+     built        0.026578
+  tree_5km        0.023858
+   prev_tp        0.018476
+  crop_5km        0.018202
+      elev        0.015690
+   doy_cos        0.014700
+ grass_5km        0.014215
+  idw_dmin        0.014152
+no2_filled        0.012645
+   blh_min        0.012410
+                              regime                             modelo    n  PM2.5_medio      MAE      vies  AOD_medio  frac_sem_AOD_obs
+         PM2.5 alto sem fogo (≥ p95)                     IDW (baseline)  179    38.934104 7.328682 -5.807567   0.311357          0.117318
+         PM2.5 alto sem fogo (≥ p95) LightGBM regularizado (offset IDW)  179    38.934104 9.161206 -7.605086   0.311357          0.117318
+fumaça (fogo a favor do vento ≥ p95)                     IDW (baseline)  393    34.324071 8.027574  1.310195   0.271954          0.104326
+fumaça (fogo a favor do vento ≥ p95) LightGBM regularizado (offset IDW)  393    34.324071 8.778446 -3.675414   0.271954          0.104326
+                              normal                     IDW (baseline) 7286    11.851431 2.737409  0.836803   0.386681          0.532116
+                              normal LightGBM regularizado (offset IDW) 7286    11.851431 2.499482 -0.413865   0.386681          0.532116
+src.aq.maps ['--date', '2022-10-11']
+mapa salvo em C:\Users\lucas\Documents\GitHub\teste_IA\reports\figures\mapa_pm25_2022-10-11_h0.png | área por faixa: {'Boa': 0.9977, 'Moderada': 0.0023, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 15.6
+src.aq.maps ['--date', '2022-11-16']
+mapa salvo em C:\Users\lucas\Documents\GitHub\teste_IA\reports\figures\mapa_pm25_2022-11-16_h0.png | área por faixa: {'Boa': 1.0, 'Moderada': 0.0, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 7.8
+src.aq.maps ['--date', '2021-08-24']
+mapa salvo em C:\Users\lucas\Documents\GitHub\teste_IA\reports\figures\mapa_pm25_2021-08-24_h0.png | área por faixa: {'Moderada': 0.9237, 'Boa': 0.0388, 'Ruim': 0.0373, 'Muito Ruim': 0.0002, 'Péssima': 0.0} | largura média IC: 39.6
+src.aq.maps ['--date', '2021-08-23', '--horizon', '1']
+mapa salvo em C:\Users\lucas\Documents\GitHub\teste_IA\reports\figures\mapa_pm25_2021-08-24_h1.png | área por faixa: {'Moderada': 0.9257, 'Boa': 0.0416, 'Ruim': 0.0324, 'Muito Ruim': 0.0003, 'Péssima': 0.0} | largura média IC: 51.3
+scripts.verify_delivery []
+C:\Users\lucas\Documents\GitHub\teste_IA\logs\validacao_entrega.txt

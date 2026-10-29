@@ -12,7 +12,15 @@ documentos:
     vigencia_inicio: "2018-11-21"
     vigencia_fim: null
     must_contain: ["491", "qualidade do ar"]
+    # Revogação PARCIAL pela 506/2024 (art. 11, I): arts. 9º-11 e Anexos II-IV continuam vigentes.
+    revogacoes_parciais:
+      - dispositivos: ["art. 1º", "art. 2º", "art. 3º", "art. 4º", "art. 5º", "art. 6º", "art. 7º", "art. 8º",
+                       "art. 12", "art. 13", "art. 14", "Anexo I"]
+        vigencia_fim: "2024-07-08"
+        revogado_por: "Resolução CONAMA 506/2024, art. 11, inciso I"
+    # O DOU (in.gov.br) responde 403 a acesso automatizado; a FAOLEX (FAO) guarda a impressão da página do DOU.
     urls:
+      - "https://faolex.fao.org/docs/pdf/bra215752.pdf"
       - "https://www.in.gov.br/materia/-/asset_publisher/Kujrw0TZC2Mb/content/id/51058895/do1-2018-11-21-resolucao-n-491-de-19-de-novembro-de-2018-51058603"
       - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=740"
     busca_dou: "Resolução nº 491, de 19 de novembro de 2018"
@@ -26,7 +34,9 @@ documentos:
     vigencia_inicio: "2024-07-09"
     vigencia_fim: null
     must_contain: ["506", "qualidade do ar"]
-    urls: []
+    # impressão da página do DOU publicada pela Prefeitura do Rio (o DOU bloqueia acesso automatizado)
+    urls:
+      - "https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf"
     busca_dou: "Resolução Conama nº 506, de 5 de julho de 2024"
 
   - id: conama_003_1990
@@ -37,7 +47,7 @@ documentos:
     data_publicacao: "1990-08-22"
     vigencia_inicio: "1990-08-22"
     vigencia_fim: "2018-11-20"   # revogada pela Resolução CONAMA 491/2018
-    revogada_por: conama_491_2018
+    revogada_por: "Resolução CONAMA 491/2018, art. 14"
     must_contain: ["qualidade do ar"]
     urls:
       - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=100"
@@ -49,7 +59,14 @@ documentos:
     tipo: resolucao
     data_publicacao: "1989-08-25"
     vigencia_inicio: "1989-08-25"
-    vigencia_fim: null
+    # Revogada inteira pela Res. CONAMA 513/2026 (DOU de 09/04/2026). O texto da 513 não entrou na base:
+    # só está no DOU, que bloqueia acesso automatizado (ver RELATORIO.md).
+    vigencia_fim: "2026-04-08"
+    revogada_por: "Resolução CONAMA 513/2026 (texto fora da base)"
+    revogacoes_parciais:
+      - dispositivos: ["item 2.2.1", "item 2.3"]
+        vigencia_fim: "2018-11-20"
+        revogado_por: "Resolução CONAMA 491/2018, art. 14"
     must_contain: ["PRONAR"]
     urls:
       - "https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=81"

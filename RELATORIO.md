@@ -1,203 +1,268 @@
 # Relatório técnico
 
-> Todos os números deste relatório vêm de arquivos em `reports/metrics/`, gerados pelo
-> código do repositório (`make bench train evaluate rag-bench rag-eval`).
+## 1. Resultado e escopo
 
-## 0. Resumo
+Versão final de variáveis: **causal-spatial-aod-v2**. São 11.543 estação-dias de 30 estações CETESB, entre 2021-01-13 e 2023-04-04, no estado de São Paulo. Grade de 0,05° (~5,5 km).
 
-<!--RESUMO-->
+Na validação de estações não vistas e período posterior, o LightGBM regularizado com offset do IDW obteve **MAE 2.98 µg/m³, RMSE 4.72 µg/m³ e R² 0.728**. O ganho de MAE sobre o IDW foi **4.34%**. O intervalo nominal de 90% para a estimativa diária teve cobertura empírica de **90.61%**. A cobertura de D+1 é medida separadamente na seção 5.
 
-## 1. Premissas e restrições
+Não há feed atual: o produto é uma demonstração histórica. Uma emissão ao fim de D usa as agregações completas de D e produz a estimativa de D e a previsão de D+1. “Hoje/amanhã” no agente usam uma referência histórica explícita. A CLI recebe a data de referência; horizonte 1 significa data-alvo = referência + um dia.
 
-- **Recorte**: estado de São Paulo, grade de 0.05° (~5,5 km), dados diários.
-- **Período: jan/2021 a abr/2023**, e não "2019 em diante". O PM2.5 medido (a variável
-  alvo) veio do único espelho público e anônimo da rede CETESB que encontrei, o arquivo
-  da OpenAQ no AWS. Para as estações de SP ele cobre 2017 e de jan/2021 a abr/2023,
-  com ~50% dos dias (lacunas de ingestão da própria OpenAQ). O QUALAR exige login e
-  não estava acessível no ambiente de desenvolvimento.
-- **Ambiente**: o container de desenvolvimento só tinha acesso a PyPI, GitHub e buckets
-  públicos (AWS/GCS/Docker Hub). Sites gov.br, Open-Meteo, CDS, INPE, Planetary
-  Computer e HuggingFace estavam bloqueados. Isso pesou em todas as escolhas de fonte
-  abaixo. Para não depender de cadastro, toda fonte escolhida é anônima.
-- **Custo zero**: modelos abertos rodando em CPU (llama.cpp). Nenhuma chave paga.
-- Sem resposta a tempo para dúvidas, segui com as premissas acima.
+O desafio recomenda 2019 em diante, mas permite recorte e fontes alternativos justificados. O arquivo público anônimo de PM2.5 utilizado limita o período e tem lacunas em aproximadamente metade dos dias. Priorizei as duas partes funcionais, validação espaço-temporal, incerteza medida e rastreabilidade das respostas.
 
-## 2. Dados (Parte 1)
+## 2. Dados, fontes e reprodução
 
-| Dado | Fonte usada | Sugerida | Por que a troca |
-|---|---|---|---|
-| PM2.5 medido | **CETESB via arquivo OpenAQ (S3)**, horário → média de 24 h com ≥ 18 h válidas | QUALAR / MonitorAr | QUALAR exige login e limita a 1 estação x 1 parâmetro x 1 ano por consulta; MonitorAr inacessível |
-| AOD | **GOES-16 ABI L2 AODF** (2 km, 10 min) | MAIAC MCD19A2 | MAIAC exige Earthdata/GEE. O GOES é geoestacionário: com 8 varreduras por dia (09-16 h local), uma única hora sem nuvem já dá AOD no dia |
-| NO2 troposférico | **Sentinel-5P TROPOMI** (COG do MEEO no S3), qa ≥ 0.75 | igual | mesma fonte, em formato que permite leitura parcial |
-| Queimadas | **GOES-16 ABI L2 FDCF** (máscara de fogo + FRP) | INPE BDQueimadas | INPE inacessível. O GOES-16 é um dos satélites do próprio BDQueimadas |
-| Meteorologia | **ERA5 (espelho NCAR no S3)**: BLH, T, Td→UR, vento, pressão, nuvens, chuva | ERA5 (CDS) | mesmo dado. O CDS exige chave |
-| Uso do solo / relevo | **ESA WorldCover 2021** (10 m) + **Copernicus DEM** (30 m) | MapBiomas / IBGE | o MapBiomas é um GeoTIFF nacional de ~1 GB por ano; para frações de uso a 1 km o WorldCover é equivalente e vem em blocos |
-| Limites / municípios | malha IBGE (via geodata-br) + sedes municipais IBGE | IBGE | gov.br inacessível; mesmos dados IBGE espelhados no GitHub |
+| Variável | Fonte utilizada | Justificativa |
+|---|---|---|
+| PM2.5 horário | CETESB via arquivo OpenAQ público no S3 | Alternativa anônima ao QUALAR, que exige login. Média diária só com pelo menos 18 h válidas |
+| AOD | GOES-16 ABI L2 AODF | Alternativa pública ao MAIAC; oito varreduras diurnas por dia e controle de qualidade DQF |
+| NO2 troposférico | Sentinel-5P TROPOMI, COG público MEEO/S3 | Sinal de tráfego/indústria e precursor de aerossol secundário; qa ≥ 0,75 |
+| Fogo e FRP | GOES-16 ABI L2 FDCF | Alternativa ao INPE, indisponível no ambiente inicial |
+| Meteorologia | ERA5, espelho público NCAR/S3 | Vento, umidade, chuva, temperatura, nuvens e camada limite, sem chave CDS |
+| Uso do solo e relevo | ESA WorldCover 2021 e Copernicus DEM | Blocos públicos com leitura parcial |
+| Limite estadual e municípios | IBGE espelhado no GitHub | Mesmo recorte territorial, sem dependência do acesso inicial a gov.br |
 
-**Engenharia de leitura**: nenhum arquivo é baixado inteiro. NetCDF/HDF5 (GOES, ERA5) e
-COG (S5P, WorldCover, DEM) são lidos por *HTTP range requests*, só a janela de SP. O
-GOES lê ~2 MB de 38 MB por varredura; o ERA5, ~2 MB de ~1,4 GB por variável-mês. Os
-coletores usam processos, não threads, porque o HDF5 não é *thread-safe* (tive
-*segfault* com threads).
+Os coletores estão em `src/aq/data/`; usam leituras parciais HTTP de NetCDF/HDF5 e COG. `python -m src.aq.pipeline --full` baixa, monta as bases, compara, treina e gera evidências. `python -m src.aq.pipeline` refaz a modelagem completa sobre a amostra de aproximadamente 12 MB, sem baixar brutos. Para demonstrar em poucos minutos, `python -m src.aq.pipeline --quick` treina e calibra a produção, faz previsão e um mapa, conservando os CSVs de teste já fornecidos. A amostra contém as bases de treino completas com variáveis e cubos de contexto em algumas janelas, suficientes para mapas, CLI e agente.
 
-### 2.1 Casamento estação ↔ pixel e falhas de AOD
+As datas são agregadas no dia local UTC−3 do período escolhido. AOD/NO2 usam célula de 0,05° e vizinhanças 3×3/9×9; ERA5 usa interpolação bilinear; estáticos usam 1 km e média de 5 km. O instante horário do alvo marca o fim da hora: 00:00 é atribuído ao dia anterior.
 
-- **Tempo**: tudo agregado no dia **local** (UTC-3). O registro horário da OpenAQ marca o
-  fim da hora, então a hora 00:00 pertence ao dia anterior.
-- **Espaço**: AOD/NO2 na célula de 0.05° que contém o ponto, mais médias 3x3 e 9x9;
-  ERA5 por interpolação bilinear; estáticos em 1 km e em janela de 5 km.
-- **Falhas de AOD por nuvem**, em camadas: (0) composição das 8 varreduras do dia →
-  (1) janela 3x3 → (2) janela 9x9 → (3) média de D-1/D+1 (só D-1 na previsão, para não
-  olhar o futuro) → (4) sem AOD: o NaN fica para o LightGBM, que aprende um ramo próprio,
-  e a flag `aod_fill_level` vira variável.
+### Falhas de AOD e causalidade
 
-### 2.2 Variáveis com justificativa física
+Hierarquia exclusivamente espacial: célula observada (nível 0), média 3×3 (1), média 9×9 (2), ausente (4). Após essas etapas, NaN permanece como ausência aprendida pelo LightGBM, acompanhado pela flag. Não há preenchimento temporal e nenhuma observação de D+1 entra nas variáveis de D.
 
-| Variável | Física |
+AOD observado na célula em **50.8%** das linhas; após preenchimento espacial, **73.9%**. O AOD isolado é um sinal fraco na superfície: mede a coluna, influenciada por umidade, altura e transporte dos aerossóis. Por isso entram combinações físicas, NO2, fogo e estações vizinhas.
+
+A revisão retirou o antigo preenchimento D−1/D+1 e a meteorologia realizada de amanhã. `scripts/migrate_causal_sample.py` faz uma migração idempotente das variáveis espaciais armazenadas, recalcula as combinações físicas e remove campos meteorológicos futuros. O download completo já gera o novo esquema diretamente. Bases e modelos antigos são recusados por verificação do identificador de esquema.
+
+## 3. Variáveis e validação
+
+| Grupo | Motivação física |
 |---|---|
-| `aod_blh = AOD / BLH` | o AOD integra a coluna. Dividir pela altura de mistura dá um proxy da extinção (≈ concentração) junto à superfície |
-| `aod_dry = AOD·(1-UR)^0.6` | crescimento higroscópico: com UR alta a água infla as partículas e o AOD sobe sem aumento da massa seca que o monitor mede |
-| `vent = BLH·vento` (log) | índice de ventilação, a capacidade de diluição da atmosfera |
-| `fire_up_{150,400}km` | focos a favor do vento: soma de `max(0, cos(rumo_ponto→foco − direção_de_onde_vem_o_vento))·log(1+FRP)/dist` (+ D-1, pelo tempo de transporte) |
-| `prev_tp`, `tp` | remoção úmida (chuva de hoje e de ontem) |
-| `blh_min` | estabilidade noturna (inversões) |
-| `no2` | traçador de combustão (tráfego/indústria) e precursor de nitrato |
-| `built_5km`, `tree_5km`, `elev` | contexto urbano/vegetação/altitude |
-| `idw` (lag espacial) | PM2.5 das **outras** estações no mesmo dia (sinal regional). Na validação, as estações de teste nunca entram como referência |
+| AOD / altura da camada limite | Aproxima a relação entre coluna e concentração perto da superfície |
+| AOD × (1−UR)^0,6 | Correção aproximada do crescimento higroscópico |
+| BLH × velocidade do vento | Índice de ventilação e dispersão |
+| Chuva de D e D−1 | Remoção úmida |
+| Fogo a 150/400 km ponderado por direção do vento, FRP e distância | Transporte de fumaça, incluindo defasagem de um dia |
+| NO2, urbanização, vegetação e relevo | Fontes locais e contexto de dispersão |
+| IDW das outras estações em D | Nível regional observado; a estação-alvo é excluída |
+| Calendário de D e D+1 | Sazonalidade e dia da semana conhecido na emissão |
 
-### 2.3 Base de treino
+O alvo do modelo pontual é `log1p(PM2.5) − log1p(IDW)`: o modelo aprende a correção local sobre um baseline regional forte. A escolha do LightGBM regularizado foi mantida da etapa inicial; o benchmark foi refeito com as variáveis causais.
 
-- 30 estações CETESB com PM2.5 e 11.543 estação-dias (2021-01-13 a 2023-04-04), média de 24 h com ≥ 18 h válidas.
-- AOD observado na célula do pixel em 50,8% das estação-dias. Com o preenchimento hierárquico chega a 89,3%: 11% pela janela 3x3, 12% pela 9x9, 15% pela média temporal, e 10,7% ficam sem AOD.
-- Correlação de Spearman com o PM2.5: `fire_up_400km` +0,48, `no2_filled` +0,46, chuva de ontem −0,52, UR −0,41.
-  O **AOD sozinho quase não correlaciona (+0,04)**.
-  - Investiguei se era defeito do dado. Refiz um subconjunto só com pixels de alta qualidade (DQF = 0): ρ = 0,14.
-  - Conferi a geolocalização no mapa. As lacunas dos rios e represas batem com o contorno de SP, e o NO2 concentra na RMSP.
-  - O dado está certo. O sinal do AOD do GOES para o PM2.5 de superfície em SP é fraco, porque a coluna é dominada por umidade e aerossol em altitude. Por isso o AOD entra **combinado** com camada limite e UR.
+As estações são divididas em cinco grupos determinísticos. Cada grupo fica totalmente fora do treino e das referências do IDW durante seu teste. O split temporal cruza esses grupos com:
 
-## 3. Validação (o que simula o uso real)
+- T1: treino até maio/2021, calibração em junho, teste julho–dezembro/2021 (seca/fumaça).
+- T2: treino até março/2022, calibração abril–junho, teste julho/2022–abril/2023.
 
-- **Espaço**: GroupKFold por estação (5 folds). A estação de teste nunca entra no treino nem como referência do IDW.
-- **Tempo**: origem móvel com dois cortes, testando sempre **depois** do treino:
-  - **T1**: treino até mai/2021, calibração em jun/2021, **teste de jul a dez/2021**. É a estação seca, com os episódios de fumaça de ago–set/2021.
-  - **T2**: treino até mar/2022, calibração de abr a jun/2022, **teste de jul/2022 a abr/2023**.
-- **Por que dois cortes**: no começo usei só o T2. Mas o arquivo OpenAQ tem só 243 estação-dias em jul–set/2022, então o teste ficou quase todo na estação chuvosa (média 10,7 e máximo 41 µg/m³). Os modelos pareciam bons, mas não eram testados no cenário difícil. O T1 corrige isso.
-- **A validação aleatória fica só como referência**. Ela daria R² 0,84 contra 0,72 na validação correta, porque o modelo "vê" a mesma estação e o mesmo dia pelas vizinhas.
-- Todas as métricas são calculadas nas **mesmas linhas** (7.761 estação-dias de teste) para todos os modelos.
+Na previsão, a **data-alvo D+1** determina os limites de treino, calibração e teste, impedindo que o último rótulo do treino atravesse a fronteira. A validação aleatória é apenas referência otimista. As métricas agregam os folds; não há um teste externo intocado para seleção de toda a família de modelos, portanto o benchmark deve ser interpretado como comparação exploratória, não uma estimativa sem viés de seleção.
 
-## 4. Resultados da Parte 1
+## 4. Estimativa diária, intervalos e explicação
 
-### 4.1 Estimativa do dia em local sem estação (`reports/metrics/benchmark_estimativa.csv`)
+Todos os modelos da tabela principal são comparados nas mesmas linhas com previsões válidas, inclusive os baselines. Métricas em µg/m³; ganho positivo representa redução do MAE.
 
-| Modelo | MAE | RMSE | R² | Ganho MAE vs IDW | Acerto faixa IQAr |
-|---|---|---|---|---|---|
-| **LightGBM regularizado, alvo relativo ao IDW (escolhido)** | **3,00** | **4,77** | **0,722** | **+3,4%** | 94,4% |
-| Ensemble RF + LightGBM reg. (offset) | 3,01 | 4,77 | 0,721 | +3,3% | 94,2% |
-| Krigagem ordinária (baseline) | 3,08 | 4,91 | 0,705 | +1,1% | 94,0% |
-| XGBoost reg. forte (offset) | 3,09 | 4,86 | 0,711 | +0,9% | 94,1% |
-| **IDW entre estações vizinhas (baseline)** | 3,11 | 4,87 | 0,710 | 0 | 94,3% |
-| Random Forest (offset) | 3,13 | 4,90 | 0,706 | −0,6% | 94,0% |
-| LightGBM (offset) **sem satélite** | 3,48 | 5,46 | 0,636 | −11,8% | 93,0% |
-| MLP PyTorch 64-32 com saída tanh (offset) | 3,71 | 5,88 | 0,576 | −19,1% | — |
-| LightGBM com alvo log, sem offset | 3,72 | 6,12 | 0,541 | −19,7% | 92,0% |
-| LightGBM **sem lag espacial** (só satélite + meteorologia) | 4,40 | 7,01 | 0,399 | −41,4% | 91,1% |
-| Climatologia mensal | 6,26 | 9,34 | −0,07 | −101% | 90,2% |
-| *Validação aleatória (otimista, só referência)* | *2,15* | *3,39* | *0,836* | | |
+| modelo | n | MAE | RMSE | R2 | ganho_MAE_vs_baseline_% | acerto_faixa_IQAr |
+| --- | --- | --- | --- | --- | --- | --- |
+| LightGBM regularizado (offset IDW) | 7761 | 2.9771 | 4.7190 | 0.7275 | 4.3361 | 0.9437 |
+| Ensemble RF + LightGBM reg. (offset IDW) | 7761 | 3.0029 | 4.7514 | 0.7237 | 3.5078 | 0.9423 |
+| XGBoost reg. forte (offset IDW) | 7761 | 3.0594 | 4.8313 | 0.7143 | 1.6902 | 0.9405 |
+| Krigagem ordinária | 7761 | 3.0785 | 4.9122 | 0.7047 | 1.0777 | 0.9401 |
+| IDW (baseline) | 7761 | 3.1120 | 4.8673 | 0.7101 | 0.0000 | 0.9434 |
+| Random Forest (offset IDW) | 7761 | 3.1368 | 4.9130 | 0.7046 | -0.7944 | 0.9401 |
+| XGBoost regularizado (offset IDW) | 7761 | 3.1580 | 4.9528 | 0.6998 | -1.4780 | 0.9397 |
+| LightGBM (offset IDW) | 7761 | 3.2539 | 5.0440 | 0.6886 | -4.5590 | 0.9378 |
+| XGBoost (offset IDW) | 7761 | 3.2981 | 5.1354 | 0.6773 | -5.9790 | 0.9347 |
+| LightGBM (offset) sem satélite | 7761 | 3.4781 | 5.4551 | 0.6358 | -11.7619 | 0.9295 |
+| Ensemble RF + LightGBM reg. (log) | 7761 | 3.5520 | 6.0304 | 0.5550 | -14.1355 | 0.9192 |
+| Random Forest (log) | 7761 | 3.5798 | 6.0149 | 0.5572 | -15.0312 | 0.9210 |
+| LightGBM regularizado (log) | 7761 | 3.6269 | 6.1373 | 0.5390 | -16.5430 | 0.9132 |
+| LightGBM (alvo bruto) | 7761 | 3.6341 | 5.6513 | 0.6091 | -16.7756 | 0.9241 |
+| HistGB (log) | 7761 | 3.7211 | 6.0726 | 0.5487 | -19.5711 | 0.9199 |
+| LightGBM (log) | 7761 | 3.7268 | 6.1012 | 0.5444 | -19.7535 | 0.9192 |
+| MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW) | 7761 | 3.7347 | 5.8299 | 0.5840 | -20.0083 | 0.9281 |
+| XGBoost (log) | 7761 | 3.8954 | 6.4924 | 0.4841 | -25.1725 | 0.9152 |
+| LightGBM sem satélite | 7761 | 3.9507 | 6.5747 | 0.4710 | -26.9483 | 0.9094 |
+| MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log) | 7761 | 4.3091 | 6.8496 | 0.4258 | -38.4652 | 0.9129 |
+| LightGBM sem lag espacial | 7761 | 4.4031 | 6.9993 | 0.4004 | -41.4847 | 0.9111 |
+| Ridge (offset IDW) | 7761 | 5.5639 | 10.1769 | -0.2675 | -78.7871 | 0.8742 |
+| Ridge (log) | 7761 | 5.6717 | 10.1238 | -0.2543 | -82.2496 | 0.8670 |
+| Climatologia mensal | 7761 | 6.2549 | 9.3348 | -0.0664 | -100.9908 | 0.9017 |
+| MLP 64-32 (offset IDW) | 7761 | 6.3432 | 11.2786 | -0.5568 | -103.8279 | 0.8815 |
+| LightGBM (offset IDW) - validação ALEATÓRIA [otimista] | 11543 | 2.1488 | 3.3919 | 0.8355 | — | 0.9627 |
 
-**Recortes** (`benchmark_estimativa_recortes.csv`), MAE em µg/m³:
+Recortes por tempo e distância à estação de referência mais próxima:
 
-| | IDW | Krigagem | **LightGBM reg. offset** | XGBoost forte | MLP tanh |
-|---|---|---|---|---|---|
-| T1 (estação seca 2021) | 3,62 | 3,65 | 3,65 | 3,77 | 4,90 |
-| T2 (jul/22–abr/23) | 2,54 | 2,43 | **2,29** | 2,32 | 2,36 |
-| Estação de referência < 10 km (17 est.) | 2,89 | 3,00 | 2,96 | 3,05 | 3,76 |
-| 25–50 km (6 est.) | 3,51 | 2,99 | **2,45** | 2,48 | 3,49 |
-| > 50 km (1 est.) | 4,07 | 4,61 | 4,26 | 4,27 | 4,54 |
+| recorte | grupo | modelo | n | MAE | estacoes |
+| --- | --- | --- | --- | --- | --- |
+| tfold | T1 | IDW (baseline) | 4102 | 3.6195 | 29 |
+| tfold | T1 | Krigagem ordinária | 4102 | 3.6547 | 29 |
+| tfold | T1 | LightGBM regularizado (offset IDW) | 4102 | 3.6253 | 29 |
+| tfold | T2 | IDW (baseline) | 3659 | 2.5432 | 30 |
+| tfold | T2 | Krigagem ordinária | 3659 | 2.4325 | 30 |
+| tfold | T2 | LightGBM regularizado (offset IDW) | 3659 | 2.2505 | 30 |
+| faixa_dist | <10 km | IDW (baseline) | 4624 | 2.8924 | 17 |
+| faixa_dist | <10 km | Krigagem ordinária | 4624 | 2.9984 | 17 |
+| faixa_dist | <10 km | LightGBM regularizado (offset IDW) | 4624 | 2.9390 | 17 |
+| faixa_dist | 10-25 km | IDW (baseline) | 1475 | 3.2819 | 6 |
+| faixa_dist | 10-25 km | Krigagem ordinária | 1475 | 3.2237 | 6 |
+| faixa_dist | 10-25 km | LightGBM regularizado (offset IDW) | 1475 | 3.4852 | 6 |
+| faixa_dist | 25-50 km | IDW (baseline) | 1477 | 3.5106 | 6 |
+| faixa_dist | 25-50 km | Krigagem ordinária | 1477 | 2.9925 | 6 |
+| faixa_dist | 25-50 km | LightGBM regularizado (offset IDW) | 1477 | 2.4170 | 6 |
+| faixa_dist | >50 km | IDW (baseline) | 185 | 4.0659 | 1 |
+| faixa_dist | >50 km | Krigagem ordinária | 185 | 4.6109 | 1 |
+| faixa_dist | >50 km | LightGBM regularizado (offset IDW) | 185 | 4.3492 | 1 |
 
-**Leitura honesta dos números:**
-- **O baseline é forte.** Na RMSP a rede é densa: 17 das 30 estações têm outra a menos de 10 km. Ali o IDW do mesmo dia já explica 71% da variância.
-  - O ganho do modelo aparece quando a estação mais próxima está a 25–50 km: MAE 2,45 contra 3,51, **−30%**.
-  - Também aparece no período T2: 2,29 contra 2,54, **−10%**.
-- **No T1, nenhum modelo de ML bate o IDW.** O treino tem só 5 meses (jan–mai), sem estação seca. Os modelos com alvo absoluto tiveram viés de −2,4 µg/m³ e MAE 4,8.
-- **A decisão que mais rendeu foi modelar o PM2.5 relativo ao IDW** (`log1p(PM) − log1p(IDW)`). O nível regional do dia vem das medições, e o modelo aprende só a correção local (urbanização, relevo, NO2, fogo, meteorologia). Com isso o MAE caiu de 3,72 para 3,00. Árvores não extrapolam nível, e o offset resolve isso.
-- **O satélite agrega**: sem AOD/NO2, o MAE sobe de 3,24 para 3,48 na mesma configuração com offset.
-- **O lag espacial é essencial**: só com satélite e meteorologia o MAE vai a 4,40. As estações carregam o sinal do dia.
+Intervalos: quantis LightGBM em log, correção CQR por escores de calibração fora da estação (cross-fitting), comparados ao conformal do resíduo absoluto. A calibração usa somente o período anterior ao teste. Dependência espaço-temporal e cross-fitting impedem prometer a garantia exata do split conformal clássico; reporto a cobertura empírica.
 
-**Por que LightGBM e não os outros** (cada família teve 2 a 3 configurações escolhidas *a priori*, sem otimização no teste):
-- **XGBoost**: só bate o IDW na versão rasa e muito regularizada (profundidade 3, `min_child_weight` 60), com MAE 3,09.
-- **LightGBM regularizado**: `num_leaves` 15, `min_child_samples` 60, `extra_trees` (cortes aleatórios) e `colsample` 0,5. É a regularização mais forte e a que melhor generaliza para estação nova.
-- **Rede neural (PyTorch)**: MLP 64-32 com tanh, **saída tanh e alvo normalizado em [−0,7; +0,7]**, para trabalhar na parte quase linear da tanh. A mesma saída limita a previsão à faixa do treino.
-  - Com saída linear e StandardScaler, a MLP divergia (MAE 9,7).
-  - Com QuantileTransformer: 6,1. Com saída tanh: 5,4–6,2. Com dropout 0,1 + weight decay 1e-2: **3,71**.
-  - No T2 ela bate o IDW (2,36 contra 2,54) e quase empata com o LightGBM (2,29). No T1, que tem mudança de regime, falha (4,90).
-  - Com ~6 mil linhas e 30 locais, os GBMs são mais robustos. A rede seria candidata com mais anos de dados.
-- **Ridge**: mesmo com QuantileTransformer, extrapola nos episódios (MAE 5,2).
+| recorte | metodo | n | cobertura_nominal | cobertura_real | largura_media | cobertura_pm25_>25 |
+| --- | --- | --- | --- | --- | --- | --- |
+| todos | Quantis LightGBM 5-95% (sem calibrar) | 7859 | 0.9000 | 0.7972 | 9.5762 | 0.7300 |
+| todos | CQR (quantis conformalizados) | 7859 | 0.9000 | 0.9061 | 13.4851 | 0.8362 |
+| todos | Conformal do resíduo absoluto | 7859 | 0.9000 | 0.9202 | 14.6120 | 0.5727 |
+| T1 | Quantis LightGBM 5-95% (sem calibrar) | 4102 | 0.9000 | 0.8137 | 12.2344 | 0.7528 |
+| T1 | CQR (quantis conformalizados) | 4102 | 0.9000 | 0.9018 | 16.3427 | 0.8478 |
+| T1 | Conformal do resíduo absoluto | 4102 | 0.9000 | 0.8854 | 15.7418 | 0.5810 |
+| T2 | Quantis LightGBM 5-95% (sem calibrar) | 3757 | 0.9000 | 0.7791 | 6.6738 | 0.3830 |
+| T2 | CQR (quantis conformalizados) | 3757 | 0.9000 | 0.9108 | 10.3651 | 0.6596 |
+| T2 | Conformal do resíduo absoluto | 3757 | 0.9000 | 0.9582 | 13.3786 | 0.4468 |
 
-### 4.2 Intervalo de confiança de 90% (`intervalos.csv`)
+Cobertura condicional por faixa:
 
-| Método | Cobertura real (nominal 90%) | Largura média | Cobertura quando PM > 25 |
-|---|---|---|---|
-| Quantis LightGBM 5–95% sem calibrar | 79,5% | 9,6 | 75,0% |
-| **CQR (quantis conformalizados)** | **90,5%** (T1 90,2%, T2 90,9%) | 13,5 | **84,7%** |
-| Conformal do resíduo absoluto | 92,0% | 14,7 | 56,5% |
+| faixa | n | cobertura_cqr | largura_cqr |
+| --- | --- | --- | --- |
+| 0-15 | 5471.0000 | 0.9205 | 9.9933 |
+| 15-25 | 1598.0000 | 0.9055 | 17.2020 |
+| 25-35 | 478.0000 | 0.8368 | 26.9316 |
+| 35-50 | 233.0000 | 0.8455 | 35.2784 |
+| >50 | 52.0000 | 0.7885 | 44.9669 |
 
-- **Por que CQR**:
-  - Os quantis puros são estreitos demais em estação nunca vista: cobrem 79,5% em vez de 90%.
-  - O CQR corrige a cobertura e mantém o intervalo **adaptativo**, que é mais largo onde o PM é alto.
-  - O conformal do resíduo absoluto tem a mesma largura em todo lugar. Ele cobre bem os dias limpos e mal os poluídos (56,5% acima de 25 µg/m³).
-- A calibração usa previsões **fora da estação**: cross-fitting por grupos de estação no período de calibração. Assim, os escores refletem o erro num local sem monitor.
-- Cobertura condicional por faixa de PM (`intervalos_por_faixa.csv`): 91,8% em 0–15, 90,3% em 15–25, 85% em 25–50 e 80,8% acima de 50. Nos extremos o intervalo ainda fica curto (ver 4.5).
+SHAP explica a correção em log sobre o IDW, não diretamente µg/m³. `shap_importancia.csv`, `shap_exemplo_local.csv`, `shap_resumo.png` e `shap_dependencia.png` mostram importância global e exemplo local. O ajuste SHAP é do modelo final; ele é uma explicação descritiva, não uma avaliação adicional fora da amostra.
 
-### 4.3 Previsão do dia seguinte (`previsao_d1.csv`)
+Episódios de fumaça são definidos pelo percentil 95 do índice de fogo a favor do vento. O recorte é descritivo, definido para análise do teste; não é um classificador operacional de fumaça.
 
-| Cenário | Persistência | **Modelo D+1** | Ganho |
-|---|---|---|---|
-| A) local **com** estação (sabe o PM de hoje) | MAE 4,30 / R² 0,49 | **3,40 / 0,67** | **−21%** |
-| B) local **sem** estação ("persistência" = IDW de hoje) | MAE 4,92 / R² 0,37 | **3,98 / 0,55** | **−19%** |
+| regime | modelo | n | PM2.5_medio | MAE | vies |
+| --- | --- | --- | --- | --- | --- |
+| PM2.5 alto sem fogo (≥ p95) | IDW (baseline) | 179 | 38.9340 | 7.3290 | -5.8080 |
+| PM2.5 alto sem fogo (≥ p95) | LightGBM regularizado (offset IDW) | 179 | 38.9340 | 9.1610 | -7.6050 |
+| fumaça (fogo a favor do vento ≥ p95) | IDW (baseline) | 393 | 34.3240 | 8.0280 | 1.3100 |
+| fumaça (fogo a favor do vento ≥ p95) | LightGBM regularizado (offset IDW) | 393 | 34.3240 | 8.7780 | -3.6750 |
+| normal | IDW (baseline) | 7286 | 11.8510 | 2.7370 | 0.8370 |
+| normal | LightGBM regularizado (offset IDW) | 7286 | 11.8510 | 2.4990 | -0.4140 |
 
-O ganho vale nos dois cortes (A: −19% no T1 e −25% no T2). Para D+1, a meteorologia vem do ERA5 do próprio dia D+1 (*perfect prognosis*). Na operação ela viria de uma previsão numérica (GFS/WRF), com algum erro a mais; isso está nas limitações.
+As árvores tendem a encolher os extremos para a média; o T1 tem pouco histórico seco no treino. A fumaça pode estar acima da camada limite e o AOD pode faltar nos episódios densos. Esses fatores motivam as análises de `piores_dias.csv` e `episodios_serie.png`; são hipóteses físicas sobre os erros, não atribuições causais demonstradas.
 
-### 4.4 Explicação (SHAP, `shap_resumo.png`, `shap_dependencia.png`)
+## 5. Previsão real de D+1 em horizonte, sem meteorologia futura
 
-O modelo explica a **correção** em relação ao IDW. Principais efeitos, todos com sinal físico coerente:
-- **IDW alto puxa a correção para baixo**: é encolhimento para a média. O nível do dia já vem do IDW.
-- **Área construída e NO2 altos aumentam**: fontes locais (tráfego, indústria).
-- **Árvores, campo e altitude diminuem.**
-- **Chuva de ontem diminui** (remoção úmida). **UR alta diminui.**
-- **`blh_min` alto diminui**: noite menos estável dispersa mais.
-- **Fogo a favor do vento em D−1 aumenta**: transporte de fumaça com defasagem.
-- **Exemplo local** (`shap_exemplo_local.csv`): Osasco, 24/08/2021, 85 µg/m³ medido. Os fatores são área construída alta, NO2 alto, fogo a favor do vento em D−1 e nenhuma chuva.
+Usa as variáveis observadas de D e D−1 e o calendário conhecido de D+1. Não é mais o experimento de perfect prognosis da versão inicial. A reanálise ERA5 continua sendo uma reconstrução histórica do dia D: sua latência operacional e possíveis revisões não são simuladas. O próximo passo de operação é substituir a fonte por observações/previsões disponíveis no horário de emissão e monitorar sua latência.
 
-### 4.5 Episódios extremos (`episodios_extremos.csv`, `piores_dias.csv`)
+A: local com estação, persistência = PM2.5 de D. B: local sem estação, estações-alvo totalmente excluídas, persistência = IDW de D. São cenários distintos, reportados separadamente.
 
-| Regime | n | PM médio | MAE IDW | MAE modelo | Viés modelo |
-|---|---|---|---|---|---|
-| Normal | 7.286 | 11,9 | 2,74 | **2,52** | −0,5 |
-| Fumaça (fogo a favor do vento ≥ p95) | 393 | 34,3 | **8,03** | 8,85 | −3,7 |
-| PM alto sem fogo (≥ p95) | 179 | 38,9 | **7,33** | 9,28 | −7,8 |
+| cenario | recorte | metodo | n | MAE | RMSE | R2 | acerto_faixa_IQAr | ganho_MAE_vs_baseline_% |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A) local com estação | todos | Persistência (amanhã = hoje) | 7373 | 4.2942 | 6.4293 | 0.4941 | 0.9226 | — |
+| A) local com estação | todos | LightGBM reg. (offset IDW) D+1 | 7373 | 4.0507 | 6.0732 | 0.5486 | 0.9265 | 5.6688 |
+| A) local com estação | T1 | Persistência (amanhã = hoje) | 3898 | 5.2008 | 7.6330 | 0.5046 | 0.8728 | — |
+| A) local com estação | T1 | LightGBM reg. (offset IDW) D+1 | 3898 | 5.0827 | 7.3743 | 0.5376 | 0.8725 | 2.2718 |
+| A) local com estação | T2 | Persistência (amanhã = hoje) | 3475 | 3.2772 | 4.7275 | 0.0828 | 0.9784 | — |
+| A) local com estação | T2 | LightGBM reg. (offset IDW) D+1 | 3475 | 2.8932 | 4.1543 | 0.2917 | 0.9871 | 11.7162 |
+| B) local sem estação | todos | Persistência do IDW de hoje | 7372 | 4.9109 | 7.1697 | 0.3709 | 0.9109 | — |
+| B) local sem estação | todos | LightGBM reg. (offset IDW) D+1 | 7372 | 4.4724 | 6.7807 | 0.4373 | 0.9200 | 8.9299 |
+| B) local sem estação | T1 | Persistência do IDW de hoje | 3898 | 5.9129 | 8.6064 | 0.3701 | 0.8486 | — |
+| B) local sem estação | T1 | LightGBM reg. (offset IDW) D+1 | 3898 | 5.6358 | 8.3464 | 0.4076 | 0.8610 | 4.6860 |
+| B) local sem estação | T2 | Persistência do IDW de hoje | 3474 | 3.7867 | 5.0964 | -0.0657 | 0.9807 | — |
+| B) local sem estação | T2 | LightGBM reg. (offset IDW) D+1 | 3474 | 3.1670 | 4.4048 | 0.2039 | 0.9862 | 16.3655 |
 
-**Onde o modelo falha e por quê.** Nos episódios ele **subestima** e perde para o IDW:
-1. As árvores encolhem para a média do treino. No T1, o treino não tinha nenhum dia de estação seca.
-2. Na fumaça densa, o AOD muitas vezes falta (é marcado como nuvem) ou satura.
-3. A fumaça transportada viaja **acima** da camada limite, então AOD alto não implica PM alto na superfície. Quando ela desce, o modelo não tem como saber.
-4. Os piores dias (setembro/2021) têm subestimação média de 4–7 µg/m³.
+**Cobertura do intervalo de D+1 medida no teste**, sem reutilizar a cobertura da estimativa de D:
 
-Mitigações possíveis (próximos passos): perda quantílica/assimétrica para os altos, peso maior nos episódios, variável de altura da pluma (CAMS) e mais anos de dados secos no treino.
+Na revisão, a cobertura agregada foi **88.17% em A** e **88.14% em B**, abaixo do nominal de 90%. Os intervalos são identificados pelo nível nominal; não prometem cobertura de 90% em todo período ou faixa. A queda na seca e nos valores altos exige cautela e mais dados de calibração representativos.
 
-### 4.6 Mapas e interface
+| cenario | recorte | n | cobertura_nominal | cobertura_real | largura_media | cobertura_pm25_>25 |
+| --- | --- | --- | --- | --- | --- | --- |
+| A) local com estação | todos | 7373 | 0.9000 | 0.8817 | 16.2825 | 0.7792 |
+| A) local com estação | T1 | 3898 | 0.9000 | 0.8533 | 19.2866 | 0.8146 |
+| A) local com estação | T2 | 3475 | 0.9000 | 0.9137 | 12.9128 | 0.2143 |
+| B) local sem estação | todos | 7372 | 0.9000 | 0.8814 | 18.7554 | 0.7440 |
+| B) local sem estação | T1 | 3898 | 0.9000 | 0.8438 | 21.5158 | 0.7743 |
+| B) local sem estação | T2 | 3474 | 0.9000 | 0.9237 | 15.6580 | 0.2619 |
 
-- `mapa_pm25_<data>_h0.png`: estimativa e incerteza (largura do IC 90%) na grade de 0,05° de SP, com as estações medidas sobrepostas.
-  - Dia típico de teste: 2022-11-16, 100% do estado na faixa "Boa", IC médio de 8,8.
-  - Pior dia do teste: 2022-10-11.
-  - Episódio de fumaça: 2021-08-24, 93% "Moderada", 2,4% "Ruim", IC médio de 41,9.
-- A **incerteza cresce longe das estações e nos dias de episódio**, como esperado.
-- `mapa_pm25_2021-08-24_h1.png`: previsão D+1 do mesmo dia.
-- CLI: `make predict LAT=-22.90 LON=-47.06 DATE=2022-10-11 H=1`. API: `GET /predict?municipio=Campinas&date=...&horizon=1`.
-  - Devolvem PM2.5, IC 90%, faixa do IQAr, padrão legal vigente e se ele é ultrapassado, além de um diagnóstico (AOD disponível? quantas estações no IDW? distância da mais próxima).
-- **Modelos finais** (`models/meta.json`): treinados com **todos os dados** (11.543 estação-dias, 30 estações). Os folds serviram só para as métricas.
+Em A, quantis e CQR são calibrados nas estações monitoradas no período de calibração. Em B, os escores vêm de cross-fitting interno entre estações de referência. O ponto e o intervalo usados na inferência pertencem ao mesmo cenário. `oof_previsao_d1.parquet`, gerado pelo treino, contém rótulos, previsões, limites e datas para auditoria das métricas.
 
-<!--RESULTADOS_P1-->
+## 6. Mapas e interfaces
 
-<!--P2-->
+`reports/figures/mapa_pm25_*` contém mapas diários de estimativa/previsão e da largura do intervalo de 90%. O comando portável gera dias típico, poluído e de fumaça; o mapa D+1 de 24/08/2021 é emitido em 23/08/2021. CLI, mapa, API e ferramenta do agente compartilham a mesma função de inferência.
 
-<!--FIM-->
+A saída inclui concentração, limites, faixa IQAr, data de referência e alvo, padrão normativo na data-alvo, ultrapassagem e diagnóstico do AOD/IDW. A distância à estação mais próxima é calculada com pares reais de latitude/longitude. A produção é treinada com todos os dados para demonstração: os mapas históricos podem ser dentro da amostra e não substituem as métricas dos folds.
+
+## 7. Agente com RAG
+
+Sete documentos públicos: CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998. As fontes e revogações parciais estão em `configs/normas.yaml`. Não há pretensão de cobrir toda a legislação ambiental vigente.
+
+O parser preserva capítulo, artigo, parágrafo, inciso, alínea e anexo. A unidade preferida é o artigo; artigos longos são subdivididos com metadados de hierarquia. Tabelas são transformadas em linhas com o nome da coluna junto a cada valor, evitando confundir PI-1, PI-2 e PF. A recuperação combina BM25 e embeddings Granite-278M por RRF; reranker Qwen3-0.6B reordena candidatos e fornece um escore para a recusa. Resultados do benchmark existente, cuja base textual não mudou:
+
+| config | recall@1 | recall@3 | recall@5 | recall@10 | hit@1 | hit@3 | hit@5 | hit@10 | MRR | latencia_ms | n | indexacao_s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BM25 | 0.6167 | 0.8500 | 0.9167 | 1.0000 | 0.7000 | 0.9000 | 0.9333 | 1.0000 | 0.7972 | 7.5979 | 30 | — |
+| Vetorial (embeddinggemma-300m) | 0.6833 | 0.8500 | 0.8833 | 0.9667 | 0.7667 | 0.9000 | 0.9333 | 1.0000 | 0.8378 | 162.3455 | 30 | 1.6672 |
+| Híbrido RRF (BM25 + embeddinggemma-300m) | 0.6500 | 0.8500 | 0.9500 | 0.9833 | 0.7333 | 0.9000 | 0.9667 | 1.0000 | 0.8317 | 168.9394 | 30 | — |
+| Vetorial (granite-multilingual-278m) | 0.5833 | 0.7500 | 0.9000 | 0.9833 | 0.6667 | 0.8000 | 0.9333 | 1.0000 | 0.7639 | 116.1801 | 30 | 3.8798 |
+| Híbrido RRF (BM25 + granite-multilingual-278m) | 0.7167 | 0.8333 | 0.9833 | 1.0000 | 0.8000 | 0.9000 | 1.0000 | 1.0000 | 0.8639 | 138.9072 | 30 | — |
+| Vetorial (qwen3-emb-0.6b) | 0.5000 | 0.7333 | 0.8667 | 0.8667 | 0.5333 | 0.8000 | 0.9000 | 0.9000 | 0.6622 | 1360.6512 | 30 | 1.6245 |
+| Híbrido RRF (BM25 + qwen3-emb-0.6b) | 0.6000 | 0.8333 | 0.9167 | 0.9833 | 0.6667 | 0.8667 | 0.9333 | 1.0000 | 0.7817 | 1410.2095 | 30 | — |
+| Híbrido RRF (BM25 + granite-multilingual-278m) sem diversificação | 0.7167 | 0.8167 | 0.9333 | 0.9833 | 0.8000 | 0.9000 | 1.0000 | 1.0000 | 0.8639 | 132.6790 | 30 | — |
+| Híbrido + reranker Qwen3-0.6B (top 8, granite-multilingual-278m) | 0.7000 | 0.8667 | 0.9500 | 1.0000 | 0.7667 | 0.9667 | 1.0000 | 1.0000 | 0.8639 | 61485.5350 | 30 | — |
+
+O LLM Qwen3-4B local planeja consultas, recebe trechos e saídas de ferramentas, responde com referências e passa por uma validação numérica. A ferramenta de PM2.5 retorna valor, intervalo e comparações calculadas; a ferramenta de padrão vigente fornece cronograma e evidência normativa. Perguntas fora da base podem ser recusadas pelo limiar ou pelo modelo. Toda execução registra pergunta, recuperação, chamadas, resposta, tokens, tempo e custo; o custo local é zero.
+
+Downloads incompletos não substituem a base; a ingestão grava atomicamente somente o conjunto completo e preserva a amostra versionada. A recuperação também detecta base processada incompleta e usa a amostra completa. `.env` é carregado sem executar código e sem substituir variáveis já exportadas.
+
+### Avaliação, gabaritos e limites das métricas
+
+37 perguntas: fatos, composição de trechos, vigência, três ferramentas e seis sem resposta. A precisão das citações agora verifica o **dispositivo**, não apenas o documento. Nas ferramentas são exigidos local, data-alvo, horizonte, valor e dois limites do IC; quando a pergunta pede faixa, exige a faixa retornada, em vez de aceitar qualquer nome. A citação do padrão é verificada separadamente; a semântica da comparação depende da análise das fontes/juiz, não só de presença de números.
+
+Resultados da revisão:
+
+| metrica | valor |
+| --- | --- |
+| modelo | qwen3-4b_causal |
+| n | 37 |
+| acerto | 0.9355 |
+| acerto_parcial | 0.9516 |
+| cit_precisao | 0.7902 |
+| cit_recall | 0.9483 |
+| fidelidade_auto | 1.0000 |
+| fidelidade_juiz | 1.0000 |
+| recusa_correta (sem resposta) | 1.0000 |
+| recusa_indevida | 0.0323 |
+| ferramenta_ok | 1.0000 |
+| tempo_medio_s | 299.8430 |
+| tokens_medio | 2488.8919 |
+| acerto_fato | 1.0000 |
+| acerto_ferramenta | 1.0000 |
+| acerto_multi | 0.8333 |
+| acerto_temporal | 0.8000 |
+| metodo_avaliacao | dispositivo-exato-e-ferramenta-v2 |
+| n_respondidas | 30.0000 |
+| n_fidelidade_juiz | 30.0000 |
+
+Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da avaliação anterior, com rechecagem dos gabaritos e citações exatas, e executa novamente as três perguntas que chamam o modelo alterado. O log preserva os timestamps originais e as novas execuções. Não representa uma rodada nova de 37 gerações nem um conjunto independente. As tags anteriores são históricas; suas métricas e previsões não representam o modelo causal atual.
+
+“Fidelidade automática” mede rastreabilidade de números e referências, não equivalência semântica completa. O juiz é outro modelo local de 4B e também pode errar. Limiares de recusa foram ajustados no próprio conjunto; seis recusas corretas não demonstram generalização para qualquer pergunta fora da base. São limitações assumidas, a serem resolvidas com conjunto separado de calibração e avaliação maior.
+
+## 8. Priorização, descartes e próximos passos
+
+- MAIAC/QUALAR/CDS/INPE foram substituídos por fontes públicas acessíveis no ambiente inicial, mantendo a natureza física dos sinais.
+- Preenchimento com AOD de D+1 e meteorologia realizada de D+1 foram retirados para respeitar o horizonte de emissão.
+- Alvos absolutos, redes neurais e variantes mais complexas permanecem no benchmark; o escolhido aprende a correção sobre o IDW. Ganhos pequenos ou negativos em alguns recortes são reportados.
+- Não foi implementado feed diário atual nem simulação da latência ERA5. Não apresento a demonstração histórica como monitoramento atual.
+- Não há avaliação em estados externos, garantia de cobertura nos extremos ou norma estadual paulista completa na base.
+- Próximos passos: mais estações e anos, fonte meteorológica disponível na emissão, previsão numérica opcional, peso nos extremos/altura de pluma, teste externo de RAG e calibração independente dos limiares.
+
+## 9. Engenharia, evidências e uso de IA
+
+Dependências fixadas, Dockerfile e Makefile; pipeline portável com um comando, testes de causalidade (retirar todas as observações futuras não altera as variáveis), preservação da base normativa, `.env` e avaliação das ferramentas. CSVs, figuras, notebooks com saída e logs são versionados; modelos grandes e brutos são reconstruídos.
+
+A imagem foi construída e validada em Linux/Python 3.13: **27 testes aprovados** e demonstração rápida completa em **2,3 minutos**, incluindo a inicialização do container, sem usar os modelos já treinados da máquina. Evidência: `logs/docker_validacao.txt`.
+
+Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code e esta revisão com Codex. O candidato deve conseguir explicar e modificar o código na entrevista.
+
+**Pendências externas à implementação:** gravar o vídeo não listado de até dez minutos e inserir o link no README; conceder acesso aos avaliadores quando seus usuários do GitHub forem informados (o repositório é privado). O prazo de 72 horas conta do recebimento do desafio; o repositório não comprova essa data nem a entrega por e-mail.

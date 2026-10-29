@@ -1,0 +1,118 @@
+id,tipo,encontrado,tempo_s,tokens,acerto,acerto_parcial,recusa_indevida,cit_precisao,cit_recall,fidelidade_auto,resposta,fidelidade_juiz,juiz_sem_suporte,ferramenta_ok,recusa_correta
+q01,fato,True,339.44,2882,True,1.0,False,0.5,1.0,1.0,"O padrão de qualidade do ar final (PF) para MP2,5 na média de 24 horas segundo a Resolução CONAMA 491/2018 é de 25 µg/m³, conforme estabelecido no Anexo I da resolução [1]. Este padrão era válido até 2024-07-08, data em que foi revogado pela Resolução CONAMA 506/2024 [1]. O valor do PF é explicitamente mencionado no Anexo I como 25 µg/m³ [1]. A Resolução CONAMA 506/2024 estabeleceu um novo PF de 15 µg/m³ para MP2,5, mas isso se aplica após a data de revogação [3]. Para a data de referência da pergunta, o padrão vigente era de 25 µg/m³ [1].
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Mater",1.0,,,
+q02,fato,True,287.35,2537,True,1.0,False,1.0,1.0,1.0,"O valor do padrão intermediário PI-1 para MP2,5 em 24 horas na Resolução CONAMA 491/2018 é de 60 µg/m³, conforme estabelecido no Anexo I da resolução [1]. Este padrão valia até 2024-07-08, data da revogação por meio da Resolução CONAMA 506/2024 [1]. A norma foi revogada a partir de 2024-07-09, conforme previsto no art. 11, inciso I [1]. O valor é explicitamente mencionado no Anexo I, no item 'Material Particulado - MP2,5 | 24 horas | PI-1: 60 µg/m³' [1]. Não há diferença entre as fontes para esse valor.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — ",1.0,,,
+q03,fato,True,340.25,2927,True,1.0,False,1.0,1.0,1.0,"A Resolução CONAMA 491/2018 define os padrões de qualidade do ar intermediários (PI) como valores temporários a serem cumpridos em etapas, conforme o art. 2º, inciso III. Esses padrões são adotados sequencialmente em etapas, com a primeira etapa (PI-1) entrando em vigor a partir da publicação da resolução, conforme o art. 4º, § 1º. A implementação subsequente dos PI-2, PI-3 e do padrão final (PF) depende dos Planos de Controle de Emissões Atmosféricas e dos Relatórios de Avaliação da Qualidade do Ar, conforme o art. 4º, § 3º. A definição dos PI ocorre em etapas, sendo que os valores são tempor",1.0,,,
+q04,fato,True,283.66,2589,True,1.0,False,1.0,1.0,1.0,"Os órgãos ambientais estaduais e distritais deverão elaborar o Plano de Controle de Emissões Atmosféricas em até 3 anos a partir da entrada em vigor da Resolução CONAMA 491/2018, conforme previsto no art. 5º [1]. A norma foi revogada a partir de 2024-07-09 pela Resolução CONAMA 506/2024, art. 11, inciso I, mas valia até 2024-07-08 [1]. O prazo é definido como um período máximo de três anos a partir da publicação da resolução.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, art. 5º — https://faolex.fao.org/docs/pdf/bra215752.pdf",1.0,,,
+q05,fato,True,318.32,2721,True,1.0,False,1.0,1.0,1.0,"O nível de atenção para episódio crítico de poluição do ar por MP2,5 na Resolução CONAMA 491/2018 é definido como a situação em que a concentração média de MP2,5 atinge 125 µg/m³ em 24 horas, conforme estabelecido no Anexo III [4]. Este valor é o limite para o nível de atenção, acima do qual são declarados níveis de alerta ou emergência, conforme a concentração e as condições meteorológicas [3]. A Resolução CONAMA 491/2018 foi revogada a partir de 2024-07-09 por meio da Resolução CONAMA 506/2024, art. 11, inciso I [1], mas durante seu período de vigência, o nível de atenção para MP2,5 era de 1",1.0,,,
+q06,fato,True,159.37,1605,True,1.0,False,1.0,1.0,1.0,"A Resolução CONAMA 491/2018 revogou a Resolução CONAMA nº 03/1990 e os itens 2.2.1 e 2.3 da Resolução CONAMA nº 5/1989 [1]. Essas normas foram revogadas conforme previsto no art. 14 da Resolução 491/2018.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, art. 14 — https://faolex.fao.org/docs/pdf/bra215752.pdf",1.0,,,
+q07,fato,True,217.42,2144,True,1.0,False,1.0,1.0,1.0,"Segundo a Lei 6.938/1981, art. 3º, IV, entende-se por poluidor a pessoa física ou jurídica, de direito público ou privado, responsável, direta ou indiretamente, por atividade causadora de degradação ambiental.
+
+Fontes:
+[1] Lei 6.938/1981, art. 3º — https://www.planalto.gov.br/ccivil_03/leis/l6938compilada.htm",1.0,,,
+q08,fato,True,305.11,2683,True,1.0,False,1.0,1.0,1.0,"O órgão consultivo e deliberativo do SISNAMA, segundo a Lei 6.938/1981, é o Conselho Nacional do Meio Ambiente - CONAMA, conforme estabelecido no art. 6º, inciso II [1]. Este órgão tem a finalidade de assessorar, estudar e propor ao Conselho de Governo diretrizes de políticas governamentais para o meio ambiente e deliberar sobre normas e padrões compatíveis com o meio ambiente ecologicamente equilibrado [1]. A referência legal é clara e não há revogação relevante para a data da Lei [1]. O CONAMA é explicitamente mencionado como órgão consultivo e deliberativo no art. 6º, inciso II [1]. O texto",1.0,,,
+q09,fato,True,332.86,2863,True,1.0,False,0.6666666666666666,1.0,1.0,"Os instrumentos da Política Nacional do Meio Ambiente relacionados a padrões e licenciamento são: o estabelecimento de padrões de qualidade ambiental [1]; o licenciamento e a revisão de atividades efetiva ou potencialmente poluidoras [1]; a determinação de normas e critérios para o licenciamento de atividades poluidoras pelo CONAMA [2]; e a obrigação de estabelecer critérios aplicáveis ao licenciamento ambiental, observando o atendimento ao padrão de qualidade do ar em vigor [5].
+
+Fontes:
+[1] Lei 6.938/1981, art. 9º — https://www.planalto.gov.br/ccivil_03/leis/l6938compilada.htm
+[2] Lei 6.938/",1.0,,,
+q10,fato,True,318.66,2702,True,1.0,False,1.0,1.0,1.0,"Sim, o poluidor é obrigado a reparar o dano ambiental mesmo sem culpa, conforme previsto no § 1º do art. 14 da Lei 6.938/1981, que estabelece que a indenização ou reparação de danos é devida independentemente da existência de culpa [1]. O Ministério Público da União e dos Estados tem legitimidade para propor ação de responsabilidade civil e criminal por danos causados ao meio ambiente [1]. Nenhuma das demais fontes contradiz ou revoga essa previsão no momento da redação da lei [1]. O dispositivo não menciona condição de culpa e é aplicável independentemente dela.
+
+Fontes:
+[1] Lei 6.938/1981, a",1.0,,,
+q11,fato,True,271.11,2516,True,1.0,False,1.0,1.0,1.0,"A pena para quem causa poluição atmosférica que provoque a retirada, ainda que momentânea, dos habitantes das áreas afetadas é reclusão de um a cinco anos, conforme previsto no art. 54, § 2º, inciso II, da Lei 9.605/1998 [1].
+
+Fontes:
+[1] Lei 9.605/1998, art. 54 — https://www.planalto.gov.br/ccivil_03/leis/l9605.htm",1.0,,,
+q12,fato,True,288.12,2794,True,1.0,False,1.0,1.0,1.0,"O padrão primário de partículas totais em suspensão (média de 24 horas) na Resolução CONAMA 03/1990 era de 240 microgramas por metro cúbico de ar, conforme estabelecido no art. 3º, inciso I, item 2 [1]. Esse valor não foi excedido mais de uma vez por ano, conforme a norma [1].
+
+Fontes:
+[1] Resolução CONAMA 03/1990, art. 3º (inciso I a item 2) — https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=100",1.0,,,
+q13,fato,True,271.18,2643,True,1.0,False,1.0,1.0,1.0,"Os objetivos do PRONAR instituído pela Resolução CONAMA 05/1989 são: a) melhoria na qualidade do ar; b) atendimento aos padrões estabelecidos; e c) não comprometimento da qualidade do ar em áreas consideradas não degradadas [1]. O PRONAR visa permitir o desenvolvimento econômico e social do País de forma ambientalmente segura, por meio da limitação dos níveis de emissão de poluentes por fontes de poluição atmosférica [1].
+
+Fontes:
+[1] Resolução CONAMA 05/1989, item I — https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=81",1.0,,,
+q14,fato,True,235.45,2198,True,1.0,False,1.0,1.0,1.0,"O padrão final (PF) de MP2,5 na média anual segundo a Resolução CONAMA 506/2024 é de 5 µg/m³, conforme estabelecido no Anexo I, no campo PF do poluente Material Particulado - MP2,5 para o período anual [1]. Esse valor é o padrão final definido na Resolução, que entrará em vigor em data a ser definida por resolução do Conama, conforme previsto no art. 4º, § 5º [3].
+
+Fontes:
+[1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, Anual) — https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf
+[3] Resolução CONAM",1.0,,,
+q15,fato,True,316.03,2864,True,1.0,False,1.0,1.0,1.0,"De acordo com o Decreto 99.274/1990, art. 19, o Poder Público expede as seguintes licenças no controle de atividades poluidoras: Licença Prévia (LP), Licença de Instalação (LI) e Licença de Operação (LO). Essas licenças são previstas no art. 19, com base nos estágios de planejamento, implantação e operação das atividades potencialmente poluidoras.
+
+Fontes:
+[1] Decreto 99.274/1990, art. 19 — https://www.planalto.gov.br/ccivil_03/decreto/antigos/d99274.htm",1.0,,,
+q16,fato,True,263.42,2435,True,1.0,False,1.0,1.0,1.0,"De acordo com a Lei 9.605/1998, art. 54, quem causa poluição que resulte ou possa resultar em danos à saúde humana sofre pena de reclusão de um a quatro anos e multa. Se o crime for culposo, a pena é detenção de seis meses a um ano e multa. O artigo 54, § 2º, prevê pena de reclusão de um a cinco anos quando a poluição causar danos diretos à saúde da população ou tornar uma área imprópria para ocupação humana [1].
+
+Fontes:
+[1] Lei 9.605/1998, art. 54 — https://www.planalto.gov.br/ccivil_03/leis/l9605.htm",1.0,,,
+q17,fato,True,307.57,2501,True,1.0,False,1.0,1.0,1.0,"A faixa de concentração de MP2,5 considerada 'Boa' no Índice de Qualidade do Ar (IQAr) da Resolução CONAMA 506/2024 é de 0 a 15 µg/m³, conforme estabelecido no Anexo II, na faixa N1 - Boa [1]. Este valor corresponde ao limite superior da faixa de qualidade 'Boa' definida no índice de qualidade do ar [1]. O padrão de qualidade do ar final (PF) para MP2,5 em 24 horas é de 15 µg/m³, conforme o Anexo I [3]. A concentração de 15 µg/m³ é o limite máximo para a faixa 'Boa' e não ultrapassa o padrão vigente na data da resolução [3]. A faixa 'Boa' é definida como índice de 0 a 40, com MP2,5 (24h) de 0 ",1.0,,,
+q18,multi,True,343.06,2812,True,1.0,False,1.0,0.5,1.0,"As etapas dos padrões de qualidade do ar da Resolução CONAMA 491/2018 são: PI-1, PI-2, PI-3 e PF, conforme estabelecido no art. 4º [1]. O valor de MP2,5 (24 h) em cada etapa é: PI-1: 60 µg/m³, PI-2: 50 µg/m³, PI-3: 37 µg/m³ e PF: 25 µg/m³ [1]. Esses valores são válidos até 2024-07-08, quando a Resolução foi revogada pela CONAMA 506/2024 [1]. O padrão de qualidade do ar da Resolução 491/2018 (valendo até 2024-07-08) foi revogado por essa nova resolução [1].
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — https://faolex.fao.org/docs/pdf/bra215752.pdf",1.0,,,
+q19,multi,True,448.8,3444,True,1.0,False,1.0,1.0,1.0,"O padrão de partículas inaláveis (24 horas) da Resolução CONAMA 03/1990, conforme art. 3º, inciso III, alíneo 2, era de 150 µg/m³, que não deve ser excedido mais de uma vez por ano [1]. O PI-1 do MP10 da Resolução CONAMA 491/2018, para o período de 24 horas, é de 120 µg/m³ [2]. Como o padrão da CONAMA 03/1990 (150 µg/m³) é maior que o PI-1 da CONAMA 491/2018 (120 µg/m³), o padrão da CONAMA 03/1990 é mais restritivo. No entanto, a Resolução CONAMA 03/1990 foi revogada a partir de 2018-11-21 pela CONAMA 491/2018 [1], e portanto, o PI-1 da CONAMA 491/2018 é o vigente para comparação atual.
+
+Fonte",1.0,,,
+q20,multi,True,367.5,3209,False,0.5,False,0.3333333333333333,0.5,1.0,"Os padrões nacionais de qualidade do ar são estabelecidos pelo Conselho Nacional do Meio Ambiente (CONAMA), com base na competência legal conferida pela Lei nº 6.938, de 31 de agosto de 1981, regulamentada pelo Decreto nº 99.274, de 6 de julho de 1990 [1][5]. A Resolução CONAMA 506/2024 estabelece os padrões nacionais de qualidade do ar e as diretrizes para sua aplicação, conforme previsto no art. 1º [2].
+
+Fontes:
+[1] Resolução CONAMA 491/2018, preâmbulo (ementa e considerandos) — https://faolex.fao.org/docs/pdf/bra215752.pdf
+[2] Resolução CONAMA 506/2024, art. 3º — https://ambienteclima.prefe",1.0,,,
+q21,multi,True,366.52,2718,True,1.0,False,1.0,1.0,1.0,"Um episódio crítico de poluição do ar é uma situação caracterizada pela ultrapassagem de altas concentrações de poluentes na atmosfera em curto período de tempo, conforme valores estabelecidos no Anexo III da Resolução CONAMA 491/2018, resultante de condições meteorológicas desfavoráveis à dispersão [3]. Para o Material Particulado MP2,5, os níveis são: atenção (125 µg/m³, média de 24h), alerta (210 µg/m³, média de 24h) e emergência (250 µg/m³, média de 24h), conforme estabelecido no Anexo III da Resolução CONAMA 491/2018 [4]. Esses valores são referentes à norma vigente na data da publicação ",1.0,,,
+q22,multi,True,332.78,2663,True,1.0,False,1.0,1.0,1.0,"O padrão final (PF) de MP2,5 para 24 horas foi reduzido da Resolução CONAMA 491/2018 (25 µg/m³) para a Resolução CONAMA 506/2024 (15 µg/m³), conforme indicado nos Anexos I das duas resoluções [1][2]. A mudança representa uma redução significativa no limite permitido, refletindo uma melhoria nos padrões de qualidade do ar. A Resolução CONAMA 491/2018 foi revogada a partir de 09/07/2024 pelo art. 11, inciso I da Resolução CONAMA 506/2024 [2]. O novo padrão é mais rigoroso, com valor de 15 µg/m³, em vez de 25 µg/m³.
+
+Fontes:
+[1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24",1.0,,,
+q23,multi,True,338.81,2628,True,1.0,False,1.0,1.0,1.0,"O padrão nacional de MP2,5 para 24 horas em vigor hoje é de 50 µg/m³, correspondente à etapa PI-2, estabelecido na Resolução CONAMA 506/2024, art. 4º, § 2º e Anexo I. Este padrão entra em vigor a partir de 1º de janeiro de 2025 e substitui o PI-1 (60 µg/m³), que vigorava até 31 de dezembro de 2024. O valor de 50 µg/m³ é o padrão de qualidade do ar intermediário (PI-2) definido no Anexo I da resolução. O padrão final (PF) de 15 µg/m³ ainda não entra em vigor, conforme previsto no art. 4º, § 5º.
+
+Fontes:
+[1] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5, 24 horas) — https://am",1.0,,,
+q24,temporal,True,337.68,2834,True,1.0,False,0.75,1.0,1.0,"A Resolução CONAMA 03/1990 definia os padrões nacionais de qualidade do ar em 2015. Ela foi publicada em 1990 e, embora revogada a partir de 2018-11-21, era válida em 2015 [2][3]. O texto estabelece os conceitos de padrões primários e secundários de qualidade do ar [5], e define que os padrões primários são os níveis máximos toleráveis que podem afetar a saúde da população [4]. A resolução complementa a Resolução CONAMA 05/1989, que instituiu o PRONAR [2]. A Resolução CONAMA 03/1990 foi a que estabeleceu os padrões de qualidade do ar em vigor naquele período.
+
+Fontes:
+[2] Resolução CONAMA 03/1",1.0,,,
+q25,temporal,True,272.37,2567,True,1.0,False,1.0,1.0,1.0,"Não, a Resolução CONAMA 03/1990 não está mais em vigor. Foi revogada a partir de 21 de novembro de 2018 pela Resolução CONAMA 491/2018, art. 14, que especifica sua revogação a partir dessa data [1][2]. O texto valia entre 22 de agosto de 1990 e 20 de novembro de 2018 [1]. A revogação ocorreu após a data de vigência original, conforme indicado nas fontes.
+
+Fontes:
+[1] Resolução CONAMA 03/1990, art. 9º — https://conama.mma.gov.br/?option=com_sisconama&task=arquivo.download&id=100
+[2] Resolução CONAMA 03/1990, preâmbulo (ementa e considerandos) — https://conama.mma.gov.br/?option=com_sisconama&ta",1.0,,,
+q26,temporal,True,323.55,2169,True,1.0,False,1.0,1.0,1.0,"Não, a Resolução CONAMA 491/2018 não continua em vigor após a publicação da Resolução 506/2024. De acordo com o art. 11 da Resolução 506/2024, os arts. 1º ao 8º, os arts. 12 a 14 e o Anexo I da Resolução CONAMA 491/2018 foram revogados [1]. A revogação ocorre com a publicação da nova resolução, que entra em vigor na mesma data [3]. Portanto, a norma foi revogada por força da Resolução 506/2024.
+
+Fontes:
+[1] Resolução CONAMA 506/2024, art. 11 — https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf
+[3] Resolução CONAMA 506/2",1.0,,,
+q27,temporal,False,523.68,5805,False,0.0,True,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,
+q28,temporal,True,358.76,3259,True,1.0,False,1.0,0.5,1.0,"Em 2020, o padrão nacional de MP2,5 para 24 horas em vigor era o PI-1, com valor de 60 µg/m³, definido na Resolução CONAMA 491/2018, Anexo I [1]. Este padrão era válido desde 21 de novembro de 2018 e permaneceu em vigor até 31 de dezembro de 2024 [F1]. A norma foi revogada a partir de 9 de julho de 2024 pela Resolução CONAMA 506/2024 [1], mas em 2020 ainda estava em vigor.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — https://faolex.fao.org/docs/pdf/bra215752.pdf",1.0,,,
+q29,ferramenta,True,453.07,3621,True,1.0,False,0.5,1.0,1.0,"O PM2.5 previsto para Campinas amanhã é de 20,7 µg/m³ (intervalo de 90%: 11,7 a 29,1 µg/m³). O padrão vigente na data é o da Resolução CONAMA 491/2018, Anexo I, para o período de 24 horas, com o PI-1 de 60 µg/m³. O valor previsto (20,7 µg/m³) não ultrapassa esse padrão, conforme confirmado na comparação com os padrões (PI-1, PI-2, PI-3 e PF) [F1]. A Resolução CONAMA 491/2018 ainda era válida na data de amanhã (2023-04-05), pois foi revogada apenas a partir de 2024-07-09 [1] e [6]. O diagnóstico indica que a qualidade do ar está na faixa ""Boa"".
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (M",1.0,,True,
+q30,ferramenta,True,306.37,2828,True,1.0,False,,,1.0,"A estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 é de 12,0 µg/m³, com intervalo de 90% entre 8,0 e 18,1 µg/m³. O valor está na faixa de 'Boa' do IQAr. O padrão de qualidade do ar vigente na data (PI-1 de 60 µg/m³, conforme Resolução CONAMA 491/2018, Anexo I) não foi ultrapassado, conforme a análise da ferramenta [F1]. O valor de 12,0 µg/m³ também não ultrapassa os demais limites (PI-2, PI-3 e PF) estabelecidos na mesma norma.
+
+Fontes:
+[3] Resolução CONAMA 491/2018, Anexo IV — https://faolex.fao.org/docs/pdf/bra215752.pdf
+[4] Resolução CONAMA 506/2024, Anexo I (Material Particulado - MP2,5",1.0,,True,
+q31,ferramenta,True,532.57,3822,True,1.0,False,1.0,1.0,1.0,"Em 2021-08-24, a concentração estimada de PM2,5 em Sorocaba foi de 51,4 µg/m³ (intervalo de 90%: [32,5; 89,8]). Na data, o padrão vigente para MP2,5 de 24 horas era o PI-1 de 60 µg/m³, conforme definido na Resolução CONAMA 491/2018, Anexo I [1]. A estimativa de 51,4 µg/m³ não ultrapassou o PI-1 (60 µg/m³), mas ultrapassou os padrões PI-2 (50 µg/m³), PI-3 (37 µg/m³) e PF (25 µg/m³) [F1]. Portanto, a qualidade do ar não atendeu ao padrão final (PF) de 25 µg/m³ na data referida.
+
+Fontes:
+[1] Resolução CONAMA 491/2018, Anexo I (Material Particulado - MP2,5, 24 horas) — https://faolex.fao.org/docs/",1.0,,True,
+q32,sem_resposta,False,78.28,366,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True
+q33,sem_resposta,False,75.13,382,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True
+q34,sem_resposta,False,191.15,1991,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True
+q35,sem_resposta,False,96.69,391,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True
+q36,sem_resposta,False,75.33,416,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True
+q37,sem_resposta,False,61.75,387,,,,,,,"Não encontrei essa informação na base de normas consultada (Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998). Prefiro não responder sem uma fonte.",,,,True

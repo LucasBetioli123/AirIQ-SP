@@ -1,7 +1,18 @@
 # Uso: `make help`. Todos os alvos usam o venv em .venv (criado por `make setup`).
+ifeq ($(OS),Windows_NT)
+PY ?= .venv/Scripts/python
+BOOT_PY ?= python
+# wheel pronta do llama-cpp-python para CPU (no Windows compilar exige Visual Studio + CMake)
+LLAMA_WHEEL := --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+LLAMA_ENV :=
+else
 PY ?= .venv/bin/python
+BOOT_PY ?= python3
 SHELL := /bin/bash
+LLAMA_ENV := CMAKE_ARGS="-DGGML_NATIVE=OFF"
+endif
 export PYTHONPATH := $(CURDIR)
+export PYTHONIOENCODING := utf-8
 
 .PHONY: help setup models data sample dataset bench train evaluate maps predict api \
         rag-download rag-ingest rag-bench rag-eval ask chat notebooks test docker all-sample
@@ -10,10 +21,10 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 setup: ## cria .venv e instala dependências com versões fixas
-	python3 -m venv .venv
+	$(BOOT_PY) -m venv .venv
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
-	CMAKE_ARGS="-DGGML_NATIVE=OFF" $(PY) -m pip install -r requirements-llm.txt
+	$(LLAMA_ENV) $(PY) -m pip install -r requirements-llm.txt $(LLAMA_WHEEL)
 	$(PY) -m pip install -r requirements-nn.txt
 
 models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
@@ -70,8 +81,8 @@ rag-eval: ## avaliação ponta a ponta do agente (respostas, citações, recusa)
 ask: ## pergunta ao agente: make ask Q="..."
 	$(PY) -m src.rag.cli "$(Q)"
 
-chat: ## interface de chat (Gradio) em :7860
-	$(PY) -m src.rag.app
+chat: ## interface de chat (FastAPI + HTML) em :7860
+	$(PY) -m uvicorn src.rag.app:app --host 0.0.0.0 --port 7860
 
 # ---------------- Engenharia ----------------
 notebooks: ## executa os notebooks com saída visível
@@ -80,9 +91,8 @@ notebooks: ## executa os notebooks com saída visível
 test: ## testes automatizados
 	$(PY) -m pytest -q
 
-all-sample: sample bench train evaluate ## pipeline de modelagem da Parte 1 sobre a amostra (+ mapas)
-	$(PY) -m src.aq.maps --date 2022-10-11
-	$(PY) -m src.aq.maps --date 2021-08-24
+all-sample: ## pipeline completo sobre a amostra (também disponível sem make)
+	$(PY) -m src.aq.pipeline
 
 docker: ## imagem Docker reprodutível
 	docker build -t teste-ia .

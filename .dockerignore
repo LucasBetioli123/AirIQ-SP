@@ -1,0 +1,14 @@
+.git
+.venv
+.pytest_cache
+**/__pycache__
+*.pyc
+.env
+models
+data/raw
+data/interim
+data/processed
+GUIA_PRIVADO.html
+context.md
+logs/*causal.txt
+logs/docker_build*.txt

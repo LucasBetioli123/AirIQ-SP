@@ -2,7 +2,7 @@
 
 Saídas (data/processed):
   station_days.parquet     estimativa do mesmo dia: 1 linha por (estação, dia), alvo pm25
-  station_days_fc.parquet  previsão D+1: variáveis de D (+ meteorologia de D+1), alvo pm25_next
+  station_days_fc.parquet  previsão D+1: observações até D + calendário de D+1, alvo pm25_next
 
   python -m src.aq.build_dataset                # a partir de data/interim (após `make data`)
   python -m src.aq.build_dataset --make-sample  # gera a amostra versionada em data/sample
@@ -18,6 +18,7 @@ import pandas as pd
 import xarray as xr
 
 from src.aq.features import load_context, point_features
+from src.aq.modeling import FEATURE_SCHEMA
 from src.common.config import data_path, load_config
 
 CFG = load_config()
@@ -33,6 +34,7 @@ def build(sample: bool = False):
     feats = point_features(ctx, pm["date"], pm["lat"], pm["lon"])
     est = pd.concat([pm[["location_id", "name", "pm25", "n_hours"]].reset_index(drop=True),
                      feats.reset_index(drop=True)], axis=1)
+    est["feature_schema"] = FEATURE_SCHEMA
     est.to_parquet(data_path("processed", "station_days.parquet"), index=False)
 
     # previsão: para cada (estação, D) com medição em D+1
@@ -42,6 +44,7 @@ def build(sample: bool = False):
     ffc = point_features(ctx, fc["date"], fc["lat"], fc["lon"], forecast=True)
     fcd = pd.concat([fc[["location_id", "name", "pm25", "pm25_next"]].reset_index(drop=True),
                      ffc.reset_index(drop=True)], axis=1)
+    fcd["feature_schema"] = FEATURE_SCHEMA
     fcd.to_parquet(data_path("processed", "station_days_fc.parquet"), index=False)
     print(f"estimativa: {len(est)} linhas x {est.shape[1]} col | previsão D+1: {len(fcd)} linhas")
     print(f"AOD observado na célula: {np.isfinite(est['aod']).mean():.1%} | após preenchimento: "
@@ -84,6 +87,9 @@ def make_sample():
 def from_sample():
     """Copia as bases de treino da amostra para data/processed (sem baixar nada)."""
     for f in ("station_days.parquet", "station_days_fc.parquet"):
+        df = pd.read_parquet(data_path("sample", f), columns=["feature_schema"])
+        if not df["feature_schema"].eq(FEATURE_SCHEMA).all():
+            raise ValueError("amostra incompatível com as variáveis atuais")
         shutil.copy(data_path("sample", f), data_path("processed", f))
     print("bases de treino copiadas da amostra para data/processed")
 

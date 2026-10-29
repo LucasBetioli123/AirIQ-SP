@@ -1,0 +1,7 @@
+cenario,recorte,n,cobertura_nominal,cobertura_real,largura_media,cobertura_pm25_>25
+A) local com estação,todos,7373,0.9000,0.8817,16.2825,0.7792
+A) local com estação,T1,3898,0.9000,0.8533,19.2866,0.8146
+A) local com estação,T2,3475,0.9000,0.9137,12.9128,0.2143
+B) local sem estação,todos,7372,0.9000,0.8814,18.7554,0.7440
+B) local sem estação,T1,3898,0.9000,0.8438,21.5158,0.7743
+B) local sem estação,T2,3474,0.9000,0.9237,15.6580,0.2619

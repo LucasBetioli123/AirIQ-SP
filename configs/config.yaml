@@ -25,7 +25,7 @@ split:
        test_start: "2021-07-01", test_end: "2021-12-31"}
     - {name: T2, train_end: "2022-03-31", calib_start: "2022-04-01", calib_end: "2022-06-30",
        test_start: "2022-07-01", test_end: "2023-04-30"}
-  # modelos finais (mapa/API/agente): treinados até aqui
+  # corte temporal padrão de referência; os modelos finais usam todos os dados.
   train_end: "2022-03-31"
   calib_start: "2022-04-01"
   calib_end: "2022-06-30"
