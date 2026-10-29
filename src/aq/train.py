@@ -20,6 +20,7 @@ CLI, API, agente) são treinados com TODOS os dados: todas as estações e todo 
 """
 from __future__ import annotations
 
+import argparse
 import json
 import warnings
 
@@ -236,17 +237,20 @@ def fit_final(df: pd.DataFrame, fc: pd.DataFrame):
     print("modelos finais salvos:", meta)
 
 
-def main():
+def main(fit_only=False):
     df = pd.read_parquet(data_path("processed", "station_days.parquet")).sort_values(["date", "location_id"])
     df = df.reset_index(drop=True)
     fc = pd.read_parquet(data_path("processed", "station_days_fc.parquet"))
     for table in (df, fc):
         if "feature_schema" not in table or not table["feature_schema"].eq(FEATURE_SCHEMA).all():
             raise ValueError("base antiga: rode `make sample` ou `make data` antes do treino")
-    evaluate_intervals(df)
-    forecast_eval(fc)
+    if not fit_only:
+        evaluate_intervals(df)
+        forecast_eval(fc)
     fit_final(df, fc)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fit-only", action="store_true", help="treino e calibração de produção; não refaz métricas de teste")
+    main(parser.parse_args().fit_only)
