@@ -3,14 +3,15 @@
 Métricas (método no RELATORIO.md):
   acerto         todos os `fatos_chave` da resposta esperada aparecem na resposta
                  (números/termos normalizados); `acerto_parcial` = fração dos fatos
-  cit_precisao   fração dos trechos citados que pertencem aos documentos/dispositivos-ouro
+  cit_precisao   fração dos trechos citados que casam com o dispositivo-ouro (gold_match)
   cit_recall     fração dos chunks-ouro efetivamente citados
   fidelidade     (a) checagem automática: números e citações da resposta têm suporte nos
                  trechos citados/ferramentas; (b) LLM-juiz (modelo DIFERENTE do gerador)
                  nota de 0 a 1 para "tudo o que foi afirmado está nas fontes citadas?"
   recusa         nas perguntas sem resposta na base: taxa de recusa correta. Nas com
                  resposta: taxa de recusa indevida
-  ferramenta     nas perguntas de qualidade do ar: chamou estimar_pm25 com o local certo
+  ferramenta     local, data-alvo, horizonte, valor, limites do IC e faixa quando solicitada;
+                 checagem numérica usa a saída da ferramenta registrada na execução
 
   python -m eval.run_rag_eval [--llm caminho.gguf] [--judge caminho.gguf] [--tag nome]
 """
@@ -135,7 +136,6 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
         run = agent.ask(q["pergunta"])
         cited = run["trechos_citados"]
         gold = q.get("gold") or []
-        gold_docs = {g.split(":")[0] for g in gold}
         r = {"id": q["id"], "tipo": q["tipo"], "encontrado": run["encontrado"], "tempo_s": run["tempo_total_s"],
              "tokens": run["tokens_entrada"] + run["tokens_saida"]}
         if q.get("deve_recusar"):
@@ -200,6 +200,13 @@ def rescore(tag: str):
             runs[r["pergunta"]] = r  # a última execução de cada pergunta
     p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
     df = pd.read_csv(p)
+    if "checagens_ferramenta" not in df:
+        df["checagens_ferramenta"] = pd.Series(pd.NA, index=df.index, dtype="string")
+    # CSVs antigos podem codificar True como 1.0. Pandas 3 não permite atribuir
+    # bool numa coluna float; preserve também as células sem avaliação como NA.
+    for col in ("encontrado", "acerto", "recusa_correta", "recusa_indevida", "ferramenta_ok"):
+        if col in df:
+            df[col] = df[col].map(lambda v: pd.NA if pd.isna(v) else str(v).lower() in ("true", "1", "1.0")).astype("boolean")
     for i, row in df.iterrows():
         q = next(q for q in qs.values() if q["id"] == row["id"])
         run = runs[q["pergunta"]]
@@ -237,6 +244,8 @@ def rescore(tag: str):
 def summarize(df: pd.DataFrame, tag: str) -> dict:
     ans = df[df["tipo"] != "sem_resposta"]
     summ = {"modelo": tag, "n": len(df), "metodo_avaliacao": "dispositivo-exato-e-ferramenta-v2",
+            "n_respondidas": int(ans["encontrado"].sum()),
+            "n_fidelidade_juiz": int(ans["fidelidade_juiz"].notna().sum()) if "fidelidade_juiz" in ans else 0,
             "acerto": ans["acerto"].mean(), "acerto_parcial": ans["acerto_parcial"].mean(),
             "cit_precisao": ans.get("cit_precisao", pd.Series(dtype=float)).mean(),
             "cit_recall": ans.get("cit_recall", pd.Series(dtype=float)).mean(),

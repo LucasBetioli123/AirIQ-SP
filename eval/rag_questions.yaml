@@ -225,7 +225,8 @@ perguntas:
     tipo: ferramenta
     pergunta: "Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 e em qual faixa do IQAr ela fica?"
     resposta_esperada: "Valor da ferramenta e faixa (Boa/Moderada/...)."
-    fatos_chave: [["Boa", "Moderada", "Ruim", "Muito Ruim", "Péssima"]]
+    # Valor, IC e a faixa EXATA da ferramenta são conferidos por tool_answer_checks.
+    fatos_chave: []
     gold: []
     deve_chamar_ferramenta: true
     local: "Ribeirão Preto"
