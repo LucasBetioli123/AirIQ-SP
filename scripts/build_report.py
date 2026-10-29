@@ -1,5 +1,6 @@
 """Gera o relatório final diretamente dos CSVs, sem transcrever métricas à mão."""
 from pathlib import Path
+import re
 
 import pandas as pd
 
@@ -31,8 +32,20 @@ def main():
     d1_intervals = metric("intervalos_d1.csv")
     d1_all = d1_intervals[d1_intervals.recorte.eq("todos")].set_index("cenario")
     d = pd.read_parquet(ROOT / "data/sample/station_days.parquet")
+    n_days = f"{len(d):,}".replace(",", ".")
     rag = metric("rag_eval_resumo.csv")
     final = rag[rag.modelo.eq("qwen3-4b_causal")]
+    docker_proof = ROOT / "logs/docker_validacao.txt"
+    docker_note = "A validação do container está registrada em `logs/docker_validacao.txt`."
+    if docker_proof.exists():
+        proof = docker_proof.read_text(encoding="utf-8")
+        elapsed = re.findall(r"elapsed_seconds ([0-9.]+)", proof)
+        passed = re.search(r"(\d+) passed", proof)
+        if elapsed and passed and "CONCLUSAO:" in proof:
+            minutes = f"{float(elapsed[-1]) / 60:.1f}".replace(".", ",")
+            docker_note = (f"A imagem foi construída e validada em Linux/Python 3.13: **{passed[1]} testes aprovados** "
+                           f"e demonstração rápida completa em **{minutes} minutos**, incluindo a inicialização do container, "
+                           "sem usar os modelos já treinados da máquina. Evidência: `logs/docker_validacao.txt`.")
     retrieval = metric("rag_retrieval.csv")
     recortes = metric("benchmark_estimativa_recortes.csv")
     recortes = recortes[recortes.modelo.isin(["IDW (baseline)", "Krigagem ordinária", "LightGBM regularizado (offset IDW)"])]
@@ -40,7 +53,7 @@ def main():
 
 ## 1. Resultado e escopo
 
-Versão final de variáveis: **causal-spatial-aod-v2**. São {len(d):,} estação-dias de {d.location_id.nunique()} estações CETESB, entre {d.date.min().date()} e {d.date.max().date()}, no estado de São Paulo. Grade de 0,05° (~5,5 km).
+Versão final de variáveis: **causal-spatial-aod-v2**. São {n_days} estação-dias de {d.location_id.nunique()} estações CETESB, entre {d.date.min().date()} e {d.date.max().date()}, no estado de São Paulo. Grade de 0,05° (~5,5 km).
 
 Na validação de estações não vistas e período posterior, o LightGBM regularizado com offset do IDW obteve **MAE {best.MAE:.2f} µg/m³, RMSE {best.RMSE:.2f} µg/m³ e R² {best.R2:.3f}**. O ganho de MAE sobre o IDW foi **{best['ganho_MAE_vs_baseline_%']:.2f}%**. O intervalo nominal de 90% para a estimativa diária teve cobertura empírica de **{cov.cobertura_real:.2%}**. A cobertura de D+1 é medida separadamente na seção 5.
 
@@ -60,7 +73,7 @@ O desafio recomenda 2019 em diante, mas permite recorte e fontes alternativos ju
 | Uso do solo e relevo | ESA WorldCover 2021 e Copernicus DEM | Blocos públicos com leitura parcial |
 | Limite estadual e municípios | IBGE espelhado no GitHub | Mesmo recorte territorial, sem dependência do acesso inicial a gov.br |
 
-Os coletores estão em `src/aq/data/`; usam leituras parciais HTTP de NetCDF/HDF5 e COG. `python -m src.aq.pipeline --full` baixa, monta as bases, compara, treina e gera evidências. A alternativa rápida `python -m src.aq.pipeline` usa a amostra de aproximadamente 12 MB, sem baixar brutos. A amostra contém as bases de treino completas com variáveis e cubos de contexto em algumas janelas, suficientes para mapas, CLI e agente.
+Os coletores estão em `src/aq/data/`; usam leituras parciais HTTP de NetCDF/HDF5 e COG. `python -m src.aq.pipeline --full` baixa, monta as bases, compara, treina e gera evidências. `python -m src.aq.pipeline` refaz a modelagem completa sobre a amostra de aproximadamente 12 MB, sem baixar brutos. Para demonstrar em poucos minutos, `python -m src.aq.pipeline --quick` treina e calibra a produção, faz previsão e um mapa, conservando os CSVs de teste já fornecidos. A amostra contém as bases de treino completas com variáveis e cubos de contexto em algumas janelas, suficientes para mapas, CLI e agente.
 
 As datas são agregadas no dia local UTC−3 do período escolhido. AOD/NO2 usam célula de 0,05° e vizinhanças 3×3/9×9; ERA5 usa interpolação bilinear; estáticos usam 1 km e média de 5 km. O instante horário do alvo marca o fim da hora: 00:00 é atribuído ao dia anterior.
 
@@ -179,9 +192,11 @@ Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da
 
 Dependências fixadas, Dockerfile e Makefile; pipeline portável com um comando, testes de causalidade (retirar todas as observações futuras não altera as variáveis), preservação da base normativa, `.env` e avaliação das ferramentas. CSVs, figuras, notebooks com saída e logs são versionados; modelos grandes e brutos são reconstruídos.
 
-Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code e esta revisão com Codex. O candidato deve conseguir explicar e modificar o código na entrevista.
+{docker_note}
 
-**Pendência externa à implementação:** gravar o vídeo não listado de até dez minutos e inserir o link no README antes do envio. O prazo de 72 horas conta do recebimento do desafio; o repositório não comprova essa data nem a entrega por e-mail.
+Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code e esta revisão com Codex. O candidato deve conseguir explicar e modificar o código na entrevista.
+
+**Pendências externas à implementação:** gravar o vídeo não listado de até dez minutos e inserir o link no README; conceder acesso aos avaliadores quando seus usuários do GitHub forem informados (o repositório é privado). O prazo de 72 horas conta do recebimento do desafio; o repositório não comprova essa data nem a entrega por e-mail.
 """
     (ROOT / "RELATORIO.md").write_text(report, encoding="utf-8")
     print("RELATORIO.md atualizado a partir dos resultados")

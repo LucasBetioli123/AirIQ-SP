@@ -5,7 +5,11 @@
 **Claude Code** (agente de programação da Anthropic, modelo Claude da família Opus). Usei em
 duas etapas: primeiro num ambiente de nuvem com terminal (Parte 1 e o código da Parte 2) e
 depois na minha máquina (Windows, extensão do VS Code) para rodar a Parte 2 com os textos
-reais das normas, que o ambiente de nuvem não conseguia baixar. Não usei Copilot nem ChatGPT.
+reais das normas, que o ambiente de nuvem não conseguia baixar. Não usei Copilot na implementação inicial.
+Na revisão final também usei **Codex (OpenAI)** para auditar o atendimento ao desafio,
+corrigir instalação/configuração e ingestão, retirar observações futuras das variáveis,
+acrescentar avaliação dos intervalos D+1 e fortalecer os testes e as checagens das ferramentas.
+O Codex executou novamente a modelagem, atualizou as evidências e a documentação e preparou a integração Git.
 
 ## Onde e como a IA ajudou
 
@@ -22,6 +26,10 @@ reais das normas, que o ambiente de nuvem não conseguia baixar. Não usei Copil
 | Documentação | Redigiu README, RELATORIO e o roteiro do vídeo | Revisar e ajustar |
 
 ## Cuidados tomados
+
+- A revisão final e suas métricas são identificadas por `causal-spatial-aod-v2` e pela tag
+  de avaliação `qwen3-4b_causal`. As respostas normativas anteriores foram reavaliadas;
+  as três perguntas dependentes do modelo de PM2.5 foram executadas novamente.
 
 - Nenhum número do relatório foi escrito "de cabeça": todos vêm dos CSVs em
   `reports/metrics/`, gerados pelo código do repositório.

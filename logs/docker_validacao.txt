@@ -1,0 +1,44 @@
+docker run --rm teste-ia:revisado python -m pytest -q
+...........................                                              [100%]
+27 passed in 5.81s
+elapsed_seconds 10.3
+docker run --rm teste-ia:revisado python -m src.aq.pipeline --quick
+Demonstração rápida: os CSVs de teste versionados não serão recalculados.
+Executando src.aq.build_dataset --from-sample
+bases de treino copiadas da amostra para data/processed
+Executando src.aq.train --fit-only
+modelos finais salvos: {'modelo': 'LightGBM reg. (offset IDW)', 'feature_schema': 'causal-spatial-aod-v2', 'dados_de_treino': '2021-01-13 a 2023-04-04', 'alpha': 0.1, 'cqr_q_estimativa': 0.10189316486266131, 'cqr_q_d1': 0.0853525878040382, 'n_treino': 11543, 'estacoes': 30}
+Executando src.aq.cli --municipio Campinas --date 2022-10-11 --horizon 1
+{
+  "lat": -22.9053,
+  "lon": -47.0659,
+  "data_referencia": "2022-10-11",
+  "data_alvo": "2022-10-12",
+  "horizonte_dias": 1,
+  "pm25_ug_m3": 14.1,
+  "intervalo_90": [
+    8.2,
+    26.6
+  ],
+  "faixa_iqar": "Boa",
+  "padrao_24h_vigente": {
+    "norma": "Resolução CONAMA 491/2018, art. 4º, § 1º e Anexo I",
+    "etapa": "PI-1",
+    "valor": 60.0
+  },
+  "ultrapassa_padrao": false,
+  "diagnostico": {
+    "aod_disponivel": false,
+    "aod_nivel_preenchimento": 4,
+    "estacoes_usadas_idw": 8,
+    "dist_estacao_mais_proxima_km": 7.1
+  },
+  "fonte": "modelo LightGBM + CQR (Parte 1); satélite GOES-16, ERA5, rede CETESB via OpenAQ",
+  "feature_schema": "causal-spatial-aod-v2",
+  "emissao": "fim do dia de referência; dados históricos, sem feed em tempo real"
+}
+Executando src.aq.maps --date 2022-10-11
+mapa salvo em /app/reports/figures/mapa_pm25_2022-10-11_h0.png | área por faixa: {'Boa': 0.9977, 'Moderada': 0.0023, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 15.6
+Pipeline concluído em 2.2 min
+elapsed_seconds 135.53
+CONCLUSAO: testes e pipeline rapido aprovados em container limpo.

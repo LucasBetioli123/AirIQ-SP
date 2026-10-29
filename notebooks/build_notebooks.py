@@ -36,7 +36,7 @@ NB1 = [
     "df = pd.read_parquet('data/processed/station_days.parquet')\n"
     "print(df.shape); print(df['date'].min().date(), '->', df['date'].max().date())\n"
     "df.groupby('name').agg(dias=('pm25','size'), pm25_medio=('pm25','mean'), pm25_p95=('pm25', lambda s: s.quantile(.95))).sort_values('dias', ascending=False).round(1)",
-    "md:## Falhas de AOD por nuvem e preenchimento hierárquico\nNível 0 = célula com retrieval no dia; 1 = janela 3x3; 2 = janela 9x9; 3 = média de D-1/D+1; 4 = sem AOD (NaN tratado pelo modelo).",
+    "md:## Falhas de AOD por nuvem e preenchimento espacial causal\nNível 0 = célula com retrieval no dia; 1 = janela 3x3; 2 = janela 9x9; 4 = sem AOD (NaN tratado pelo modelo). Nenhuma observação futura é usada.",
     "lvl = df['aod_fill_level'].value_counts(normalize=True).sort_index().rename('fração'); display(lvl.to_frame())\n"
     "df.assign(mes=df.date.dt.month).groupby('mes')['aod'].apply(lambda s: s.notna().mean()).rename('AOD observado na célula (fração)').to_frame().T.round(2)",
     "md:## Coerência física: correlações com o PM2.5 medido",
@@ -47,7 +47,7 @@ NB1 = [
 NB2 = [
     "md:# 02 - Modelo: benchmark, validação espaço-temporal, intervalos, D+1, SHAP e mapas\n\n"
     "**Validação principal**: estações inteiras fora do treino (GroupKFold, 5 folds) **e** período posterior "
-    "(teste a partir de jul/2022). A validação aleatória aparece só como referência otimista.",
+    "(cortes T1: jul–dez/2021 e T2: jul/2022–abr/2023). A validação aleatória aparece só como referência otimista.",
     SETUP,
     "b = met('benchmark_estimativa.csv'); b[['modelo','n','MAE','RMSE','R2','ganho_MAE_vs_baseline_%','acerto_faixa_IQAr','MAE_std_folds']].round(3)",
     "fig('benchmark_mae.png'); fig('dispersao_idw_vs_lgbm.png')",
@@ -55,6 +55,8 @@ NB2 = [
     "display(met('intervalos.csv').round(3)); display(met('intervalos_por_faixa.csv').round(3)); fig('intervalos.png')",
     "md:## Previsão do dia seguinte x persistência",
     "display(met('previsao_d1.csv')[['cenario','metodo','n','MAE','RMSE','R2','acerto_faixa_IQAr','ganho_MAE_vs_baseline_%']].round(3)); fig('previsao_d1.png')",
+    "md:Previsão emitida ao fim de D com observações até D e calendário de D+1. Cobertura do intervalo de amanhã medida separadamente, fora da amostra:",
+    "met('intervalos_d1.csv').round(3)",
     "md:## Explicação (SHAP)",
     "display(met('shap_importancia.csv').head(15).round(4)); fig('shap_resumo.png'); fig('shap_dependencia.png')",
     "display(Markdown('Exemplo local (maior PM2.5 previsto na amostra de teste):')); met('shap_exemplo_local.csv')",
@@ -63,8 +65,8 @@ NB2 = [
     "md:## Mapas diários (PM2.5 e incerteza)",
     "for p in sorted((ROOT/'reports/figures').glob('mapa_pm25_*.png')): display(Markdown(f'`{p.name}`')); fig(p.name)",
     "md:## Interface: função/CLI/API para coordenada e data",
-    "from src.aq.predict import predict_one\nprint(json.dumps(predict_one(-22.9053, -47.0659, '2022-09-10', 0), ensure_ascii=False, indent=1))\n"
-    "print(json.dumps(predict_one(-22.9053, -47.0659, '2022-09-10', 1), ensure_ascii=False, indent=1))",
+    "from src.aq.predict import predict_one\nprint(json.dumps(predict_one(-22.9053, -47.0659, '2022-10-11', 0), ensure_ascii=False, indent=1))\n"
+    "print(json.dumps(predict_one(-22.9053, -47.0659, '2022-10-11', 1), ensure_ascii=False, indent=1))",
 ]
 
 NB3 = [
@@ -81,9 +83,9 @@ NB3 = [
     "lim.assign(sem_resposta=lim['tipo'].eq('sem_resposta')).groupby('sem_resposta')['top_rerank'].describe().round(3)",
     "md:## Avaliação ponta a ponta (acerto, citação, fidelidade, recusa, ferramenta)",
     "met('rag_eval_resumo.csv').round(3).T",
-    "import glob\nfor f in sorted(glob.glob('reports/metrics/rag_eval_detalhe_*.csv'))[:1]:\n    d = pd.read_csv(f); display(Markdown(f'`{f}`')); display(d.drop(columns=['resposta']).round(2))",
+    "d = met('rag_eval_detalhe_qwen3-4b_causal.csv'); display(d.drop(columns=['resposta']).round(2))",
     "md:## Exemplo de execução registrada (pergunta, trechos, ferramentas, resposta, tempo, custo)",
-    "runs = [json.loads(l) for l in open('logs/agent_runs.jsonl', encoding='utf-8')]\nr = next((r for r in runs if any(t['ferramenta']=='estimar_pm25' for t in r['ferramentas'])), runs[-1])\n"
+    "runs = [json.loads(l) for l in open('logs/eval_runs_qwen3-4b_causal.jsonl', encoding='utf-8')]\nr = next(r for r in reversed(runs) if any(t['ferramenta']=='estimar_pm25' for t in r['ferramentas']))\n"
     "print(r['pergunta']); print(); print(r['resposta']); print()\n"
     "print(json.dumps({k: r[k] for k in ['tempo_total_s','tokens_entrada','tokens_saida','custo_estimado_usd','trechos','validacao']}, ensure_ascii=False, indent=1))",
 ]

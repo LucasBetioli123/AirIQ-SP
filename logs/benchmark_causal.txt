@@ -1,0 +1,37 @@
+T1 fold 0: 5 estações de teste, 641 linhas, 31s
+T1 fold 1: 6 estações de teste, 891 linhas, 46s
+T1 fold 2: 6 estações de teste, 940 linhas, 53s
+T1 fold 3: 6 estações de teste, 776 linhas, 53s
+T1 fold 4: 6 estações de teste, 854 linhas, 108s
+T2 fold 0: 6 estações de teste, 706 linhas, 284s
+T2 fold 1: 6 estações de teste, 749 linhas, 231s
+T2 fold 2: 6 estações de teste, 754 linhas, 184s
+T2 fold 3: 6 estações de teste, 791 linhas, 163s
+T2 fold 4: 6 estações de teste, 757 linhas, 166s
+                                                modelo     n   MAE   RMSE     R2  ganho_MAE_vs_baseline_%  acerto_faixa_IQAr
+                    LightGBM regularizado (offset IDW)  7761 2.977  4.719  0.727                    4.336              0.944
+              Ensemble RF + LightGBM reg. (offset IDW)  7761 3.003  4.751  0.724                    3.508              0.942
+                       XGBoost reg. forte (offset IDW)  7761 3.059  4.831  0.714                    1.690              0.940
+                                    Krigagem ordinária  7761 3.079  4.912  0.705                    1.078              0.940
+                                        IDW (baseline)  7761 3.112  4.867  0.710                    0.000              0.943
+                            Random Forest (offset IDW)  7761 3.137  4.913  0.705                   -0.794              0.940
+                     XGBoost regularizado (offset IDW)  7761 3.158  4.953  0.700                   -1.478              0.940
+                                 LightGBM (offset IDW)  7761 3.254  5.044  0.689                   -4.559              0.938
+                                  XGBoost (offset IDW)  7761 3.298  5.135  0.677                   -5.979              0.935
+                        LightGBM (offset) sem satélite  7761 3.478  5.455  0.636                  -11.762              0.930
+                     Ensemble RF + LightGBM reg. (log)  7761 3.552  6.030  0.555                  -14.136              0.919
+                                   Random Forest (log)  7761 3.580  6.015  0.557                  -15.031              0.921
+                           LightGBM regularizado (log)  7761 3.627  6.137  0.539                  -16.543              0.913
+                                 LightGBM (alvo bruto)  7761 3.634  5.651  0.609                  -16.776              0.924
+                                          HistGB (log)  7761 3.721  6.073  0.549                  -19.571              0.920
+                                        LightGBM (log)  7761 3.727  6.101  0.544                  -19.754              0.919
+MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)  7761 3.735  5.830  0.584                  -20.008              0.928
+                                         XGBoost (log)  7761 3.895  6.492  0.484                  -25.172              0.915
+                                 LightGBM sem satélite  7761 3.951  6.575  0.471                  -26.948              0.909
+       MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)  7761 4.309  6.850  0.426                  -38.465              0.913
+                             LightGBM sem lag espacial  7761 4.403  6.999  0.400                  -41.485              0.911
+                                    Ridge (offset IDW)  7761 5.564 10.177 -0.268                  -78.787              0.874
+                                           Ridge (log)  7761 5.672 10.124 -0.254                  -82.250              0.867
+                                   Climatologia mensal  7761 6.255  9.335 -0.066                 -100.991              0.902
+                                MLP 64-32 (offset IDW)  7761 6.343 11.279 -0.557                 -103.828              0.881
+LightGBM (offset IDW) - validação ALEATÓRIA [otimista] 11543 2.149  3.392  0.835                      NaN              0.963

@@ -1,10 +1,10 @@
 recorte,metodo,n,cobertura_nominal,cobertura_real,largura_media,cobertura_pm25_>25
-todos,Quantis LightGBM 5-95% (sem calibrar),7859,0.9000,0.7953,9.5663,0.7497
-todos,CQR (quantis conformalizados),7859,0.9000,0.9052,13.5006,0.8467
-todos,Conformal do resíduo absoluto,7859,0.9000,0.9196,14.6996,0.5649
-T1,Quantis LightGBM 5-95% (sem calibrar),4102,0.9000,0.8123,12.2844,0.7682
-T1,CQR (quantis conformalizados),4102,0.9000,0.9018,16.3856,0.8589
-T1,Conformal do resíduo absoluto,4102,0.9000,0.8857,15.8457,0.5754
-T2,Quantis LightGBM 5-95% (sem calibrar),3757,0.9000,0.7767,6.5986,0.4681
-T2,CQR (quantis conformalizados),3757,0.9000,0.9090,10.3506,0.6596
-T2,Conformal do resíduo absoluto,3757,0.9000,0.9566,13.4483,0.4043
+todos,Quantis LightGBM 5-95% (sem calibrar),7859,0.9000,0.7972,9.5762,0.7300
+todos,CQR (quantis conformalizados),7859,0.9000,0.9061,13.4851,0.8362
+todos,Conformal do resíduo absoluto,7859,0.9000,0.9202,14.6120,0.5727
+T1,Quantis LightGBM 5-95% (sem calibrar),4102,0.9000,0.8137,12.2344,0.7528
+T1,CQR (quantis conformalizados),4102,0.9000,0.9018,16.3427,0.8478
+T1,Conformal do resíduo absoluto,4102,0.9000,0.8854,15.7418,0.5810
+T2,Quantis LightGBM 5-95% (sem calibrar),3757,0.9000,0.7791,6.6738,0.3830
+T2,CQR (quantis conformalizados),3757,0.9000,0.9108,10.3651,0.6596
+T2,Conformal do resíduo absoluto,3757,0.9000,0.9582,13.3786,0.4468

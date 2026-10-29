@@ -1,151 +1,151 @@
 recorte,grupo,modelo,n,MAE,RMSE,R2,bias,acerto_faixa_IQAr,ganho_MAE_vs_baseline_%,estacoes
 tfold,T1,IDW (baseline),4102,3.6195,5.8181,0.7119,0.8195,0.9035,0.0000,29
-tfold,T1,Krigagem ordinária,4102,3.6529,5.9334,0.7004,-0.2579,0.8964,-0.9242,29
+tfold,T1,Krigagem ordinária,4102,3.6547,5.9359,0.7002,-0.2597,0.8961,-0.9741,29
 tfold,T1,Climatologia mensal,4102,7.8147,11.5788,-0.1409,-3.9607,0.8255,-115.9069,29
-tfold,T1,LightGBM (offset IDW),4102,3.9918,6.1756,0.6755,-1.5964,0.8937,-10.2876,29
-tfold,T1,LightGBM regularizado (offset IDW),4102,3.6455,5.8140,0.7124,-1.4153,0.9049,-0.7207,29
-tfold,T1,Random Forest (offset IDW),4102,3.7079,5.9297,0.7008,-0.8894,0.8998,-2.4426,29
-tfold,T1,XGBoost (offset IDW),4102,3.9785,6.2832,0.6640,-1.4842,0.8891,-9.9203,29
-tfold,T1,XGBoost regularizado (offset IDW),4102,3.9437,6.1913,0.6738,-1.4828,0.8940,-8.9576,29
-tfold,T1,XGBoost reg. forte (offset IDW),4102,3.7669,5.9435,0.6994,-1.2253,0.8983,-4.0731,29
-tfold,T1,Ensemble RF + LightGBM reg. (offset IDW),4102,3.6071,5.8031,0.7134,-1.1713,0.9022,0.3419,29
+tfold,T1,LightGBM (offset IDW),4102,3.9907,6.1729,0.6757,-1.6765,0.8944,-10.2574,29
+tfold,T1,LightGBM regularizado (offset IDW),4102,3.6253,5.7577,0.7179,-1.3296,0.9049,-0.1605,29
+tfold,T1,Random Forest (offset IDW),4102,3.7173,5.9415,0.6996,-0.9066,0.8998,-2.7042,29
+tfold,T1,XGBoost (offset IDW),4102,4.0243,6.2684,0.6656,-1.5486,0.8891,-11.1852,29
+tfold,T1,XGBoost regularizado (offset IDW),4102,3.8443,6.0423,0.6893,-1.4458,0.8979,-6.2118,29
+tfold,T1,XGBoost reg. forte (offset IDW),4102,3.7333,5.9048,0.7033,-1.2141,0.8983,-3.1456,29
+tfold,T1,Ensemble RF + LightGBM reg. (offset IDW),4102,3.6071,5.7788,0.7158,-1.1368,0.9022,0.3420,29
 tfold,T1,LightGBM (offset) sem satélite,4102,4.3549,6.7734,0.6096,-2.1121,0.8791,-20.3201,29
-tfold,T1,MLP 64-32 (offset IDW),4102,9.0743,14.1447,-0.7026,-2.1094,0.7908,-150.7083,29
-tfold,T1,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",4102,4.9031,7.4638,0.5259,-1.9560,0.8654,-35.4638,29
-tfold,T1,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",4102,5.9348,8.8996,0.3260,-1.3959,0.8420,-63.9681,29
-tfold,T1,Ridge (offset IDW),4102,7.7858,12.9600,-0.4293,5.3191,0.7921,-115.1101,29
-tfold,T1,Ridge (log),4102,8.4403,13.3609,-0.5191,6.7811,0.7604,-133.1925,29
-tfold,T1,Random Forest (log),4102,4.6486,7.6255,0.5052,-2.6421,0.8630,-28.4333,29
-tfold,T1,HistGB (log),4102,4.8300,7.7310,0.4914,-2.0976,0.8623,-33.4442,29
-tfold,T1,XGBoost (log),4102,5.1097,8.2577,0.4197,-3.0676,0.8525,-41.1730,29
-tfold,T1,LightGBM (log),4102,4.8292,7.7663,0.4867,-2.3944,0.8606,-33.4240,29
-tfold,T1,LightGBM regularizado (log),4102,4.7836,7.8406,0.4769,-2.2706,0.8498,-32.1638,29
-tfold,T1,Ensemble RF + LightGBM reg. (log),4102,4.6473,7.6784,0.4983,-2.4839,0.8603,-28.3989,29
-tfold,T1,LightGBM (alvo bruto),4102,4.6427,7.0635,0.5754,-0.5753,0.8669,-28.2704,29
+tfold,T1,MLP 64-32 (offset IDW),4102,9.4467,15.0517,-0.9279,-0.6370,0.7896,-160.9990,29
+tfold,T1,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",4102,4.9511,7.3843,0.5360,-1.6826,0.8747,-36.7906,29
+tfold,T1,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",4102,5.9473,8.8288,0.3367,-1.3352,0.8467,-64.3158,29
+tfold,T1,Ridge (offset IDW),4102,8.3814,13.6333,-0.5817,6.1877,0.7733,-131.5663,29
+tfold,T1,Ridge (log),4102,8.5701,13.5515,-0.5628,6.9688,0.7601,-136.7796,29
+tfold,T1,Random Forest (log),4102,4.6655,7.6504,0.5019,-2.6337,0.8620,-28.8996,29
+tfold,T1,HistGB (log),4102,4.7870,7.6802,0.4980,-2.1201,0.8608,-32.2569,29
+tfold,T1,XGBoost (log),4102,5.1262,8.2888,0.4153,-3.2492,0.8515,-41.6291,29
+tfold,T1,LightGBM (log),4102,4.8203,7.7258,0.4921,-2.2869,0.8588,-33.1769,29
+tfold,T1,LightGBM regularizado (log),4102,4.8021,7.8640,0.4737,-2.2560,0.8476,-32.6736,29
+tfold,T1,Ensemble RF + LightGBM reg. (log),4102,4.6631,7.7018,0.4952,-2.4724,0.8586,-28.8343,29
+tfold,T1,LightGBM (alvo bruto),4102,4.6185,7.0590,0.5760,-0.6236,0.8684,-27.6025,29
 tfold,T1,LightGBM sem satélite,4102,5.1965,8.4154,0.3974,-2.9673,0.8411,-43.5716,29
-tfold,T1,LightGBM sem lag espacial,4102,5.6773,8.8362,0.3356,-3.4820,0.8445,-56.8539,29
+tfold,T1,LightGBM sem lag espacial,4102,5.6737,8.8225,0.3376,-3.4596,0.8437,-56.7559,29
 tfold,T2,IDW (baseline),3659,2.5432,3.5073,0.5060,0.5742,0.9882,0.0000,30
-tfold,T2,Krigagem ordinária,3659,2.4329,3.4176,0.5309,-0.1769,0.9893,4.3392,30
+tfold,T2,Krigagem ordinária,3659,2.4325,3.4175,0.5310,-0.1766,0.9893,4.3513,30
 tfold,T2,Climatologia mensal,3659,4.5064,5.8759,-0.3865,1.1158,0.9872,-77.1924,30
-tfold,T2,LightGBM (offset IDW),3659,2.4057,3.3284,0.5551,-0.0579,0.9863,5.4063,30
-tfold,T2,LightGBM regularizado (offset IDW),3659,2.2866,3.2098,0.5862,-0.1337,0.9872,10.0911,30
-tfold,T2,Random Forest (offset IDW),3659,2.4864,3.4056,0.5342,0.0021,0.9855,2.2326,30
-tfold,T2,XGBoost (offset IDW),3659,2.5124,3.4819,0.5131,-0.2270,0.9866,1.2098,30
-tfold,T2,XGBoost regularizado (offset IDW),3659,2.3689,3.2988,0.5630,-0.0900,0.9869,6.8532,30
-tfold,T2,XGBoost reg. forte (offset IDW),3659,2.3211,3.2423,0.5778,-0.0496,0.9880,8.7347,30
-tfold,T2,Ensemble RF + LightGBM reg. (offset IDW),3659,2.3378,3.2489,0.5761,-0.0811,0.9874,8.0760,30
+tfold,T2,LightGBM (offset IDW),3659,2.4279,3.3534,0.5484,-0.0877,0.9863,4.5327,30
+tfold,T2,LightGBM regularizado (offset IDW),3659,2.2505,3.1730,0.5957,-0.1025,0.9872,11.5103,30
+tfold,T2,Random Forest (offset IDW),3659,2.4859,3.4090,0.5333,0.0076,0.9852,2.2525,30
+tfold,T2,XGBoost (offset IDW),3659,2.4840,3.4476,0.5227,-0.1046,0.9858,2.3273,30
+tfold,T2,XGBoost regularizado (offset IDW),3659,2.3887,3.3318,0.5542,-0.0784,0.9866,6.0746,30
+tfold,T2,XGBoost reg. forte (offset IDW),3659,2.3040,3.2283,0.5815,-0.0669,0.9877,9.4057,30
+tfold,T2,Ensemble RF + LightGBM reg. (offset IDW),3659,2.3255,3.2321,0.5805,-0.0624,0.9872,8.5589,30
 tfold,T2,LightGBM (offset) sem satélite,3659,2.4951,3.4183,0.5307,-0.0445,0.9861,1.8925,30
-tfold,T2,MLP 64-32 (offset IDW),3659,2.7344,3.7437,0.4372,-0.0431,0.9850,-7.5195,30
-tfold,T2,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",3659,2.3618,3.3133,0.5591,-0.1554,0.9874,7.1313,30
-tfold,T2,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",3659,2.5095,3.5221,0.5018,-0.1763,0.9866,1.3245,30
-tfold,T2,Ridge (offset IDW),3659,2.3959,3.3459,0.5504,-0.3784,0.9874,5.7915,30
-tfold,T2,Ridge (log),3659,2.4188,3.3833,0.5403,-0.3259,0.9869,4.8920,30
-tfold,T2,Random Forest (log),3659,2.3706,3.3407,0.5518,-0.2311,0.9872,6.7886,30
-tfold,T2,HistGB (log),3659,2.5011,3.4611,0.5189,-0.1468,0.9861,1.6546,30
-tfold,T2,XGBoost (log),3659,2.5077,3.5045,0.5068,-0.2356,0.9872,1.3966,30
-tfold,T2,LightGBM (log),3659,2.4867,3.4492,0.5222,-0.1463,0.9872,2.2237,30
-tfold,T2,LightGBM regularizado (log),3659,2.2961,3.2356,0.5796,-0.2151,0.9872,9.7146,30
-tfold,T2,Ensemble RF + LightGBM reg. (log),3659,2.3040,3.2547,0.5746,-0.2319,0.9872,9.4064,30
-tfold,T2,LightGBM (alvo bruto),3659,2.5209,3.4499,0.5220,0.4790,0.9861,0.8787,30
+tfold,T2,MLP 64-32 (offset IDW),3659,2.8640,3.9788,0.3643,-0.2061,0.9844,-12.6119,30
+tfold,T2,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",3659,2.3711,3.3107,0.5598,-0.1680,0.9880,6.7676,30
+tfold,T2,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",3659,2.4725,3.4827,0.5129,-0.1351,0.9872,2.7792,30
+tfold,T2,Ridge (offset IDW),3659,2.4053,3.3628,0.5459,-0.3872,0.9874,5.4216,30
+tfold,T2,Ridge (log),3659,2.4223,3.3932,0.5376,-0.3308,0.9869,4.7524,30
+tfold,T2,Random Forest (log),3659,2.3628,3.3353,0.5533,-0.2330,0.9872,7.0957,30
+tfold,T2,HistGB (log),3659,2.5262,3.4772,0.5144,-0.1342,0.9861,0.6690,30
+tfold,T2,XGBoost (log),3659,2.5156,3.5191,0.5027,-0.2391,0.9866,1.0840,30
+tfold,T2,LightGBM (log),3659,2.5009,3.4700,0.5164,-0.1697,0.9869,1.6633,30
+tfold,T2,LightGBM regularizado (log),3659,2.3094,3.2500,0.5758,-0.1601,0.9866,9.1932,30
+tfold,T2,Ensemble RF + LightGBM reg. (log),3659,2.3063,3.2609,0.5730,-0.2047,0.9872,9.3162,30
+tfold,T2,LightGBM (alvo bruto),3659,2.5305,3.4466,0.5229,0.4971,0.9866,0.4987,30
 tfold,T2,LightGBM sem satélite,3659,2.5540,3.5065,0.5062,-0.1699,0.9861,-0.4259,30
-tfold,T2,LightGBM sem lag espacial,3659,2.9671,4.0769,0.3325,-0.2248,0.9866,-16.6664,30
+tfold,T2,LightGBM sem lag espacial,3659,2.9786,4.0804,0.3314,-0.2183,0.9866,-17.1197,30
 faixa_dist,<10 km,IDW (baseline),4624,2.8924,4.7232,0.7614,0.0678,0.9472,0.0000,17
-faixa_dist,<10 km,Krigagem ordinária,4624,2.9970,4.9552,0.7374,-0.8374,0.9423,-3.6165,17
+faixa_dist,<10 km,Krigagem ordinária,4624,2.9984,4.9577,0.7371,-0.8388,0.9420,-3.6633,17
 faixa_dist,<10 km,Climatologia mensal,4624,6.6507,10.1366,-0.0990,-2.5286,0.8849,-129.9368,17
-faixa_dist,<10 km,LightGBM (offset IDW),4624,3.2278,5.1402,0.7174,-1.1618,0.9321,-11.5958,17
-faixa_dist,<10 km,LightGBM regularizado (offset IDW),4624,2.9627,4.8403,0.7494,-1.0195,0.9394,-2.4317,17
-faixa_dist,<10 km,Random Forest (offset IDW),4624,3.1484,5.0218,0.7303,-0.6672,0.9364,-8.8511,17
-faixa_dist,<10 km,XGBoost (offset IDW),4624,3.3199,5.3687,0.6917,-1.1897,0.9286,-14.7810,17
-faixa_dist,<10 km,XGBoost regularizado (offset IDW),4624,3.2019,5.2180,0.7088,-1.1710,0.9330,-10.7013,17
-faixa_dist,<10 km,XGBoost reg. forte (offset IDW),4624,3.0487,4.9341,0.7396,-0.9100,0.9373,-5.4037,17
-faixa_dist,<10 km,Ensemble RF + LightGBM reg. (offset IDW),4624,2.9932,4.8695,0.7464,-0.8598,0.9386,-3.4852,17
+faixa_dist,<10 km,LightGBM (offset IDW),4624,3.2331,5.1445,0.7169,-1.1742,0.9321,-11.7808,17
+faixa_dist,<10 km,LightGBM regularizado (offset IDW),4624,2.9390,4.7841,0.7552,-0.9389,0.9399,-1.6130,17
+faixa_dist,<10 km,Random Forest (offset IDW),4624,3.1529,5.0283,0.7296,-0.7079,0.9360,-9.0063,17
+faixa_dist,<10 km,XGBoost (offset IDW),4624,3.2941,5.2908,0.7006,-1.2357,0.9306,-13.8879,17
+faixa_dist,<10 km,XGBoost regularizado (offset IDW),4624,3.1249,5.0617,0.7260,-1.1762,0.9360,-8.0401,17
+faixa_dist,<10 km,XGBoost reg. forte (offset IDW),4624,3.0376,4.9192,0.7412,-0.8815,0.9364,-5.0216,17
+faixa_dist,<10 km,Ensemble RF + LightGBM reg. (offset IDW),4624,2.9909,4.8441,0.7490,-0.8396,0.9388,-3.4066,17
 faixa_dist,<10 km,LightGBM (offset) sem satélite,4624,3.4587,5.6083,0.6636,-1.4879,0.9224,-19.5790,17
-faixa_dist,<10 km,MLP 64-32 (offset IDW),4624,6.1471,10.7642,-0.2393,-1.1836,0.8700,-112.5246,17
-faixa_dist,<10 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",4624,3.7604,6.1025,0.6017,-1.4511,0.9150,-30.0105,17
-faixa_dist,<10 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",4624,4.4940,7.2010,0.4454,-1.0871,0.8992,-55.3744,17
-faixa_dist,<10 km,Ridge (offset IDW),4624,4.9032,8.4878,0.2295,1.9893,0.8852,-69.5195,17
-faixa_dist,<10 km,Ridge (log),4624,5.3452,9.0608,0.1219,3.0043,0.8629,-84.8017,17
-faixa_dist,<10 km,Random Forest (log),4624,3.6931,6.3676,0.5663,-1.7878,0.9150,-27.6837,17
-faixa_dist,<10 km,HistGB (log),4624,3.8178,6.4369,0.5569,-1.3578,0.9146,-31.9959,17
-faixa_dist,<10 km,XGBoost (log),4624,4.0402,6.9106,0.4892,-2.0354,0.9048,-39.6838,17
-faixa_dist,<10 km,LightGBM (log),4624,3.8215,6.4644,0.5531,-1.6229,0.9115,-32.1208,17
-faixa_dist,<10 km,LightGBM regularizado (log),4624,3.7422,6.4997,0.5482,-1.4878,0.9042,-29.3822,17
-faixa_dist,<10 km,Ensemble RF + LightGBM reg. (log),4624,3.6619,6.3842,0.5641,-1.6582,0.9126,-26.6053,17
-faixa_dist,<10 km,LightGBM (alvo bruto),4624,3.7729,5.9995,0.6150,-0.2175,0.9139,-30.4435,17
+faixa_dist,<10 km,MLP 64-32 (offset IDW),4624,6.4611,11.4700,-0.4071,-0.1221,0.8705,-123.3840,17
+faixa_dist,<10 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",4624,3.7366,5.9733,0.6184,-1.2363,0.9204,-29.1863,17
+faixa_dist,<10 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",4624,4.4098,7.0305,0.4714,-0.9689,0.9020,-52.4615,17
+faixa_dist,<10 km,Ridge (offset IDW),4624,5.3662,9.2374,0.0874,2.6220,0.8692,-85.5288,17
+faixa_dist,<10 km,Ridge (log),4624,5.4050,9.1433,0.1059,3.0998,0.8631,-86.8685,17
+faixa_dist,<10 km,Random Forest (log),4624,3.6965,6.3777,0.5650,-1.7773,0.9135,-27.7997,17
+faixa_dist,<10 km,HistGB (log),4624,3.8053,6.3970,0.5623,-1.3789,0.9131,-31.5610,17
+faixa_dist,<10 km,XGBoost (log),4624,4.0618,6.9201,0.4878,-2.1379,0.9042,-40.4307,17
+faixa_dist,<10 km,LightGBM (log),4624,3.8352,6.4485,0.5553,-1.5770,0.9111,-32.5974,17
+faixa_dist,<10 km,LightGBM regularizado (log),4624,3.7645,6.5233,0.5449,-1.4520,0.9025,-30.1530,17
+faixa_dist,<10 km,Ensemble RF + LightGBM reg. (log),4624,3.6727,6.4002,0.5619,-1.6350,0.9109,-26.9771,17
+faixa_dist,<10 km,LightGBM (alvo bruto),4624,3.7596,5.9954,0.6156,-0.2711,0.9144,-29.9824,17
 faixa_dist,<10 km,LightGBM sem satélite,4624,4.0747,7.0135,0.4739,-2.1334,0.8986,-40.8769,17
-faixa_dist,<10 km,LightGBM sem lag espacial,4624,4.6608,7.4896,0.4001,-2.3640,0.8994,-61.1412,17
+faixa_dist,<10 km,LightGBM sem lag espacial,4624,4.6814,7.5042,0.3977,-2.3779,0.8988,-61.8526,17
 faixa_dist,10-25 km,IDW (baseline),1475,3.2819,5.0789,0.5920,0.8141,0.9437,0.0000,6
-faixa_dist,10-25 km,Krigagem ordinária,1475,3.2239,4.9173,0.6175,-0.2569,0.9403,1.7678,6
+faixa_dist,10-25 km,Krigagem ordinária,1475,3.2237,4.9173,0.6175,-0.2570,0.9403,1.7732,6
 faixa_dist,10-25 km,Climatologia mensal,1475,5.7465,8.2917,-0.0875,-1.1967,0.9132,-75.0955,6
-faixa_dist,10-25 km,LightGBM (offset IDW),1475,3.6936,5.3206,0.5522,-1.2497,0.9336,-12.5418,6
-faixa_dist,10-25 km,LightGBM regularizado (offset IDW),1475,3.5393,5.2054,0.5714,-1.2760,0.9383,-7.8413,6
-faixa_dist,10-25 km,Random Forest (offset IDW),1475,3.6155,5.3610,0.5454,-1.0466,0.9356,-10.1647,6
-faixa_dist,10-25 km,XGBoost (offset IDW),1475,3.8071,5.4555,0.5292,-1.2785,0.9322,-16.0023,6
-faixa_dist,10-25 km,XGBoost regularizado (offset IDW),1475,3.6537,5.2458,0.5647,-1.2632,0.9336,-11.3281,6
-faixa_dist,10-25 km,XGBoost reg. forte (offset IDW),1475,3.6628,5.3411,0.5488,-1.2930,0.9336,-11.6042,6
-faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (offset IDW),1475,3.5486,5.2475,0.5644,-1.1736,0.9369,-8.1244,6
+faixa_dist,10-25 km,LightGBM (offset IDW),1475,3.7280,5.3273,0.5511,-1.3764,0.9369,-13.5919,6
+faixa_dist,10-25 km,LightGBM regularizado (offset IDW),1475,3.4852,5.1499,0.5805,-1.2528,0.9376,-6.1933,6
+faixa_dist,10-25 km,Random Forest (offset IDW),1475,3.5926,5.3449,0.5481,-1.0541,0.9356,-9.4670,6
+faixa_dist,10-25 km,XGBoost (offset IDW),1475,3.8256,5.4934,0.5227,-1.1751,0.9302,-16.5662,6
+faixa_dist,10-25 km,XGBoost regularizado (offset IDW),1475,3.6422,5.2854,0.5581,-1.2324,0.9336,-10.9780,6
+faixa_dist,10-25 km,XGBoost reg. forte (offset IDW),1475,3.6208,5.2804,0.5590,-1.2996,0.9356,-10.3236,6
+faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (offset IDW),1475,3.5107,5.2106,0.5705,-1.1661,0.9356,-6.9698,6
 faixa_dist,10-25 km,LightGBM (offset) sem satélite,1475,3.9740,5.6652,0.4923,-1.6267,0.9336,-21.0883,6
-faixa_dist,10-25 km,MLP 64-32 (offset IDW),1475,5.8391,9.7158,-0.4932,-1.1914,0.8942,-77.9160,6
-faixa_dist,10-25 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",1475,3.6430,5.4837,0.5244,-1.3939,0.9308,-11.0026,6
-faixa_dist,10-25 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",1475,3.9747,6.0409,0.4228,-0.9587,0.9288,-21.1070,6
-faixa_dist,10-25 km,Ridge (offset IDW),1475,4.7975,10.0291,-0.5910,1.7561,0.9139,-46.1779,6
-faixa_dist,10-25 km,Ridge (log),1475,5.0688,9.9764,-0.5743,2.4850,0.9051,-54.4449,6
-faixa_dist,10-25 km,Random Forest (log),1475,3.6820,5.5565,0.5116,-1.8592,0.9200,-12.1905,6
-faixa_dist,10-25 km,HistGB (log),1475,3.8468,5.6553,0.4941,-1.6474,0.9214,-17.2123,6
-faixa_dist,10-25 km,XGBoost (log),1475,4.0174,6.0419,0.4226,-2.0654,0.9214,-22.4086,6
-faixa_dist,10-25 km,LightGBM (log),1475,3.8570,5.7242,0.4817,-1.7410,0.9268,-17.5224,6
-faixa_dist,10-25 km,LightGBM regularizado (log),1475,3.7236,5.6955,0.4869,-1.7598,0.9193,-13.4561,6
-faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (log),1475,3.6596,5.5882,0.5060,-1.8258,0.9200,-11.5085,6
-faixa_dist,10-25 km,LightGBM (alvo bruto),1475,3.6600,5.1860,0.5746,-0.5489,0.9336,-11.5190,6
+faixa_dist,10-25 km,MLP 64-32 (offset IDW),1475,6.2438,10.9364,-0.8919,-0.5422,0.8888,-90.2473,6
+faixa_dist,10-25 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",1475,3.6955,5.3811,0.5420,-1.2982,0.9356,-12.6005,6
+faixa_dist,10-25 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",1475,3.9683,5.9232,0.4451,-0.9540,0.9308,-20.9118,6
+faixa_dist,10-25 km,Ridge (offset IDW),1475,4.9760,10.3061,-0.6801,2.1341,0.9112,-51.6167,6
+faixa_dist,10-25 km,Ridge (log),1475,5.1419,10.1760,-0.6379,2.5896,0.9044,-56.6737,6
+faixa_dist,10-25 km,Random Forest (log),1475,3.6813,5.5575,0.5115,-1.8709,0.9214,-12.1690,6
+faixa_dist,10-25 km,HistGB (log),1475,3.7934,5.6130,0.5016,-1.6942,0.9227,-15.5826,6
+faixa_dist,10-25 km,XGBoost (log),1475,4.0087,6.0547,0.4201,-2.1967,0.9207,-22.1453,6
+faixa_dist,10-25 km,LightGBM (log),1475,3.8001,5.6511,0.4949,-1.6883,0.9227,-15.7893,6
+faixa_dist,10-25 km,LightGBM regularizado (log),1475,3.7180,5.6990,0.4863,-1.6611,0.9193,-13.2866,6
+faixa_dist,10-25 km,Ensemble RF + LightGBM reg. (log),1475,3.6546,5.5885,0.5060,-1.7826,0.9214,-11.3535,6
+faixa_dist,10-25 km,LightGBM (alvo bruto),1475,3.6149,5.1483,0.5807,-0.5667,0.9369,-10.1438,6
 faixa_dist,10-25 km,LightGBM sem satélite,1475,4.1958,6.3377,0.3647,-2.1117,0.9200,-27.8445,6
-faixa_dist,10-25 km,LightGBM sem lag espacial,1475,4.4215,6.5897,0.3131,-2.3090,0.9186,-34.7210,6
+faixa_dist,10-25 km,LightGBM sem lag espacial,1475,4.3911,6.5367,0.3241,-2.2642,0.9186,-33.7961,6
 faixa_dist,25-50 km,IDW (baseline),1477,3.5106,4.7668,0.5222,2.7433,0.9330,0.0000,6
-faixa_dist,25-50 km,Krigagem ordinária,1477,2.9923,4.2072,0.6278,2.0102,0.9377,14.7637,6
+faixa_dist,25-50 km,Krigagem ordinária,1477,2.9925,4.2075,0.6277,2.0104,0.9377,14.7582,6
 faixa_dist,25-50 km,Climatologia mensal,1477,5.3214,7.0883,-0.0565,1.2356,0.9472,-51.5829,6
-faixa_dist,25-50 km,LightGBM (offset IDW),1477,2.7229,3.9639,0.6696,0.4322,0.9587,22.4381,6
-faixa_dist,25-50 km,LightGBM regularizado (offset IDW),1477,2.4456,3.4539,0.7492,0.4935,0.9641,30.3357,6
-faixa_dist,25-50 km,Random Forest (offset IDW),1477,2.4617,3.5414,0.7363,0.6829,0.9587,29.8784,6
-faixa_dist,25-50 km,XGBoost (offset IDW),1477,2.5500,3.6640,0.7177,0.4191,0.9587,27.3611,6
-faixa_dist,25-50 km,XGBoost regularizado (offset IDW),1477,2.6055,3.7016,0.7119,0.7670,0.9580,25.7817,6
-faixa_dist,25-50 km,XGBoost reg. forte (offset IDW),1477,2.4750,3.5688,0.7322,0.7728,0.9587,29.4977,6
-faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (offset IDW),1477,2.3808,3.4135,0.7550,0.5688,0.9614,32.1829,6
+faixa_dist,25-50 km,LightGBM (offset IDW),1477,2.7147,3.9653,0.6694,0.2894,0.9573,22.6711,6
+faixa_dist,25-50 km,LightGBM regularizado (offset IDW),1477,2.4170,3.4207,0.7540,0.5103,0.9641,31.1512,6
+faixa_dist,25-50 km,Random Forest (offset IDW),1477,2.4934,3.5952,0.7282,0.7532,0.9594,28.9742,6
+faixa_dist,25-50 km,XGBoost (offset IDW),1477,2.6760,3.8297,0.6916,0.5402,0.9526,23.7745,6
+faixa_dist,25-50 km,XGBoost regularizado (offset IDW),1477,2.6257,3.7065,0.7111,0.8779,0.9594,25.2054,6
+faixa_dist,25-50 km,XGBoost reg. forte (offset IDW),1477,2.4060,3.4710,0.7467,0.7170,0.9594,31.4635,6
+faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (offset IDW),1477,2.3913,3.4281,0.7529,0.6143,0.9614,31.8821,6
 faixa_dist,25-50 km,LightGBM (offset) sem satélite,1477,2.9450,4.3574,0.6007,0.3753,0.9479,16.1111,6
-faixa_dist,25-50 km,MLP 64-32 (offset IDW),1477,5.8052,10.2783,-1.2215,-0.1585,0.9113,-65.3632,6
-faixa_dist,25-50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",1477,3.4881,5.1967,0.4321,0.4780,0.9404,0.6409,6
-faixa_dist,25-50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",1477,4.1497,6.6383,0.0734,0.2299,0.9289,-18.2054,6
-faixa_dist,25-50 km,Ridge (offset IDW),1477,6.9607,12.7672,-2.4276,5.8187,0.8483,-98.2784,6
-faixa_dist,25-50 km,Ridge (log),1477,7.1303,12.7224,-2.4036,5.9644,0.8422,-103.1089,6
-faixa_dist,25-50 km,Random Forest (log),1477,2.8509,4.4626,0.5812,-0.0833,0.9506,18.7909,6
-faixa_dist,25-50 km,HistGB (log),1477,3.1480,4.8126,0.5130,0.0793,0.9458,10.3282,6
-faixa_dist,25-50 km,XGBoost (log),1477,2.9882,4.5976,0.5555,-0.2645,0.9519,14.8789,6
-faixa_dist,25-50 km,LightGBM (log),1477,3.0791,4.7664,0.5223,0.1325,0.9479,12.2921,6
-faixa_dist,25-50 km,LightGBM regularizado (log),1477,2.8880,4.6120,0.5527,-0.0300,0.9485,17.7338,6
-faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (log),1477,2.8279,4.4873,0.5766,-0.0733,0.9506,19.4460,6
-faixa_dist,25-50 km,LightGBM (alvo bruto),1477,3.0142,4.3156,0.6084,1.0017,0.9485,14.1409,6
+faixa_dist,25-50 km,MLP 64-32 (offset IDW),1477,5.7742,10.4787,-1.3089,-0.4383,0.9106,-64.4790,6
+faixa_dist,25-50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",1477,3.6670,5.4613,0.3728,0.3911,0.9458,-4.4544,6
+faixa_dist,25-50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",1477,4.3434,6.9960,-0.0292,0.0961,0.9330,-23.7230,6
+faixa_dist,25-50 km,Ridge (offset IDW),1477,7.0160,12.8790,-2.4879,5.8620,0.8490,-99.8522,6
+faixa_dist,25-50 km,Ridge (log),1477,7.2474,12.9507,-2.5268,6.0735,0.8416,-106.4438,6
+faixa_dist,25-50 km,Random Forest (log),1477,2.8578,4.4832,0.5774,-0.0708,0.9513,18.5948,6
+faixa_dist,25-50 km,HistGB (log),1477,3.1733,4.8193,0.5116,0.1576,0.9452,9.6070,6
+faixa_dist,25-50 km,XGBoost (log),1477,2.9681,4.6280,0.5496,-0.2795,0.9506,15.4528,6
+faixa_dist,25-50 km,LightGBM (log),1477,3.1120,4.8046,0.5146,0.1496,0.9479,11.3530,6
+faixa_dist,25-50 km,LightGBM regularizado (log),1477,2.8999,4.6547,0.5444,-0.1054,0.9465,17.3950,6
+faixa_dist,25-50 km,Ensemble RF + LightGBM reg. (log),1477,2.8370,4.5241,0.5696,-0.1033,0.9499,19.1874,6
+faixa_dist,25-50 km,LightGBM (alvo bruto),1477,3.0648,4.3592,0.6004,1.1007,0.9492,12.6979,6
 faixa_dist,25-50 km,LightGBM sem satélite,1477,3.2485,5.0195,0.4702,0.2579,0.9391,7.4654,6
-faixa_dist,25-50 km,LightGBM sem lag espacial,1477,3.4076,5.2610,0.4180,-0.2939,0.9479,2.9325,6
+faixa_dist,25-50 km,LightGBM sem lag espacial,1477,3.3959,5.1961,0.4323,-0.1847,0.9479,3.2656,6
 faixa_dist,>50 km,IDW (baseline),185,4.0659,7.0127,0.6167,-0.5580,0.9297,0.0000,1
-faixa_dist,>50 km,Krigagem ordinária,185,4.6109,7.9877,0.5028,-2.2877,0.9081,-13.4061,1
+faixa_dist,>50 km,Krigagem ordinária,185,4.6109,7.9877,0.5028,-2.2876,0.9081,-13.4061,1
 faixa_dist,>50 km,Climatologia mensal,185,7.8697,11.7501,-0.0760,-2.8767,0.8649,-93.5543,1
-faixa_dist,>50 km,LightGBM (offset IDW),185,4.2266,7.2929,0.5855,-0.9917,0.9297,-3.9538,1
-faixa_dist,>50 km,LightGBM regularizado (offset IDW),185,4.2609,7.5096,0.5605,-2.3092,0.9297,-4.7979,1
-faixa_dist,>50 km,Random Forest (offset IDW),185,4.2188,7.0307,0.6148,-0.1104,0.9243,-3.7609,1
-faixa_dist,>50 km,XGBoost (offset IDW),185,4.2144,7.0886,0.6084,-0.8155,0.9297,-3.6522,1
-faixa_dist,>50 km,XGBoost regularizado (offset IDW),185,4.3328,7.4731,0.5648,-1.4408,0.9297,-6.5664,1
-faixa_dist,>50 km,XGBoost reg. forte (offset IDW),185,4.2656,7.3175,0.5827,-1.2645,0.9351,-4.9124,1
-faixa_dist,>50 km,Ensemble RF + LightGBM reg. (offset IDW),185,4.1038,7.0854,0.6088,-1.2698,0.9297,-0.9342,1
+faixa_dist,>50 km,LightGBM (offset IDW),185,4.2986,7.3492,0.5791,-0.8948,0.9297,-5.7251,1
+faixa_dist,>50 km,LightGBM regularizado (offset IDW),185,4.3492,7.5671,0.5538,-2.1254,0.9243,-6.9692,1
+faixa_dist,>50 km,Random Forest (offset IDW),185,4.2356,7.0465,0.6130,0.1321,0.9243,-4.1755,1
+faixa_dist,>50 km,XGBoost (offset IDW),185,4.1602,6.9982,0.6183,-0.4667,0.9297,-2.3203,1
+faixa_dist,>50 km,XGBoost regularizado (offset IDW),185,4.3749,7.5034,0.5612,-1.3941,0.9243,-7.5996,1
+faixa_dist,>50 km,XGBoost reg. forte (offset IDW),185,4.3461,7.4770,0.5643,-1.5732,0.9297,-6.8925,1
+faixa_dist,>50 km,Ensemble RF + LightGBM reg. (offset IDW),185,4.1355,7.0906,0.6082,-1.0629,0.9297,-1.7129,1
 faixa_dist,>50 km,LightGBM (offset) sem satélite,185,4.2646,7.3988,0.5734,-0.5483,0.9297,-4.8871,1
-faixa_dist,>50 km,MLP 64-32 (offset IDW),185,8.7410,14.8750,-0.7244,-7.2766,0.8649,-114.9848,1
-faixa_dist,>50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",185,4.5446,8.1356,0.4842,-2.8776,0.9189,-11.7752,1
-faixa_dist,>50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",185,4.0786,7.9169,0.5115,-1.4582,0.8865,-0.3124,1
-faixa_dist,>50 km,Ridge (offset IDW),185,3.6462,6.4518,0.6756,0.2770,0.9081,10.3215,1
-faixa_dist,>50 km,Ridge (log),185,4.0452,6.8414,0.6352,1.3896,0.8703,0.5075,1
-faixa_dist,>50 km,Random Forest (log),185,5.5332,9.5634,0.2872,-2.9810,0.8649,-36.0881,1
-faixa_dist,>50 km,HistGB (log),185,5.3336,9.3084,0.3248,-2.9773,0.8649,-31.1792,1
-faixa_dist,>50 km,XGBoost (log),185,6.0238,10.0701,0.2097,-3.2241,0.8649,-48.1562,1
-faixa_dist,>50 km,LightGBM (log),185,5.4102,9.2502,0.3332,-2.5968,0.8649,-33.0630,1
-faixa_dist,>50 km,LightGBM regularizado (log),185,5.1998,9.2625,0.3314,-3.1414,0.8649,-27.8891,1
-faixa_dist,>50 km,Ensemble RF + LightGBM reg. (log),185,5.3304,9.3977,0.3117,-3.0753,0.8649,-31.1016,1
-faixa_dist,>50 km,LightGBM (alvo bruto),185,5.2523,8.8833,0.3850,-1.4674,0.8649,-29.1812,1
+faixa_dist,>50 km,MLP 64-32 (offset IDW),185,8.7316,14.7623,-0.6983,-7.3261,0.8649,-114.7529,1
+faixa_dist,>50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (offset IDW)",185,4.5421,8.0648,0.4931,-2.5024,0.9189,-11.7128,1
+faixa_dist,>50 km,"MLP PyTorch 64-32, saída tanh [-0,7; 0,7] (log)",185,4.2364,7.8951,0.5142,-1.2197,0.8811,-4.1934,1
+faixa_dist,>50 km,Ridge (offset IDW),185,3.6009,6.4008,0.6807,0.1888,0.9081,11.4359,1
+faixa_dist,>50 km,Ridge (log),185,3.9822,6.7441,0.6455,1.3627,0.8703,2.0583,1
+faixa_dist,>50 km,Random Forest (log),185,5.6196,9.7165,0.2642,-3.0999,0.8649,-38.2146,1
+faixa_dist,>50 km,HistGB (log),185,5.4152,9.3582,0.3175,-2.9493,0.8649,-33.1866,1
+faixa_dist,>50 km,XGBoost (log),185,6.2370,10.3977,0.1575,-3.5917,0.8649,-53.3985,1
+faixa_dist,>50 km,LightGBM (log),185,5.3394,9.1302,0.3504,-2.3816,0.8649,-31.3230,1
+faixa_dist,>50 km,LightGBM regularizado (log),185,5.2633,9.1976,0.3407,-2.8106,0.8649,-29.4512,1
+faixa_dist,>50 km,Ensemble RF + LightGBM reg. (log),185,5.4245,9.4498,0.3041,-2.9664,0.8649,-33.4147,1
+faixa_dist,>50 km,LightGBM (alvo bruto),185,5.1963,8.8527,0.3892,-1.4887,0.8649,-27.8028,1
 faixa_dist,>50 km,LightGBM sem satélite,185,4.5028,7.9107,0.5123,-1.0530,0.8595,-10.7467,1
-faixa_dist,>50 km,LightGBM sem lag espacial,185,5.6117,9.5250,0.2930,-1.8084,0.8649,-38.0197,1
+faixa_dist,>50 km,LightGBM sem lag espacial,185,5.5822,9.5621,0.2874,-2.0676,0.8649,-37.2936,1
