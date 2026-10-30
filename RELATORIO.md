@@ -297,7 +297,7 @@ Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da
 
 Dependências fixadas, Dockerfile e Makefile; pipeline portável com um comando, testes de causalidade (retirar todas as observações futuras não altera as variáveis), preservação da base normativa, `.env` e avaliação das ferramentas. CSVs, figuras, notebooks com saída e logs são versionados; modelos grandes e brutos são reconstruídos.
 
-A imagem foi construída e validada em Linux/Python 3.13: **27 testes aprovados** e demonstração rápida completa em **2,3 minutos**, incluindo a inicialização do container, sem usar os modelos já treinados da máquina. Evidência: `logs/docker_validacao.txt`.
+A imagem foi reconstruída sem cache a partir de um clone limpo e validada em Linux/Python 3.13: **29 testes aprovados** e demonstração rápida completa em **2,3 minutos**, incluindo a inicialização do container, sem usar os modelos já treinados da máquina. Evidência: `logs/docker_build.txt` e `logs/docker_validacao.txt`. A instalação do README para Windows (Python 3.12, venv novo) também foi refeita em clone limpo: 29 testes aprovados e `--quick` em 3,6 minutos. A saída é UTF-8 também fora do `make`, para que respostas com “≤” possam ser redirecionadas a arquivo no Windows.
 
 Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code, a revisão causal com Codex e a auditoria final com Claude Code (análise de faixas do IQAr e justificativa das fontes). O candidato deve conseguir explicar e modificar o código na entrevista.
 

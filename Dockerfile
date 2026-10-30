@@ -1,6 +1,7 @@
 # Ambiente reprodutível. Uso:
 #   docker build -t teste-ia .
-#   docker run --rm -it -v $PWD/data:/app/data -v $PWD/models:/app/models -p 8000:8000 teste-ia make all-sample
+#   docker run --rm -v "$PWD/models:/app/models" -v "$PWD/reports:/app/reports" teste-ia make all-sample
+# Não monte uma pasta data vazia em /app/data: ela esconderia a amostra incluída na imagem.
 FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

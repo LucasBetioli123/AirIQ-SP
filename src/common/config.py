@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import functools
 import os
+import sys
 from pathlib import Path
 
 import yaml
@@ -33,7 +34,15 @@ def load_env(path: Path | None = None) -> None:
         os.environ.setdefault(key, value)
 
 
+def utf8_stdio() -> None:
+    """Saída UTF-8 também sem make: no Windows, stdout redirecionado usa cp1252 e quebra em '≤'."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure") and (stream.encoding or "").lower().replace("-", "") != "utf8":
+            stream.reconfigure(encoding="utf-8")
+
+
 load_env()
+utf8_stdio()
 
 
 @functools.lru_cache(maxsize=1)

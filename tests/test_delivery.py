@@ -1,11 +1,13 @@
 """Regressões da revisão: causalidade, configuração e preservação da base normativa."""
 import json
 import os
+import subprocess
+import sys
 
 import pandas as pd
 import pytest
 
-from src.common.config import load_env
+from src.common.config import ROOT, load_env
 
 
 def test_dotenv_respects_exported_values_and_does_not_execute(tmp_path, monkeypatch):
@@ -20,6 +22,13 @@ def test_dotenv_respects_exported_values_and_does_not_execute(tmp_path, monkeypa
     assert os.environ["TEST_NEW"] == "texto com espaço"
     assert os.environ["TEST_LITERAL"] == "$(comando)"
     assert os.environ["TEST_EMPTY"] == ""
+
+
+def test_redirected_output_is_utf8_without_make():
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONIOENCODING", "PYTHONUTF8")}
+    out = subprocess.run([sys.executable, "-c", "import src.common.config; print('PM2.5 ≤ 15 µg/m³')"],
+                         cwd=ROOT, env=env, capture_output=True, check=True).stdout
+    assert out.decode("utf-8").strip() == "PM2.5 ≤ 15 µg/m³"
 
 
 @pytest.mark.parametrize("forecast", [False, True])

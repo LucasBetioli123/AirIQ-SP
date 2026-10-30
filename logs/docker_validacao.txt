@@ -1,8 +1,9 @@
-docker run --rm teste-ia:revisado python -m pytest -q
-...........................                                              [100%]
-27 passed in 5.81s
-elapsed_seconds 10.3
-docker run --rm teste-ia:revisado python -m src.aq.pipeline --quick
+docker run --rm teste-ia:entrega python -m pytest -q
+.............................                                            [100%]
+29 passed in 9.76s
+exit_code 0
+elapsed_seconds 167.2
+docker run --rm teste-ia:entrega python -m src.aq.pipeline --quick
 Demonstração rápida: os CSVs de teste versionados não serão recalculados.
 Executando src.aq.build_dataset --from-sample
 bases de treino copiadas da amostra para data/processed
@@ -40,5 +41,5 @@ Executando src.aq.cli --municipio Campinas --date 2022-10-11 --horizon 1
 Executando src.aq.maps --date 2022-10-11
 mapa salvo em /app/reports/figures/mapa_pm25_2022-10-11_h0.png | área por faixa: {'Boa': 0.9977, 'Moderada': 0.0023, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 15.6
 Pipeline concluído em 2.2 min
-elapsed_seconds 135.53
-CONCLUSAO: testes e pipeline rapido aprovados em container limpo.
+exit_code 0
+elapsed_seconds 137.1

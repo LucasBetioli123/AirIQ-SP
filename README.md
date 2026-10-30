@@ -39,7 +39,7 @@ Copy-Item .env.example .env
 Para uma demonstração rápida da Parte 1, com treino e calibração de produção,
 previsão de Campinas e um mapa, use `python -m src.aq.pipeline --quick` com o
 Python do ambiente (no Windows: `.venv\Scripts\python -m src.aq.pipeline --quick`).
-Foi validada em cerca de 2–3 minutos em container limpo nesta revisão e conserva as métricas de teste versionadas; o comando
+Foi validada em cerca de 2–3 minutos em container limpo e 3–4 minutos em clone limpo no Windows (notebook de referência); conserva as métricas de teste versionadas. O comando
 abaixo refaz também todas as validações e comparações.
 
 A Parte 1 inteira (amostra → benchmark → treino e calibração → avaliação, SHAP e mapas):
