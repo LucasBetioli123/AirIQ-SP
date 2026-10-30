@@ -10,6 +10,11 @@ Na revisão final também usei **Codex (OpenAI)** para auditar o atendimento ao 
 corrigir instalação/configuração e ingestão, retirar observações futuras das variáveis,
 acrescentar avaliação dos intervalos D+1 e fortalecer os testes e as checagens das ferramentas.
 O Codex executou novamente a modelagem, atualizou as evidências e a documentação e preparou a integração Git.
+Na auditoria final (30/10), voltei ao **Claude Code** para conferir a entrega item a item contra o
+enunciado e rodar os testes, a CLI e o agente. Ele também acrescentou a análise de faixas do IQAr
+(acurácia balanceada, detecção de dias acima de 25 µg/m³ e alerta pelo limite superior do IC),
+testou e descartou a variável de tendência D−1 na previsão D+1 e conferiu no catálogo do
+Planetary Computer a justificativa da troca do MAIAC.
 
 ## Onde e como a IA ajudou
 

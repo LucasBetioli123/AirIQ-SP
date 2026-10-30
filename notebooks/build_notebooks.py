@@ -57,6 +57,10 @@ NB2 = [
     "display(met('previsao_d1.csv')[['cenario','metodo','n','MAE','RMSE','R2','acerto_faixa_IQAr','ganho_MAE_vs_baseline_%']].round(3)); fig('previsao_d1.png')",
     "md:Previsão emitida ao fim de D com observações até D e calendário de D+1. Cobertura do intervalo de amanhã medida separadamente, fora da amostra:",
     "met('intervalos_d1.csv').round(3)",
+    "md:## Faixa do IQAr além do acerto bruto\n\n~90% dos dias são \"Boa\": prever sempre \"Boa\" já acerta ~90%. "
+    "Acurácia balanceada, F1 macro e sensibilidade acima de 25 µg/m³ mostram se os dias poluídos são detectados. "
+    "O alerta pelo limite superior do IC 90% é uma regra fixa, sem ajuste no teste.",
+    "display(met('faixas_iqar.csv').round(3)); met('faixas_iqar_confusao.csv')",
     "md:## Explicação (SHAP)",
     "display(met('shap_importancia.csv').head(15).round(4)); fig('shap_resumo.png'); fig('shap_dependencia.png')",
     "display(Markdown('Exemplo local (maior PM2.5 previsto na amostra de teste):')); met('shap_exemplo_local.csv')",

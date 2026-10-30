@@ -49,13 +49,28 @@ def main():
     retrieval = metric("rag_retrieval.csv")
     recortes = metric("benchmark_estimativa_recortes.csv")
     recortes = recortes[recortes.modelo.isin(["IDW (baseline)", "Krigagem ordinária", "LightGBM regularizado (offset IDW)"])]
+    far = recortes[recortes.grupo.eq("25-50 km")].set_index("modelo")["MAE"]
+    far_idw, far_model = far["IDW (baseline)"], far["LightGBM regularizado (offset IDW)"]
+    far_gain = 1 - far_model / far_idw
+    bands = metric("faixas_iqar.csv")
+    confusion = metric("faixas_iqar_confusao.csv")
+    share_boa = bands.loc[bands.tarefa.eq("estimativa D"), "acerto_sempre_Boa"].iloc[0]
+    band_row = lambda tarefa, metodo: bands[bands.tarefa.eq(tarefa) & bands.metodo.eq(metodo)].iloc[0]  # noqa: E731
+    sens, prec = "sensibilidade_>25", "precisao_>25"
+    d1a = "D+1 A) local com estação"
+    alert = "Alerta: limite superior do IC 90% > 25"
+    sens_est_model = band_row("estimativa D", "LightGBM regularizado (offset IDW)")[sens]
+    sens_est_idw = band_row("estimativa D", "IDW (baseline)")[sens]
+    sens_d1_model = band_row(d1a, "LightGBM reg. (offset IDW) D+1")[sens]
+    sens_d1_pers = band_row(d1a, "Persistência")[sens]
+    sens_alert_d1, prec_alert_d1 = band_row(d1a, alert)[sens], band_row(d1a, alert)[prec]
     report = f"""# Relatório técnico
 
 ## 1. Resultado e escopo
 
 Versão final de variáveis: **causal-spatial-aod-v2**. São {n_days} estação-dias de {d.location_id.nunique()} estações CETESB, entre {d.date.min().date()} e {d.date.max().date()}, no estado de São Paulo. Grade de 0,05° (~5,5 km).
 
-Na validação de estações não vistas e período posterior, o LightGBM regularizado com offset do IDW obteve **MAE {best.MAE:.2f} µg/m³, RMSE {best.RMSE:.2f} µg/m³ e R² {best.R2:.3f}**. O ganho de MAE sobre o IDW foi **{best['ganho_MAE_vs_baseline_%']:.2f}%**. O intervalo nominal de 90% para a estimativa diária teve cobertura empírica de **{cov.cobertura_real:.2%}**. A cobertura de D+1 é medida separadamente na seção 5.
+Na validação de estações não vistas e período posterior, o LightGBM regularizado com offset do IDW obteve **MAE {best.MAE:.2f} µg/m³, RMSE {best.RMSE:.2f} µg/m³ e R² {best.R2:.3f}**. O ganho de MAE sobre o IDW foi **{best['ganho_MAE_vs_baseline_%']:.2f}%**. O intervalo nominal de 90% para a estimativa diária teve cobertura empírica de **{cov.cobertura_real:.2%}**. A cobertura de D+1 é medida separadamente na seção 5. O ganho em MAE vem com uma ressalva, detalhada na seção 5.1: o modelo suaviza os episódios e detecta menos dias acima de 25 µg/m³ que o IDW e a persistência. Para alerta, o limite superior do intervalo é o sinal adequado.
 
 Não há feed atual: o produto é uma demonstração histórica. Uma emissão ao fim de D usa as agregações completas de D e produz a estimativa de D e a previsão de D+1. “Hoje/amanhã” no agente usam uma referência histórica explícita. A CLI recebe a data de referência; horizonte 1 significa data-alvo = referência + um dia.
 
@@ -65,10 +80,10 @@ O desafio recomenda 2019 em diante, mas permite recorte e fontes alternativos ju
 
 | Variável | Fonte utilizada | Justificativa |
 |---|---|---|
-| PM2.5 horário | CETESB via arquivo OpenAQ público no S3 | Alternativa anônima ao QUALAR, que exige login. Média diária só com pelo menos 18 h válidas |
-| AOD | GOES-16 ABI L2 AODF | Alternativa pública ao MAIAC; oito varreduras diurnas por dia e controle de qualidade DQF |
+| PM2.5 horário | CETESB via arquivo OpenAQ público no S3 | Mesmas estações da rede CETESB; o QUALAR exige cadastro e não tem API anônima. Média diária só com pelo menos 18 h válidas |
+| AOD | GOES-16 ABI L2 AODF | O MCD19A2 (MAIAC) não está no catálogo do Planetary Computer (conferido em 30/10/2026; há só outros produtos MODIS) e GEE/LP DAAC exigem conta. O GOES-16 é geoestacionário: oito varreduras diurnas por dia contra duas passagens MODIS, menos dias perdidos por nuvem; controle de qualidade DQF |
 | NO2 troposférico | Sentinel-5P TROPOMI, COG público MEEO/S3 | Sinal de tráfego/indústria e precursor de aerossol secundário; qa ≥ 0,75 |
-| Fogo e FRP | GOES-16 ABI L2 FDCF | Alternativa ao INPE, indisponível no ambiente inicial |
+| Fogo e FRP | GOES-16 ABI L2 FDCF | O BDQueimadas do INPE não respondia no ambiente inicial e agrega, entre outros, as detecções do próprio GOES-16. O FDCF fornece também a potência radiativa (FRP), usada no peso do fogo. O INPE voltou a responder na revisão; não troquei a fonte para não refazer as variáveis no fim do prazo |
 | Meteorologia | ERA5, espelho público NCAR/S3 | Vento, umidade, chuva, temperatura, nuvens e camada limite, sem chave CDS |
 | Uso do solo e relevo | ESA WorldCover 2021 e Copernicus DEM | Blocos públicos com leitura parcial |
 | Limite estadual e municípios | IBGE espelhado no GitHub | Mesmo recorte territorial, sem dependência do acesso inicial a gov.br |
@@ -117,6 +132,8 @@ Recortes por tempo e distância à estação de referência mais próxima:
 
 {table(recortes, ['recorte', 'grupo', 'modelo', 'n', 'MAE', 'estacoes'])}
 
+O ganho se concentra onde o problema pede: a 25–50 km da referência mais próxima, o MAE cai de {far_idw:.2f} (IDW) para {far_model:.2f} µg/m³ ({far_gain:.0%}). Perto das estações (< 25 km), o IDW já é difícil de bater e o modelo empata ou perde. Acima de 50 km há uma só estação, então o recorte não sustenta conclusão.
+
 Intervalos: quantis LightGBM em log, correção CQR por escores de calibração fora da estação (cross-fitting), comparados ao conformal do resíduo absoluto. A calibração usa somente o período anterior ao teste. Dependência espaço-temporal e cross-fitting impedem prometer a garantia exata do split conformal clássico; reporto a cobertura empírica.
 
 {table(intervals)}
@@ -148,6 +165,20 @@ Na revisão, a cobertura agregada foi **{d1_all.loc['A) local com estação', 'c
 {table(d1_intervals)}
 
 Em A, quantis e CQR são calibrados nas estações monitoradas no período de calibração. Em B, os escores vêm de cross-fitting interno entre estações de referência. O ponto e o intervalo usados na inferência pertencem ao mesmo cenário. `oof_previsao_d1.parquet`, gerado pelo treino, contém rótulos, previsões, limites e datas para auditoria das métricas.
+
+### 5.1 Acerto na faixa do IQAr: o número bruto engana
+
+{share_boa:.1%} dos estação-dias de teste estão na faixa Boa (≤ 25 µg/m³). Prever sempre “Boa” já acerta essa fração, então o acerto bruto de ~94% das tabelas acima diz pouco. A tabela abaixo (`faixas_iqar.csv`, mesmas linhas das tabelas anteriores) acrescenta acurácia balanceada, F1 macro e sensibilidade/precisão para dias acima de 25 µg/m³:
+
+{table(bands)}
+
+Matriz de confusão da estimativa do modelo escolhido (linhas = faixa medida, colunas = faixa estimada; `faixas_iqar_confusao.csv`):
+
+{table(confusion)}
+
+Leitura honesta: o modelo reduz o MAE, mas **suaviza os episódios**. Na estimativa, detecta {sens_est_model:.0%} dos dias acima de 25 µg/m³, contra {sens_est_idw:.0%} do IDW. Em D+1 a diferença cresce: {sens_d1_model:.0%} contra {sens_d1_pers:.0%} da persistência no cenário A. Ele erra menos para cima (precisão maior), mas deixa passar dias poluídos. Para alerta, o ponto central não deve ser usado sozinho. A regra fixa “limite superior do IC 90% acima de 25”, sem nenhum ajuste no teste, detecta {sens_alert_d1:.0%} dos dias poluídos em D+1 (cenário A), com precisão de {prec_alert_d1:.0%}. Ou seja, o intervalo carrega a informação de risco que o ponto central perde. Um limiar ou classificador de alerta calibrado fora do teste é o próximo passo natural.
+
+As faixas Moderada a Péssima seguem o Guia Técnico do MMA. A Res. CONAMA 491/2018 (Anexo IV) publica só a linha N1 – Boa (MP2,5 0–25 µg/m³). A Res. 506/2024 (Anexo II) reduziu essa faixa para 0–15 µg/m³ a partir de 9/7/2024. Os dados vão de 2021 a 2023, então as métricas usam corretamente a regra da 491. Uma consulta com data posterior a 2024 precisaria da faixa da 506.
 
 ## 6. Mapas e interfaces
 
@@ -181,12 +212,15 @@ Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da
 
 ## 8. Priorização, descartes e próximos passos
 
-- MAIAC/QUALAR/CDS/INPE foram substituídos por fontes públicas acessíveis no ambiente inicial, mantendo a natureza física dos sinais.
+- MAIAC/QUALAR/CDS/INPE foram substituídos por fontes públicas acessíveis no ambiente inicial, mantendo a natureza física dos sinais (justificativa por fonte na seção 2).
+- O modelo foi escolhido pelo MAE. Pelo critério de detecção de dias poluídos, o IDW e a persistência são melhores (seção 5.1). Não troquei o critério depois de ver o teste; registro o conflito e uso o intervalo para alerta.
 - Preenchimento com AOD de D+1 e meteorologia realizada de D+1 foram retirados para respeitar o horizonte de emissão.
+- Tendência do episódio no D+1 (PM2.5 e IDW de D−1, conhecidos ao fim de D) foi testada e descartada: piorou o MAE (A: 4,05 → 4,14; B: 4,47 → 4,54) e a detecção acima de 25 µg/m³. O experimento reproduz exatamente as linhas de base publicadas (`scripts/exp_tendencia_d1.py`, `logs/exp_tendencia_d1.txt`).
 - Alvos absolutos, redes neurais e variantes mais complexas permanecem no benchmark; o escolhido aprende a correção sobre o IDW. Ganhos pequenos ou negativos em alguns recortes são reportados.
 - Não foi implementado feed diário atual nem simulação da latência ERA5. Não apresento a demonstração histórica como monitoramento atual.
 - Não há avaliação em estados externos, garantia de cobertura nos extremos ou norma estadual paulista completa na base.
-- Próximos passos: mais estações e anos, fonte meteorológica disponível na emissão, previsão numérica opcional, peso nos extremos/altura de pluma, teste externo de RAG e calibração independente dos limiares.
+- As faixas do IQAr seguem a 491/2018 para todas as datas. Correto para 2021–2023, mas desatualizado após a 506/2024 (Boa ≤ 15 µg/m³).
+- Próximos passos: mais estações e anos, fonte meteorológica disponível na emissão, previsão numérica opcional, peso nos extremos/altura de pluma, limiar de alerta calibrado fora do teste, faixas do IQAr por data de vigência, teste externo de RAG e calibração independente dos limiares.
 
 ## 9. Engenharia, evidências e uso de IA
 
@@ -194,7 +228,7 @@ Dependências fixadas, Dockerfile e Makefile; pipeline portável com um comando,
 
 {docker_note}
 
-Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code e esta revisão com Codex. O candidato deve conseguir explicar e modificar o código na entrevista.
+Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code, a revisão causal com Codex e a auditoria final com Claude Code (análise de faixas do IQAr e justificativa das fontes). O candidato deve conseguir explicar e modificar o código na entrevista.
 
 **Pendências externas à implementação:** gravar o vídeo não listado de até dez minutos e inserir o link no README; conceder acesso aos avaliadores quando seus usuários do GitHub forem informados (o repositório é privado). O prazo de 72 horas conta do recebimento do desafio; o repositório não comprova essa data nem a entrega por e-mail.
 """
