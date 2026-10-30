@@ -1,0 +1,11 @@
+tarefa,metodo,n,acerto_faixa,acerto_sempre_Boa,acuracia_balanceada,f1_macro,n_obs_>25,sensibilidade_>25,precisao_>25
+estimativa D,IDW (baseline),7761,0.9434,0.9017,0.4893,0.4866,763,0.7851,0.7314
+estimativa D,Krigagem ordinária,7761,0.9401,0.9017,0.4434,0.4598,763,0.6802,0.7555
+estimativa D,LightGBM regularizado (offset IDW),7761,0.9437,0.9017,0.4439,0.4758,763,0.6225,0.8176
+estimativa D,Alerta: limite superior do IC 90% > 25,7859,,,,,763,0.9423,0.3796
+D+1 A) local com estação,Persistência,7373,0.9226,0.9036,0.5540,0.5560,711,0.6442,0.6370
+D+1 A) local com estação,LightGBM reg. (offset IDW) D+1,7373,0.9265,0.9036,0.3436,0.3750,711,0.3741,0.8261
+D+1 A) local com estação,Alerta: limite superior do IC 90% > 25,7373,,,,,711,0.9128,0.3342
+D+1 B) local sem estação,Persistência,7372,0.9109,0.9036,0.4207,0.4164,711,0.6273,0.5733
+D+1 B) local sem estação,LightGBM reg. (offset IDW) D+1,7372,0.9200,0.9036,0.3339,0.3517,711,0.3783,0.7060
+D+1 B) local sem estação,Alerta: limite superior do IC 90% > 25,7372,,,,,711,0.8889,0.2545

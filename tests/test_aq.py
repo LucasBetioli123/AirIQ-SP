@@ -12,6 +12,16 @@ def test_bands():
     assert list(band(np.array([5, 55]))) == ["Boa", "Ruim"]
 
 
+def test_band_metrics_expose_majority_class():
+    from src.aq.evaluate import band_metrics
+
+    # 9 dias "Boa" e 1 "Moderada": prever sempre 10 acerta 90% das faixas, mas não detecta o dia poluído
+    y = np.array([10.0] * 9 + [40.0])
+    m = band_metrics(y, np.full(10, 10.0))
+    assert m["acerto_faixa"] == 0.9 and m["acerto_sempre_Boa"] == 0.9
+    assert m["sensibilidade_>25"] == 0.0 and m["acuracia_balanceada"] == 0.5
+
+
 def test_legal_standard_by_date():
     assert legal_standard_24h("2017-01-01")["valor"] is None
     assert legal_standard_24h("2022-06-01")["valor"] == 60

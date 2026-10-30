@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.aq import plotstyle as ps
+from src.aq.aqi import LABELS, band
 from src.aq.modeling import EST_FEATURES, metrics, period_masks, with_lag
 from src.aq.predict import models
 from src.common.config import data_path, load_config
@@ -185,6 +186,54 @@ def episodes():
     plt.close(fig)
 
 
+def band_metrics(y, yhat, limiar: float = 25.0) -> dict:
+    """Faixa do IQAr além do acerto bruto: ~90% dos dias são "Boa", então acertar a faixa quase
+    sempre é fácil. Acurácia balanceada e F1 macro dão o mesmo peso a cada faixa; a sensibilidade
+    acima de `limiar` (fora da faixa Boa) mede se os dias poluídos são detectados."""
+    from sklearn.metrics import balanced_accuracy_score, f1_score
+
+    y, yhat = np.asarray(y, float), np.asarray(yhat, float)
+    yb, pb = band(y), band(yhat)
+    alto, prev_alto = y > limiar, yhat > limiar
+    return {"n": len(y), "acerto_faixa": float(np.mean(yb == pb)), "acerto_sempre_Boa": float(np.mean(yb == "Boa")),
+            "acuracia_balanceada": balanced_accuracy_score(yb, pb), "f1_macro": f1_score(yb, pb, average="macro"),
+            f"n_obs_>{limiar:g}": int(alto.sum()),
+            f"sensibilidade_>{limiar:g}": float(np.mean(prev_alto[alto])) if alto.any() else np.nan,
+            f"precisao_>{limiar:g}": float(np.mean(alto[prev_alto])) if prev_alto.any() else np.nan}
+
+
+def band_analysis():
+    """Acerto de faixa do IQAr da estimativa (mesmas linhas do benchmark) e da previsão D+1."""
+    oof = pd.read_parquet(data_path("processed", "oof_estimativa.parquet"))
+    cols = [c for c in oof.columns if c not in ("location_id", "name", "date", "lat", "lon", "pm25", "fold", "tfold",
+                                                "dist_ref_km", "faixa_dist")]
+    oof = oof[oof[cols].notna().all(axis=1)]
+    # alerta pelo limite superior do IC 90%: regra fixa, sem limiar ajustado no teste. Só as colunas
+    # de sensibilidade/precisão fazem sentido para ela.
+    alerta = "Alerta: limite superior do IC 90% > 25"
+    only_alert = lambda y, hi: {k: (v if k.startswith(("n", "sens", "prec")) else np.nan)  # noqa: E731
+                                for k, v in band_metrics(y, hi).items()}
+    rows = [{"tarefa": "estimativa D", "metodo": c, **band_metrics(oof["pm25"], oof[c])}
+            for c in ["IDW (baseline)", "Krigagem ordinária", BEST]]
+    iv = pd.read_parquet(data_path("processed", "oof_intervalos.parquet"))
+    rows.append({"tarefa": "estimativa D", "metodo": alerta, **only_alert(iv["pm25"], iv["cqr_hi"])})
+    fc = pd.read_parquet(data_path("processed", "oof_previsao_d1.parquet"))
+    for cen, g in fc.groupby("cenario"):
+        g = g.dropna(subset=["pm25", "pred", "pers"])
+        rows += [{"tarefa": f"D+1 {cen}", "metodo": "Persistência", **band_metrics(g["pm25"], g["pers"])},
+                 {"tarefa": f"D+1 {cen}", "metodo": "LightGBM reg. (offset IDW) D+1", **band_metrics(g["pm25"], g["pred"])},
+                 {"tarefa": f"D+1 {cen}", "metodo": alerta, **only_alert(g["pm25"], g["cqr_hi"])}]
+    tab = pd.DataFrame(rows)
+    tab.to_csv(data_path("metrics", "faixas_iqar.csv"), index=False, float_format="%.4f")
+    # matriz de confusão do modelo escolhido (linhas = faixa medida, colunas = faixa estimada)
+    conf = pd.crosstab(pd.Series(band(oof["pm25"].values), name="medida"),
+                       pd.Series(band(oof[BEST].values), name="estimada")).reindex(index=LABELS, columns=LABELS,
+                                                                                  fill_value=0)
+    conf.to_csv(data_path("metrics", "faixas_iqar_confusao.csv"))
+    print(tab.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+    print(conf)
+
+
 def fig_forecast():
     t = pd.read_csv(data_path("metrics", "previsao_d1.csv"))
     t = t[t["recorte"] == "todos"].reset_index(drop=True)
@@ -210,6 +259,7 @@ def main():
     fig_forecast()
     shap_analysis()
     episodes()
+    band_analysis()
 
 
 if __name__ == "__main__":
