@@ -7,7 +7,7 @@ Desafio técnico em duas partes: estimativa diária e previsão D+1 de PM2.5 com
 - [Relatório técnico, resultados e limitações](RELATORIO.md)
 - [Declaração de uso de IA](USO_DE_IA.md)
 - [Roteiro da demonstração de até 10 minutos](ROTEIRO_VIDEO.md)
-- **Vídeo não listado: gravação pendente; o candidato adicionará o link aqui antes do envio.**
+- **[Vídeo da demonstração (Google Drive)](https://drive.google.com/drive/folders/1ioA668pdpdsJLnhFVnPsL0xXMWZbz86d?usp=sharing)**
 
 ## Instalação e máquina
 

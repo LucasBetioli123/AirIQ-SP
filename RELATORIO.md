@@ -1,5 +1,7 @@
 # Relatório técnico
 
+Vídeo da demonstração: [Google Drive](https://drive.google.com/drive/folders/1ioA668pdpdsJLnhFVnPsL0xXMWZbz86d?usp=sharing)
+
 ## 1. Resultado e escopo
 
 Versão final de variáveis: **causal-spatial-aod-v2**. São 11.543 estação-dias de 30 estações CETESB, entre 2021-01-13 e 2023-04-04, no estado de São Paulo. Grade de 0,05° (~5,5 km).
