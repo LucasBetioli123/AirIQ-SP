@@ -106,6 +106,40 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
 .inputrow button:disabled { opacity: .5; cursor: default; }
 .ptnote { font-size: 13px; color: var(--text-secondary); background: var(--accent-bg); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; }
 @media (max-width: 820px) { .agent { grid-template-columns: 1fr; } .qlist { max-height: 260px; } .chat { min-height: 480px; } }
+.citybar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+.citybar input, .citybar select { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+.citybar input { min-width: 220px; flex: 1 1 220px; max-width: 320px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; padding: 7px 12px; border: 0; background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--s1); color: #fff; }
+.daynav { display: inline-flex; align-items: center; gap: 6px; }
+.daynav button { font: inherit; font-size: 14px; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
+.daynav input[type=range] { width: 160px; min-width: 0; padding: 0; border: 0; background: none; }
+.daylabel { font-size: 13px; color: var(--text-secondary); min-width: 120px; }
+.citycard .big { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.citycard .big small { font-size: 16px; font-weight: 500; color: var(--text-secondary); }
+.band { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #111; margin: 6px 0; }
+.facts { list-style: none; padding: 0; margin: 8px 0 0; font-size: 14px; color: var(--text-secondary); }
+.facts li { padding: 4px 0; border-top: 1px solid var(--border); }
+.facts b { color: var(--text-primary); font-weight: 600; }
+.caveat { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); margin-right: 5px; vertical-align: -1px; }
+@media (max-width: 820px) { #cmap { height: 360px; } .citybar input { max-width: none; } .daynav input[type=range] { width: 110px; } }
+.tt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 4px; }
+.tt > div { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.tt > div[aria-pressed="true"] { border-color: var(--s1); box-shadow: inset 0 0 0 1px var(--s1); }
+.tt .lbl { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.tt .v { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.tt .v small { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.tt .rng { font-size: 12px; color: var(--text-secondary); }
+.tt .chk { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.addbtn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--s1); background: none; color: var(--s1); cursor: pointer; margin-top: 8px; }
+.addbtn:disabled { opacity: .5; cursor: default; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 4px 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-0); }
+.chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
+.chip button { font: inherit; border: 0; background: none; color: var(--text-muted); cursor: pointer; padding: 0 6px; font-size: 15px; line-height: 1; }
 </style>
 </head>
 <body>
@@ -119,6 +153,7 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
   </div>
   <p data-i="intro"></p>
   <div class="links">
+    <a class="cta" href="#city" data-i="trycity"></a>
     <a class="cta" href="#agent" data-i="try"></a>
     <a class="btn" href="https://github.com/LucasBetioli123/AirIQ-SP" data-i="code"></a>
     <a class="btn" href="https://github.com/LucasBetioli123/AirIQ-SP/blob/main/docs/TECHNICAL_DETAILS.md" data-i="deep"></a>
@@ -134,6 +169,24 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
   <div class="card"><h3 data-i="c_series"></h3>
     <div class="row"><label for="station" data-i="station"></label><select id="station"></select></div>
     <div id="series" class="chart tall"></div></div>
+</div>
+
+<h2 id="city" data-i="hc"></h2>
+<p class="lead" data-i="lc"></p>
+<div class="citybar">
+  <input id="cityin" list="citylist" autocomplete="off" data-ph="city_ph" aria-label="City">
+  <datalist id="citylist"></datalist>
+  <select id="cwin" aria-label="Period"></select>
+  <span class="daynav"><button type="button" id="cprev" aria-label="Previous day">‹</button><input type="range" id="cday" min="0" max="0" value="0" aria-label="Day"><button type="button" id="cnext" aria-label="Next day">›</button><button type="button" id="cplay" aria-label="Play">▶</button></span>
+  <span class="seg" role="group"><button type="button" data-h="0" data-i="today"></button><button type="button" data-h="1" data-i="tomorrow"></button></span>
+</div>
+<div class="grid">
+  <div class="card"><h3 id="cmaptitle"></h3><p data-i="cmap_s"></p><div id="cmap" class="chart tall"></div><div class="legend" id="clegend"></div></div>
+  <div class="card citycard"><div id="ccard"></div><p class="caveat" data-i="caveat"></p></div>
+</div>
+<div class="grid" style="margin-top:16px">
+  <div class="card"><h3 data-i="cmp_t"></h3><p id="cmp_s"></p><div class="chips" id="cchips"></div><div id="cchart" class="chart"></div></div>
+  <div class="card"><h3 id="rank_t"></h3><p data-i="rank_s"></p><div id="crank" class="chart"></div></div>
 </div>
 
 <h2 data-i="h2"></h2>
@@ -187,24 +240,24 @@ const I18N = {
   en: {
     tag: 'Air quality × AI',
     intro: 'Daily PM2.5 estimated and forecast for the whole state of São Paulo, Brazil, from satellite data, weather reanalysis and 30 monitoring stations, with a calibrated confidence interval. A local AI agent answers questions about environmental regulations and queries the model, always citing its source.',
-    try: '▶ Ask the AI agent', code: 'Code on GitHub', deep: 'Technical deep dive',
+    trycity: '🗺️ Check your city', try: '▶ Ask the AI agent', code: 'Code on GitHub', deep: 'Technical deep dive',
     k_mae: 'mean error on never-seen stations', k_far: 'error at 25–50 km from stations vs. IDW', k_cov: 'real coverage of the 90% interval',
     k_acc: 'agent accuracy on answerable questions', k_ref: 'correct refusals out of scope', k_cost: 'per query: local LLM on CPU', k_cost_v: '$0',
     h1: '1. Where air is measured, and how it varies',
     l1: 'Only 30 stations for a state of 248,000 km². Click a station on the map (or pick one from the list) to see its daily series. The August–October peaks match the wildfire season.',
     c_map: 'CETESB stations used for training', c_map_s: 'Color = mean PM2.5 · size = % of days above 25 µg/m³ · click to see the series',
     c_series: 'Measured daily PM2.5', station: 'Station:',
-    h2: '2. The model beats classic methods where it matters',
+    h2: '3. The model beats classic methods where it matters',
     l2: 'Honest validation: the tested station is held out of training <em>and</em> the test period comes after training. LightGBM learns a correction on top of IDW interpolation using satellite data (AOD, NO₂, fire detections), weather, land use and terrain.',
     c_bench: 'Mean absolute error by model (µg/m³, lower is better)', c_bench_s: 'Blue = chosen model · gray = classic reference methods',
     c_dist: 'Error by distance to the nearest station', c_dist_s: 'Far from stations, which is where a map is useful, error drops 31% vs. IDW',
-    h3: '3. Calibrated uncertainty and next-day forecast',
+    h3: '4. Calibrated uncertainty and next-day forecast',
     l3: 'Every estimate comes with a 90% interval calibrated by <em>Conformalized Quantile Regression</em> (CQR). The next-day forecast only uses data available at the end of the issue day, with no information from the future.',
     c_cov: 'Real coverage of the 90% interval', c_cov_s: 'Share of days where the measured value fell inside the interval',
     c_fc: 'Next-day forecast: model × persistence', c_fc_s: 'Persistence = "tomorrow will be like today", the hardest baseline to beat',
     c_alert: 'Detecting polluted days (&gt; 25 µg/m³)', c_alert_s: 'The point estimate smooths peaks; alerting on the interval\'s upper bound recovers detection',
     c_shap: 'What the model learned (SHAP)', c_shap_s: 'Mean feature importance in the correction over IDW',
-    h4: '4. RAG agent for environmental regulations',
+    h4: '5. RAG agent for environmental regulations',
     l4: 'Seven Brazilian federal regulations (CONAMA 491/2018, 506/2024 and others) split by article, item and table row. Search combines BM25 and embeddings; a reranker decides when to <strong>refuse</strong>. Everything runs locally on CPU, at zero API cost.',
     c_ret: 'Retrieval: does it find the right passage?', c_ret_s: '30 questions with a hand-annotated gold passage',
     c_rag: 'End-to-end agent evaluation', c_rag_s: '36 questions: facts, temporal validity, multi-passage, tool use and questions with no answer in the base',
@@ -221,24 +274,24 @@ const I18N = {
   pt: {
     tag: 'Qualidade do ar × IA',
     intro: 'PM2.5 diário estimado e previsto para todo o estado de São Paulo a partir de satélite, reanálise meteorológica e 30 estações da CETESB, com intervalo de confiança calibrado. Um agente de IA local responde perguntas sobre normas ambientais e consulta o modelo, sempre citando a fonte.',
-    try: '▶ Pergunte ao agente de IA', code: 'Código no GitHub', deep: 'Detalhes técnicos (EN)',
+    trycity: '🗺️ Veja a sua cidade', try: '▶ Pergunte ao agente de IA', code: 'Código no GitHub', deep: 'Detalhes técnicos (EN)',
     k_mae: 'erro médio em estações nunca vistas', k_far: 'de erro a 25–50 km das estações vs. IDW', k_cov: 'cobertura real do intervalo de 90%',
     k_acc: 'de acerto do agente nas perguntas respondíveis', k_ref: 'de recusa correta fora da base', k_cost: 'por consulta: LLM local em CPU', k_cost_v: 'US$ 0',
     h1: '1. Onde o ar é medido e como ele varia',
     l1: 'São só 30 estações para um estado de 248 mil km². Clique numa estação no mapa (ou escolha na lista) para ver a série diária. Os picos de agosto–outubro coincidem com a temporada de queimadas.',
     c_map: 'Estações CETESB usadas no treino', c_map_s: 'Cor = PM2.5 médio · tamanho = % de dias acima de 25 µg/m³ · clique para ver a série',
     c_series: 'PM2.5 diário medido', station: 'Estação:',
-    h2: '2. O modelo bate os métodos clássicos onde importa',
+    h2: '3. O modelo bate os métodos clássicos onde importa',
     l2: 'Validação honesta: a estação testada fica fora do treino <em>e</em> o período de teste é posterior ao de treino. O LightGBM aprende uma correção sobre a interpolação IDW usando satélite (AOD, NO₂, focos de fogo), meteorologia, uso do solo e relevo.',
     c_bench: 'Erro médio absoluto por modelo (µg/m³, menor é melhor)', c_bench_s: 'Azul = modelo escolhido · cinza = métodos clássicos de referência',
     c_dist: 'Erro por distância até a estação mais próxima', c_dist_s: 'Longe das estações, que é onde um mapa é útil, o erro cai 31% em relação ao IDW',
-    h3: '3. Incerteza calibrada e previsão para amanhã',
+    h3: '4. Incerteza calibrada e previsão para amanhã',
     l3: 'Cada estimativa vem com um intervalo de 90% calibrado por <em>Conformalized Quantile Regression</em> (CQR). A previsão D+1 usa apenas dados disponíveis até o fim do dia de emissão, sem nenhuma informação do futuro.',
     c_cov: 'Cobertura real do intervalo de 90%', c_cov_s: 'Fração dos dias em que o valor medido caiu dentro do intervalo',
     c_fc: 'Previsão D+1: modelo × persistência', c_fc_s: 'Persistência = “amanhã será igual a hoje”, o baseline mais difícil de bater',
     c_alert: 'Detecção de dias poluídos (&gt; 25 µg/m³)', c_alert_s: 'O ponto central suaviza picos; usar o limite superior do intervalo como alerta recupera a detecção',
     c_shap: 'O que o modelo aprendeu (SHAP)', c_shap_s: 'Importância média das variáveis na correção sobre o IDW',
-    h4: '4. Agente RAG de normas ambientais',
+    h4: '5. Agente RAG de normas ambientais',
     l4: 'Sete normas federais (CONAMA 491/2018, 506/2024 e outras) divididas por artigo, inciso e linha de tabela. A busca combina BM25 e embeddings; um reranker decide quando <strong>recusar</strong>. Tudo roda localmente em CPU, com custo zero de API.',
     c_ret: 'Recuperação: acerta o trecho certo?', c_ret_s: '30 perguntas com o trecho-ouro anotado à mão',
     c_rag: 'Avaliação ponta a ponta do agente', c_rag_s: '36 perguntas: fatos, vigência, composição de trechos, ferramentas e perguntas sem resposta na base',
@@ -426,6 +479,7 @@ function rag() {
 function renderAll() {
   texts(); kpis(); map(); bench(); dist(); cov(); fc(); alertChart(); shap(); ret(); rag(); series(current || sel.value);
   if (window.agentTexts) agentTexts();
+  if (window.cityTexts) cityTexts();
 }
 const sel = document.getElementById('station');
 Object.keys(D.series).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(n => sel.add(new Option(n, n)));
@@ -446,7 +500,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll)
 // A static page cannot run the 4B LLM, so each recorded run is animated step by step (sped up) and
 // labeled as a replay, with the original CPU time.
 Object.assign(I18N.en, {
-  h5: '5. Ask the agent',
+  h5: '6. Ask the agent',
   l5: 'Pick a question (or search) and watch the agent plan, search the regulations, call the PM2.5 model, write the answer and validate every number. These are real answers produced by the local Qwen3-4B model and recorded in the evaluation log.',
   ptnote: '🇧🇷 The regulations are Brazilian federal law, so questions, answers and legal passages are in <strong>Portuguese</strong>. That is part of the challenge: multilingual retrieval over real legal text.',
   chat_title: 'AirIQ agent · Qwen3-4B (local, CPU)', replay_badge: 'replay of recorded runs · sped up', send: 'Send',
@@ -461,7 +515,7 @@ Object.assign(I18N.en, {
   m_tok: '{t} tokens', m_cost: 'cost US$ 0', passages: 'Cited legal passages ({n})', expected: 'Expected answer (answer key): '
 });
 Object.assign(I18N.pt, {
-  h5: '5. Pergunte ao agente',
+  h5: '6. Pergunte ao agente',
   l5: 'Escolha uma pergunta (ou busque) e veja o agente planejar, buscar nas normas, chamar o modelo de PM2.5, escrever a resposta e validar cada número. São respostas reais do Qwen3-4B local, gravadas no log da avaliação.',
   ptnote: '🇧🇷 As normas são leis federais brasileiras, por isso perguntas, respostas e trechos de lei estão em <strong>português</strong>.',
   chat_title: 'Agente AirIQ · Qwen3-4B (local, CPU)', replay_badge: 'replay de execuções gravadas · acelerado', send: 'Enviar',
@@ -556,6 +610,210 @@ $('askform').addEventListener('submit', e => {
   if (hit) replay(hit); else { user(q); bot(`<div>${esc(t_('nomatch'))}</div>`); }
 });
 agentTexts();
+</script>
+<script>
+// "Air quality in any city": precomputed model estimates (scripts/build_city_maps.py) for the
+// sample's historical windows. Every value comes with its 90% interval and the distance to the
+// nearest monitoring station; the forecast can be checked against what the stations measured.
+Object.assign(I18N.en, {
+  hc: '2. Air quality in any city, today and tomorrow',
+  lc: 'The model estimates PM2.5 for all 645 municipalities, including the ones with no monitoring station. Hover anywhere on the map to see the nearest city, click to select it, scroll to zoom, compare cities, or press ▶ to watch the August 2021 wildfire smoke spread over the state.',
+  city_ph: 'Search a city (e.g. Presidente Prudente)', today: 'Today (estimate)', tomorrow: 'Tomorrow (forecast)',
+  cmap_s: 'Colors follow Brazil’s air-quality index (IQAr) bands · dots = municipalities (click one) · circles = what the stations measured · ★ = selected · scroll to zoom, double-click to reset',
+  map_est: 'Map: estimate for {d}', map_fc: 'Map: forecast for {d} (issued {i})',
+  b_Boa: 'Good', b_Moderada: 'Moderate', b_Ruim: 'Poor', 'b_Muito Ruim': 'Very poor', b_Péssima: 'Hazardous',
+  lbl_today: 'Today · {d}', lbl_tom: 'Tomorrow · {d}', rng: '90% interval: {lo}–{hi}', likely: 'most likely',
+  st_meas: 'Nearest station ({s}, {k} km) measured {v} µg/m³', no_meas: '',
+  nearest: 'Nearest monitoring station: <b>{k} km</b> away', far: ' · beyond 50 km the test set had a single station, so the real error here is less known and may be larger',
+  std: 'Brazil’s 24 h standard in force then (CONAMA 491, PI-1): <b>60 µg/m³</b> · final target (PF): <b>25 µg/m³</b>',
+  above_pf: 'Above the final target of 25 µg/m³, even at the low end of the interval', below_pf: 'Below the final target of 25 µg/m³, even at the high end of the interval',
+  cross_pf: 'The interval includes 25 µg/m³ (the final target), so the day may be on either side of it',
+  typical: 'Average error measured on the test set: <b>{e} µg/m³</b> for the same-day estimate and <b>{f} µg/m³</b> for the next-day forecast at sites without a station',
+  add: '+ Compare this city', added: '✓ In the comparison', near_city: 'Nearest city', tom: 'tomorrow',
+  cmp_t: 'Compare cities over the period', cmp_s_est: 'Same-day estimates · band = 90% interval of the selected city · up to 4 cities', cmp_s_fc: 'Next-day forecasts · band = 90% interval of the selected city · up to 4 cities',
+  rank_t: 'Highest estimates on {d}', rank_s: 'Top 10 municipalities by model estimate · whiskers are 90% intervals and they overlap, so the order is approximate · click a bar to select the city',
+  measured: 'measured', caveat: 'Model estimates for historical dates (2021–2023) in the periods covered by the public data sample. Not official measurements and not a real-time service.',
+  win0: 'Aug 2021 · wildfire smoke', win1: 'Sep 2022', win2: 'Oct 2022', win3: 'Nov 2022', win4: 'Mar–Apr 2023'
+});
+Object.assign(I18N.pt, {
+  hc: '2. Qualidade do ar em qualquer cidade, hoje e amanhã',
+  lc: 'O modelo estima o PM2.5 nos 645 municípios, inclusive nos que não têm estação de medição. Passe o mouse em qualquer ponto do mapa para ver a cidade mais próxima, clique para selecioná-la, use a roda do mouse para dar zoom, compare cidades ou aperte ▶ para ver a fumaça das queimadas de agosto de 2021 se espalhar pelo estado.',
+  city_ph: 'Busque uma cidade (ex.: Presidente Prudente)', today: 'Hoje (estimativa)', tomorrow: 'Amanhã (previsão)',
+  cmap_s: 'Cores das faixas do Índice de Qualidade do Ar (IQAr) · pontos = municípios (clique em um) · círculos = o que as estações mediram · ★ = selecionada · roda do mouse para zoom, duplo clique para voltar',
+  map_est: 'Mapa: estimativa para {d}', map_fc: 'Mapa: previsão para {d} (emitida em {i})',
+  b_Boa: 'Boa', b_Moderada: 'Moderada', b_Ruim: 'Ruim', 'b_Muito Ruim': 'Muito ruim', b_Péssima: 'Péssima',
+  lbl_today: 'Hoje · {d}', lbl_tom: 'Amanhã · {d}', rng: 'intervalo de 90%: {lo}–{hi}', likely: 'mais provável',
+  st_meas: 'A estação mais próxima ({s}, a {k} km) mediu {v} µg/m³', no_meas: '',
+  nearest: 'Estação de medição mais próxima: a <b>{k} km</b>', far: ' · acima de 50 km o teste teve só uma estação, então o erro real aqui é menos conhecido e pode ser maior',
+  std: 'Padrão nacional de 24 h vigente na época (CONAMA 491, PI-1): <b>60 µg/m³</b> · meta final (PF): <b>25 µg/m³</b>',
+  above_pf: 'Acima da meta final de 25 µg/m³, mesmo no limite inferior do intervalo', below_pf: 'Abaixo da meta final de 25 µg/m³, mesmo no limite superior do intervalo',
+  cross_pf: 'O intervalo inclui 25 µg/m³ (a meta final), então o dia pode estar de qualquer um dos lados',
+  typical: 'Erro médio medido no teste: <b>{e} µg/m³</b> na estimativa do dia e <b>{f} µg/m³</b> na previsão de amanhã em locais sem estação',
+  add: '+ Comparar esta cidade', added: '✓ Na comparação', near_city: 'Cidade mais próxima', tom: 'amanhã',
+  cmp_t: 'Compare cidades ao longo do período', cmp_s_est: 'Estimativas do dia · faixa = intervalo de 90% da cidade selecionada · até 4 cidades', cmp_s_fc: 'Previsões para o dia seguinte · faixa = intervalo de 90% da cidade selecionada · até 4 cidades',
+  rank_t: 'Maiores estimativas em {d}', rank_s: 'As 10 cidades com maior estimativa do modelo · as linhas são intervalos de 90% e se sobrepõem, então a ordem é aproximada · clique numa barra para selecionar',
+  measured: 'medido', caveat: 'Estimativas do modelo para datas históricas (2021–2023) nos períodos cobertos pela amostra pública de dados. Não são medições oficiais nem um serviço em tempo real.',
+  win0: 'ago/2021 · fumaça das queimadas', win1: 'set/2022', win2: 'out/2022', win3: 'nov/2022', win4: 'mar–abr/2023'
+});
+const BANDC = [['Boa', 25, '#3fae5a'], ['Moderada', 50, '#f2c94c'], ['Ruim', 75, '#f2994a'], ['Muito Ruim', 125, '#eb5757'], ['Péssima', 1e9, '#9b51e0']];
+const bandOf = v => BANDC.find(b => v <= b[1]);
+const ZMAX = 150, BANDSCALE = (() => { const s = []; let lo = 0;
+  for (const [, hi, c] of BANDC) { const h = Math.min(hi, ZMAX) / ZMAX; s.push([lo, c], [h, c]); lo = h; } return s; })();
+const CMPC = () => { const t = T(); return [t.s1, t.s2, t.s3, '#c98500']; };
+const CM = { meta: null, days: {}, city: null, cmp: [], win: 0, day: 0, h: 0, timer: null, near: null, stNear: {} };
+const cnorm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const fmtDate = d => new Date(d + 'T12:00:00').toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const addDay = d => { const t = new Date(d + 'T12:00:00'); t.setDate(t.getDate() + 1); return t.toISOString().slice(0, 10); };
+const winDates = () => CM.meta.dates.filter(d => d >= CM.meta.windows[CM.win][0] && d <= CM.meta.windows[CM.win][1]);
+const curDate = () => winDates()[CM.day];
+const KX = Math.cos(22.5 * Math.PI / 180);
+async function dayData(d) { if (!CM.days[d]) CM.days[d] = await (await fetch(`maps/${d}.json`)).json(); return CM.days[d]; }
+function nearestCity(lon, lat) { let best = 0, bd = 1e9; CM.meta.cities.forEach((c, i) => { const d = ((c.lon - lon) * KX) ** 2 + (c.lat - lat) ** 2; if (d < bd) { bd = d; best = i; } }); return best; }
+
+function cityTexts() {
+  if (!CM.meta) return;
+  const w = $('cwin'), keep = CM.win; w.innerHTML = CM.meta.windows.map((_, i) => `<option value="${i}">${t_('win' + i)}</option>`).join(''); w.value = keep;
+  document.querySelectorAll('[data-h]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.h === CM.h)));
+  $('clegend').innerHTML = BANDC.map(([b, , c]) => `<span style="--c:${c}">${t_('b_' + b)}</span>`).join('');
+  cityRender();
+}
+
+function setMode(h) { CM.h = h; document.querySelectorAll('[data-h]').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.h === h))); cityRender(); }
+
+async function cityRender() {
+  if (!CM.meta) return;
+  const t = T(), m = CM.meta, d = curDate(), dd = await dayData(d), fc = CM.h === 1, target = fc ? addDay(d) : d, i = m.dates.indexOf(d);
+  $('cday').max = winDates().length - 1; $('cday').value = CM.day;
+  $('cmaptitle').textContent = fill(t_(fc ? 'map_fc' : 'map_est'), { d: fmtDate(target), i: fmtDate(d) });
+  // map: band-colored grid; hover shows the nearest city with today and tomorrow
+  const nx = m.lons.length, z = m.lats.map(() => new Array(nx).fill(null)), cd = m.lats.map(() => new Array(nx).fill(null));
+  const vals = fc ? dd.grid_fc : dd.grid;
+  m.inside.forEach((k, j) => { const v = vals[j]; if (v == null) return; const r = Math.floor(k / nx), c = k % nx;
+    z[r][c] = Math.min(v / 10, ZMAX); const ci = m.cities[CM.near[j]];
+    cd[r][c] = [ci.name, (dd.grid[j] ?? NaN) / 10, (dd.grid_fc[j] ?? NaN) / 10]; });
+  const measured = fc ? dd.obs_next : dd.obs, st = m.stations.filter(s => measured[s.name] != null), c = CM.city;
+  const today = m.cities.map(x => x.pm[i]), tom = m.cities.map(x => x.fpm[i]);
+  Plotly.react('cmap', [
+    { type: 'heatmap', x: m.lons, y: m.lats, z, customdata: cd, zmin: 0, zmax: ZMAX, colorscale: BANDSCALE, showscale: false, hoverongaps: false,
+      hovertemplate: `${t_('near_city')}: <b>%{customdata[0]}</b><br>${t_('today').split(' (')[0]}: %{customdata[1]:.0f} µg/m³ · ${t_('tom')}: %{customdata[2]:.0f} µg/m³<extra></extra>` },
+    { type: 'scatter', mode: 'lines', x: D.outline.lon, y: D.outline.lat, line: { color: t.text2, width: 1 }, hoverinfo: 'skip', showlegend: false },
+    { type: 'scatter', mode: 'markers', x: m.cities.map(x => x.lon), y: m.cities.map(x => x.lat), text: m.cities.map(x => x.name),
+      customdata: m.cities.map((x, k) => [today[k], tom[k], fc ? x.flo[i] : x.lo[i], fc ? x.fhi[i] : x.hi[i]]), showlegend: false,
+      marker: { size: 5, color: 'rgba(255,255,255,0.85)', line: { color: 'rgba(0,0,0,0.45)', width: 0.6 } },
+      hovertemplate: `<b>%{text}</b><br>${t_('today').split(' (')[0]}: %{customdata[0]:.0f} µg/m³ · ${t_('tom')}: %{customdata[1]:.0f} µg/m³<br>90%: %{customdata[2]:.0f}–%{customdata[3]:.0f}<extra></extra>` },
+    { type: 'scatter', mode: 'markers', x: st.map(s => s.lon), y: st.map(s => s.lat), text: st.map(s => s.name),
+      customdata: st.map(s => measured[s.name]), showlegend: false,
+      marker: { size: 10, color: st.map(s => bandOf(measured[s.name])[2]), line: { color: '#111', width: 1.2 } },
+      hovertemplate: `<b>%{text}</b> (CETESB)<br>${t_('measured')}: %{customdata:.1f} µg/m³<extra></extra>` },
+    { type: 'scatter', mode: 'markers', x: [c.lon], y: [c.lat], text: [c.name], showlegend: false,
+      marker: { symbol: 'star', size: 20, color: '#fff', line: { color: '#111', width: 1.5 } }, hovertemplate: '<b>%{text}</b><extra></extra>' }
+  ], L({ margin: { l: 0, r: 0, t: 0, b: 0 }, dragmode: 'pan', hovermode: 'closest', uirevision: 'keep',
+    xaxis: { visible: false, range: [-53.3, -44] },
+    yaxis: { visible: false, range: [-25.5, -19.6], scaleanchor: 'x', scaleratio: 1 / KX } }), Object.assign({}, cfg, { scrollZoom: true }));
+  bindCityClick();
+  cityCard(dd, i, d);
+  cityCompare(i);
+  cityRank(i, fc, target);
+  const nd = winDates()[CM.day + 1]; if (nd) dayData(nd);
+}
+
+function cityCard(dd, i, d) {
+  const c = CM.city, sn = CM.stNear[c.name];
+  const box = (h, pm, lo, hi, label, meas) => { const b = bandOf(pm);
+    return `<div role="button" tabindex="0" data-box="${h}" aria-pressed="${CM.h === h}"><div class="lbl">${esc(label)}</div>` +
+      `<div class="v">${pm.toFixed(0)} <small>µg/m³</small></div><span class="band" style="background:${b[2]}">${esc(t_('likely'))}: ${esc(t_('b_' + b[0]))}</span>` +
+      `<div class="rng">${esc(fill(t_('rng'), { lo: lo.toFixed(0), hi: hi.toFixed(0) }))}</div>` +
+      (meas != null ? `<div class="chk">${esc(fill(t_('st_meas'), { v: meas.toFixed(0), s: sn, k: Math.round(c.dist_km) }))}</div>` : '') + '</div>'; };
+  const pm = CM.h ? c.fpm[i] : c.pm[i], lo = CM.h ? c.flo[i] : c.lo[i], hi = CM.h ? c.fhi[i] : c.hi[i];
+  const est = D.benchmark.find(r => r.modelo.startsWith('LightGBM regularizado (offset')).MAE;
+  const fcm = D.forecast.find(r => r.cenario.startsWith('B') && /LightGBM/.test(r.metodo)).MAE;
+  const inCmp = CM.cmp.includes(c.name);
+  $('ccard').innerHTML = `<h3>${esc(c.name)}</h3><div class="tt">` +
+    box(0, c.pm[i], c.lo[i], c.hi[i], fill(t_('lbl_today'), { d: fmtDate(d) }), dd.obs[sn]) +
+    box(1, c.fpm[i], c.flo[i], c.fhi[i], fill(t_('lbl_tom'), { d: fmtDate(addDay(d)) }), dd.obs_next[sn]) + '</div>' +
+    `<ul class="facts"><li>${t_(lo > 25 ? 'above_pf' : hi < 25 ? 'below_pf' : 'cross_pf')}</li>` +
+    `<li>${fill(t_('nearest'), { k: Math.round(c.dist_km) })}${c.dist_km > 50 ? esc(t_('far')) : ''}</li>` +
+    `<li>${t_('std')}</li><li>${fill(t_('typical'), { e: est.toFixed(1), f: fcm.toFixed(1) })}</li></ul>` +
+    `<button type="button" class="addbtn" id="cadd" ${inCmp || CM.cmp.length >= 4 ? 'disabled' : ''}>${esc(t_(inCmp ? 'added' : 'add'))}</button>`;
+  document.querySelectorAll('[data-box]').forEach(el => { const go = () => setMode(+el.dataset.box); el.onclick = go; el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+  $('cadd').onclick = () => { if (!CM.cmp.includes(c.name) && CM.cmp.length < 4) { CM.cmp.push(c.name); cityRender(); } };
+}
+
+function cityCompare(i) {
+  const t = T(), m = CM.meta, fc = CM.h === 1, ds = winDates(), idx = ds.map(x => m.dates.indexOf(x)), xs = fc ? ds.map(addDay) : ds, cur = fc ? addDay(curDate()) : curDate();
+  const names = CM.cmp.includes(CM.city.name) ? CM.cmp : [CM.city.name, ...CM.cmp].slice(0, 4), cols = CMPC();
+  $('cmp_s').textContent = t_(fc ? 'cmp_s_fc' : 'cmp_s_est');
+  $('cchips').innerHTML = names.map((n, k) => `<span class="chip" style="--c:${cols[k]}"><i></i>${esc(n)}${CM.cmp.includes(n) ? `<button type="button" data-rm="${esc(n)}" aria-label="Remove">×</button>` : ''}</span>`).join('');
+  $('cchips').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { CM.cmp = CM.cmp.filter(x => x !== b.dataset.rm); cityRender(); });
+  const sel = CM.city, P = fc ? 'fpm' : 'pm', LO = fc ? 'flo' : 'lo', HI = fc ? 'fhi' : 'hi';
+  const traces = [
+    { type: 'scatter', mode: 'lines', x: xs, y: idx.map(k => sel[HI][k]), line: { width: 0 }, hoverinfo: 'skip', showlegend: false },
+    { type: 'scatter', mode: 'lines', x: xs, y: idx.map(k => sel[LO][k]), fill: 'tonexty', fillcolor: 'rgba(42,120,214,0.15)', line: { width: 0 }, hoverinfo: 'skip', showlegend: false }];
+  names.forEach((n, k) => { const c = m.cities.find(x => x.name === n);
+    traces.push({ type: 'scatter', mode: 'lines+markers', name: n, x: xs, y: idx.map(j => c[P][j]), line: { color: cols[k], width: n === sel.name ? 2.5 : 1.8 },
+      marker: { size: xs.map(x => x === cur ? 10 : 4), color: cols[k] }, customdata: idx.map(j => [c[LO][j], c[HI][j]]),
+      hovertemplate: `${esc(n)}: <b>%{y:.0f}</b> µg/m³ (%{customdata[0]:.0f}–%{customdata[1]:.0f})<extra></extra>` }); });
+  Plotly.react('cchart', traces, L({ margin: { l: 10, r: 10, t: 6, b: 30 }, hovermode: 'x unified', showlegend: names.length > 1,
+    yaxis: { title: { text: 'µg/m³' }, gridcolor: t.grid, rangemode: 'tozero', automargin: true },
+    xaxis: { gridcolor: t.grid, automargin: true, tickformat: '%d/%m' },
+    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 25, y1: 25, line: { color: t.text2, width: 1, dash: 'dot' } }],
+    annotations: [{ xref: 'paper', x: 1, y: 25, text: 'PF 25', showarrow: false, xanchor: 'right', yanchor: 'bottom', font: { size: 10, color: t.text2 } }] }), cfg);
+}
+
+function cityRank(i, fc, target) {
+  const t = T(), m = CM.meta, key = fc ? 'fpm' : 'pm', lo = fc ? 'flo' : 'lo', hi = fc ? 'fhi' : 'hi';
+  const top = [...m.cities].sort((a, b) => b[key][i] - a[key][i]).slice(0, 10).reverse();
+  $('rank_t').textContent = fill(t_('rank_t'), { d: fmtDate(target) });
+  Plotly.react('crank', [{ type: 'bar', orientation: 'h', y: top.map(c => c.name), x: top.map(c => c[key][i]),
+    marker: { color: top.map(c => c.name === CM.city.name ? t.s1 : bandOf(c[key][i])[2]) },
+    error_x: { type: 'data', symmetric: false, array: top.map(c => c[hi][i] - c[key][i]), arrayminus: top.map(c => c[key][i] - c[lo][i]), color: t.text2, thickness: 1, width: 0 },
+    customdata: top.map(c => [c[lo][i], c[hi][i], Math.round(c.dist_km)]),
+    hovertemplate: '<b>%{y}</b><br>%{x:.0f} µg/m³ (90%: %{customdata[0]:.0f}–%{customdata[1]:.0f})<br>%{customdata[2]} km → CETESB<extra></extra>' }],
+    L({ showlegend: false, margin: { l: 10, r: 14, t: 6, b: 36 }, xaxis: { title: { text: 'PM2.5 (µg/m³) · whisker = 90%' }, gridcolor: t.grid, rangemode: 'tozero' }, yaxis: { automargin: true, tickfont: { size: 11 } } }), cfg);
+  if (!CM.rankBound) { CM.rankBound = true; $('crank').on('plotly_click', e => { const p = e.points[0]; if (p) pickCity(p.y); }); }
+}
+
+function bindCityClick() {
+  if (CM.bound) return; CM.bound = true;
+  $('cmap').on('plotly_click', e => {
+    const p = e.points[0]; if (!p) return;
+    if (p.curveNumber === 2) return pickCity(p.text);
+    pickCity(CM.meta.cities[nearestCity(p.x, p.y)].name);
+  });
+}
+function pickCity(name) {
+  const c = CM.meta.cities.find(x => cnorm(x.name) === cnorm(name)); if (!c) return false;
+  CM.city = c; $('cityin').value = c.name; cityRender(); return true;
+}
+function stopPlay() { clearInterval(CM.timer); CM.timer = null; $('cplay').textContent = '▶'; }
+
+(async () => {
+  CM.meta = await (await fetch('maps/cities.json')).json();
+  const m = CM.meta, nx = m.lons.length;
+  CM.near = m.inside.map(k => nearestCity(m.lons[k % nx], m.lats[Math.floor(k / nx)]));
+  m.cities.forEach(c => { let best = null, bd = 1e9; m.stations.forEach(s => { const d = ((s.lon - c.lon) * KX) ** 2 + (s.lat - c.lat) ** 2; if (d < bd) { bd = d; best = s.name; } }); CM.stNear[c.name] = best; });
+  $('citylist').innerHTML = m.cities.map(c => `<option value="${esc(c.name)}">`).join('');
+  CM.city = m.cities.find(c => c.name === 'Presidente Prudente') || m.cities[0];
+  CM.cmp = ['Sorocaba', 'Ribeirão Preto', 'São Paulo'].filter(n => m.cities.some(c => c.name === n));
+  $('cityin').value = CM.city.name;
+  CM.day = Math.max(0, winDates().indexOf('2021-08-24'));
+  $('cityin').addEventListener('change', e => pickCity(e.target.value));
+  $('cityin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (!pickCity(e.target.value)) {
+    const hit = m.cities.filter(c => cnorm(c.name).startsWith(cnorm(e.target.value))).sort((a, b) => a.name.length - b.name.length)[0]; if (hit) pickCity(hit.name); } } });
+  $('cwin').addEventListener('change', e => { stopPlay(); CM.win = +e.target.value; CM.day = 0; cityRender(); });
+  $('cday').addEventListener('input', e => { stopPlay(); CM.day = +e.target.value; cityRender(); });
+  $('cprev').addEventListener('click', () => { stopPlay(); CM.day = Math.max(0, CM.day - 1); cityRender(); });
+  $('cnext').addEventListener('click', () => { stopPlay(); CM.day = Math.min(winDates().length - 1, CM.day + 1); cityRender(); });
+  $('cplay').addEventListener('click', () => {
+    if (CM.timer) return stopPlay();
+    $('cplay').textContent = '❚❚';
+    if (CM.day >= winDates().length - 1) CM.day = 0;
+    cityRender();
+    CM.timer = setInterval(() => { if (CM.day >= winDates().length - 1) return stopPlay(); CM.day++; cityRender(); }, 1200);
+  });
+  document.querySelectorAll('[data-h]').forEach(b => b.addEventListener('click', () => setMode(+b.dataset.h)));
+  texts(); agentTexts(); cityTexts();
+})();
 </script>
 </body>
 </html>

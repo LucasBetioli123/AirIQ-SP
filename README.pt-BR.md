@@ -13,7 +13,7 @@
 
 [🇺🇸 English](README.md) · **🇧🇷 Português**
 
-**[📊 Abrir o dashboard interativo](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt)** · **[🤖 Pergunte ao agente](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#agent)** · **[🔬 Detalhes técnicos (em inglês)](docs/TECHNICAL_DETAILS.md)** · **[📓 Notebooks](notebooks/)**
+**[📊 Abrir o dashboard interativo](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt)** · **[🗺️ Veja a sua cidade](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#city)** · **[🤖 Pergunte ao agente](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#agent)** · **[🔬 Detalhes técnicos (em inglês)](docs/TECHNICAL_DETAILS.md)** · **[📓 Notebooks](notebooks/)**
 
 <a href="https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt"><img src="docs/assets/dashboard_pt.png" alt="Prévia do dashboard interativo do AirIQ SP" width="900"></a>
 
@@ -132,7 +132,11 @@ pie showData
 Todos os números estão em [`docs/TECHNICAL_DETAILS.md`](docs/TECHNICAL_DETAILS.md) (em inglês) e são gerados a partir dos CSVs em `reports/metrics/`.
 </details>
 
-### 🗺️ Mapas de estimativa + incerteza
+### 🗺️ Qualquer cidade, hoje e amanhã
+
+No [dashboard](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#city) dá para buscar qualquer um dos 645 municípios e ver a estimativa do dia ou a previsão para o dia seguinte, nas datas históricas cobertas pela amostra de dados, sempre com o intervalo de 90%, a distância até a estação mais próxima e o erro médio medido no teste. Aperte ▶ para ver a fumaça das queimadas de agosto de 2021 se espalhar pelo estado.
+
+#### Mapas estáticos
 
 Dia de fumaça de queimadas (24/08/2021), previsão emitida na véspera. À direita, a largura do intervalo: a incerteza cresce longe das estações e nos episódios de fumaça.
 
@@ -317,6 +321,7 @@ Copy-Item .env.example .env
 | Notebooks com saída | `make notebooks` | alguns minutos |
 | Regenerar a documentação técnica | `python -m scripts.build_report` | segundos |
 | Regenerar os dados do dashboard | `python -m scripts.build_showcase` | segundos |
+| Regenerar os mapas por cidade (precisa dos modelos treinados) | `python -m scripts.build_city_maps` | ~2 min |
 | Validar uma instalação | `python -m scripts.verify_install` | ~1 min |
 
 `horizon=1` retorna a previsão para `date + 1`. Os dados cobrem **jan/2021 a abr/2023** (demonstração histórica, sem feed em tempo real). No agente, "hoje/amanhã" usam a data de referência fixada por `AGENT_TODAY`.
@@ -344,7 +349,7 @@ src/rag/         parser jurídico, chunking, busca híbrida, reranker, LLM, ferr
 eval/            36 perguntas com gabarito + avaliação de recuperação e ponta a ponta
 reports/         métricas (CSV) e figuras geradas pelo código
 notebooks/       exploração de dados, modelagem e RAG, com saídas executadas
-docs/            dashboard interativo (GitHub Pages) e detalhes técnicos
+docs/            dashboard interativo (GitHub Pages), mapas por cidade pré-calculados e detalhes técnicos
 tests/           29 testes: causalidade, chunker, agente, avaliação, configuração
 ```
 
