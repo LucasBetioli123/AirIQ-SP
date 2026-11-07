@@ -64,7 +64,7 @@ def main():
     sens_d1_model = band_row(d1a, "LightGBM reg. (offset IDW) D+1")[sens]
     sens_d1_pers = band_row(d1a, "Persistência")[sens]
     sens_alert_d1, prec_alert_d1 = band_row(d1a, alert)[sens], band_row(d1a, alert)[prec]
-    report = f"""# Respira SP — detalhes técnicos
+    report = f"""# AirIQ SP — detalhes técnicos
 
 > Documento gerado por `scripts/build_report.py` a partir dos CSVs em `reports/metrics/`: nenhum número aqui foi digitado à mão. Visão geral e instalação no [README](../README.md).
 

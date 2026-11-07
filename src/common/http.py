@@ -17,7 +17,7 @@ def session() -> requests.Session:
         s = requests.Session()
         retry = Retry(total=5, backoff_factor=1.5, status_forcelist=(429, 500, 502, 503, 504))
         s.mount("https://", HTTPAdapter(max_retries=retry, pool_maxsize=64))
-        s.headers["User-Agent"] = "respira-sp/1.0 (pesquisa; dados publicos)"
+        s.headers["User-Agent"] = "airiq-sp/1.0 (pesquisa; dados publicos)"
         _session = s
     return _session
 

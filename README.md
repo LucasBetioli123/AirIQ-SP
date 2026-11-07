@@ -1,281 +1,288 @@
 <div align="center">
 
-# 🌬️ Respira SP
+# 🌬️ AirIQ SP
 
-### Qualidade do ar para todo o estado de São Paulo com satélite, machine learning e um agente de IA que entende a legislação ambiental
+### AI for air quality: satellite data, machine learning and an agent that understands environmental law
 
-[![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](#-como-rodar)
-[![LightGBM](https://img.shields.io/badge/ML-LightGBM%20%2B%20CQR-2a78d6)](#-módulo-1--pm25-onde-não-existe-estação)
-[![RAG](https://img.shields.io/badge/IA-RAG%20h%C3%ADbrido%20%2B%20reranker-eb6834)](#-módulo-2--agente-de-normas-ambientais)
-[![LLM local](https://img.shields.io/badge/LLM-Qwen3--4B%20local%20(CPU)-1baf7a)](#-módulo-2--agente-de-normas-ambientais)
-[![Tests](https://img.shields.io/badge/testes-29%20passando-008300)](tests/)
-[![Docker](https://img.shields.io/badge/Docker-reprodut%C3%ADvel-2496ED?logo=docker&logoColor=white)](#-docker)
+[![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](#-quickstart)
+[![LightGBM](https://img.shields.io/badge/ML-LightGBM%20%2B%20CQR-2a78d6)](#%EF%B8%8F-module-1--pm25-where-there-is-no-sensor)
+[![RAG](https://img.shields.io/badge/AI-hybrid%20RAG%20%2B%20reranker-eb6834)](#-module-2--environmental-law-agent)
+[![Local LLM](https://img.shields.io/badge/LLM-Qwen3--4B%20local%20(CPU)-1baf7a)](#-module-2--environmental-law-agent)
+[![Tests](https://img.shields.io/badge/tests-29%20passing-008300)](tests/)
+[![Docker](https://img.shields.io/badge/Docker-reproducible-2496ED?logo=docker&logoColor=white)](#-docker)
 
-**[📊 Abrir o dashboard interativo](https://lucasbetioli123.github.io/respira-sp/)** · **[🔬 Detalhes técnicos](docs/DETALHES_TECNICOS.md)** · **[📓 Notebooks](notebooks/)**
+**🇺🇸 English** · [🇧🇷 Português](README.pt-BR.md)
 
-<a href="https://lucasbetioli123.github.io/respira-sp/"><img src="docs/assets/dashboard.png" alt="Prévia do dashboard interativo do Respira SP" width="900"></a>
+**[📊 Open the interactive dashboard](https://lucasbetioli123.github.io/airiq-sp/)** · **[🔬 Technical deep dive (PT)](docs/DETALHES_TECNICOS.md)** · **[📓 Notebooks](notebooks/)**
+
+<a href="https://lucasbetioli123.github.io/airiq-sp/"><img src="docs/assets/dashboard.png" alt="Preview of the AirIQ SP interactive dashboard" width="900"></a>
 
 </div>
 
 ---
 
-## 💡 A ideia em 30 segundos
+## 💡 The idea in 30 seconds
 
-O **PM2.5** (partículas finas com menos de 2,5 µm) é o poluente do ar mais associado a doenças respiratórias e cardiovasculares. Mas o estado de São Paulo, com **645 municípios**, tem só algumas dezenas de estações que medem PM2.5, quase todas concentradas na Grande São Paulo. **Para a maior parte do estado, simplesmente não existe medição.**
+> **Why AirIQ?** *IQ* as in intelligence, and as in **IQAr**, Brazil's official Air Quality Index.
 
-O Respira SP resolve isso em duas frentes:
+**PM2.5** (fine particles under 2.5 µm) is the air pollutant most strongly linked to respiratory and cardiovascular disease. Yet the state of São Paulo, Brazil, with **645 municipalities**, has only a few dozen stations measuring PM2.5, almost all of them clustered around the São Paulo metro area. **For most of the state, there is simply no measurement.**
 
-| | Módulo | Pergunta que responde |
+AirIQ SP tackles this on two fronts:
+
+| | Module | Question it answers |
 |---|---|---|
-| 🛰️ | **Estimativa e previsão de PM2.5** | *"Qual o PM2.5 hoje (e amanhã) em qualquer ponto do estado, com que margem de erro?"* |
-| 🤖 | **Agente RAG de normas ambientais** | *"Esse valor ultrapassa o padrão legal vigente naquela data? Qual artigo diz isso?"* |
+| 🛰️ | **PM2.5 estimation & forecasting** | *"What is the PM2.5 today (and tomorrow) anywhere in the state, and how sure are we?"* |
+| 🤖 | **Environmental-law RAG agent** | *"Does that value break the legal standard in force on that date? Which article says so?"* |
 
-Os dois se conectam: o agente **chama o modelo de PM2.5 como ferramenta**, busca o trecho exato da resolução CONAMA, compara com o padrão vigente na data e **cita cada número**. Se a resposta não está na base, ele **recusa** em vez de inventar.
+The two are connected: the agent **calls the PM2.5 model as a tool**, retrieves the exact passage of the CONAMA resolution (Brazil's national environmental council), compares the value with the standard in force on that date and **cites every number**. If the answer is not in its knowledge base, it **refuses** instead of making something up.
 
-## 🧭 Arquitetura
+## 🧭 Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Dados["🌍 Dados públicos e abertos"]
-        A1["🛰️ GOES-16<br/>AOD + focos de fogo"]
+    subgraph Data["🌍 Open public data"]
+        A1["🛰️ GOES-16<br/>AOD + fire detections"]
         A2["🛰️ Sentinel-5P<br/>NO₂"]
-        A3["🌦️ ERA5<br/>vento, chuva, camada limite"]
-        A4["🗺️ WorldCover + DEM<br/>uso do solo e relevo"]
-        A5["📡 30 estações CETESB<br/>PM2.5 medido"]
+        A3["🌦️ ERA5<br/>wind, rain, boundary layer"]
+        A4["🗺️ WorldCover + DEM<br/>land use and terrain"]
+        A5["📡 30 CETESB stations<br/>measured PM2.5"]
     end
 
-    subgraph M1["Módulo 1: PM2.5"]
-        B1["Engenharia de variáveis<br/>físicas e causais"]
-        B2["LightGBM<br/>correção sobre IDW"]
-        B3["CQR<br/>intervalo de 90%"]
+    subgraph M1["Module 1: PM2.5"]
+        B1["Physics-informed,<br/>causal features"]
+        B2["LightGBM<br/>correction over IDW"]
+        B3["CQR<br/>90% interval"]
         B1 --> B2 --> B3
     end
 
-    subgraph M2["Módulo 2: Agente RAG"]
-        C1["7 normas federais<br/>chunking por artigo/inciso"]
-        C2["BM25 + embeddings<br/>fusão RRF"]
-        C3["Reranker<br/>+ limiar de recusa"]
-        C4["LLM local Qwen3-4B<br/>plano → ferramentas → resposta"]
-        C5["Validação numérica<br/>toda cifra precisa de fonte"]
+    subgraph M2["Module 2: RAG agent"]
+        C1["7 federal regulations<br/>chunked by article/item"]
+        C2["BM25 + embeddings<br/>RRF fusion"]
+        C3["Reranker<br/>+ refusal threshold"]
+        C4["Local LLM Qwen3-4B<br/>plan → tools → answer"]
+        C5["Numeric validation<br/>every figure needs a source"]
         C1 --> C2 --> C3 --> C4 --> C5
     end
 
-    Dados --> B1
-    B3 -- "ferramenta estimar_pm25" --> C4
-    B3 --> O1["🗺️ Mapas diários<br/>CLI · API REST"]
-    C5 --> O2["💬 Chat web · CLI<br/>log auditável"]
+    Data --> B1
+    B3 -- "tool: estimar_pm25" --> C4
+    B3 --> O1["🗺️ Daily maps<br/>CLI · REST API"]
+    C5 --> O2["💬 Web chat · CLI<br/>auditable log"]
 ```
 
 ---
 
-## 🛰️ Módulo 1 · PM2.5 onde não existe estação
+## 🛰️ Module 1 · PM2.5 where there is no sensor
 
-**Como funciona:** a interpolação espacial (IDW) entre estações já é um baseline forte, então o modelo não tenta prever PM2.5 do zero. Ele aprende a **correção local** sobre o IDW (`log(PM2.5) − log(IDW)`) usando sinais físicos:
+**How it works:** spatial interpolation between stations (IDW) is already a strong baseline, so the model does not predict PM2.5 from scratch. It learns a **local correction** on top of IDW (`log(PM2.5) − log(IDW)`) from physical signals:
 
-- **AOD / altura da camada limite**: aproxima a relação entre aerossol na coluna atmosférica e concentração na superfície
-- **Correção higroscópica** `AOD × (1−UR)^0,6`: partículas incham com umidade e enganam o satélite
-- **Fogo a favor do vento**: focos num raio de 150/400 km, ponderados pela direção do vento e pela potência radiativa (FRP)
-- **Ventilação** (camada limite × vento), chuva, NO₂, urbanização, vegetação e relevo
+- **AOD / boundary-layer height:** links aerosol in the atmospheric column to concentration at ground level
+- **Hygroscopic correction** `AOD × (1−RH)^0.6`: particles swell with humidity and fool the satellite
+- **Upwind fire:** fire detections within 150/400 km, weighted by wind direction and fire radiative power (FRP)
+- **Ventilation** (boundary layer × wind speed), rain, NO₂, urbanization, vegetation and terrain
 
-### ✅ Validação feita do jeito difícil
+### ✅ Validated the hard way
 
-Validação aleatória infla os números (aqui, R² de 0,84 contra 0,73 na validação honesta). Por isso:
+Random validation inflates the scores (here, R² 0.84 vs. 0.73 under honest validation). So:
 
-- **Estação nunca vista:** cada grupo de estações sai inteiro do treino *e* das referências do IDW durante o teste
-- **Período posterior:** treino no passado, teste no futuro (dois folds temporais, incluindo a seca/fumaça de 2021)
-- **Sem vazamento de futuro:** a previsão D+1 usa só dados disponíveis ao fim do dia D. Um teste automatizado remove todas as observações futuras e confirma que as variáveis não mudam
+- **Unseen stations:** each group of stations is held out of training *and* out of the IDW references during its test
+- **Later period:** train on the past, test on the future (two temporal folds, including the 2021 dry/smoke season)
+- **No future leakage:** the next-day forecast only uses data available at the end of day D. An automated test deletes every future observation and checks that the features do not change
 
-### 📈 Resultados
+### 📈 Results
 
-| Métrica | Resultado |
+| Metric | Result |
 |---|---|
-| Erro médio (MAE) em estações nunca vistas | **2,98 µg/m³** (R² 0,73) |
-| Redução de erro vs. IDW a **25–50 km** das estações | **−31%** (3,51 → 2,42 µg/m³) |
-| Cobertura real do intervalo de 90% (CQR) | **90,6%** |
-| Previsão D+1 vs. persistência ("amanhã = hoje") | **−6%** de erro com estação · **−9%** sem estação |
-| Detecção de dias poluídos (> 25 µg/m³) usando o limite superior do IC como alerta | **94%** |
+| Mean absolute error (MAE) on never-seen stations | **2.98 µg/m³** (R² 0.73) |
+| Error reduction vs. IDW at **25–50 km** from stations | **−31%** (3.51 → 2.42 µg/m³) |
+| Real coverage of the 90% interval (CQR) | **90.6%** |
+| Next-day forecast vs. persistence ("tomorrow = today") | **−6%** error with a station · **−9%** without one |
+| Polluted-day detection (> 25 µg/m³) using the interval's upper bound as alert | **94%** |
 
-O ganho aparece exatamente onde um mapa é útil, **longe das estações**:
+The gain shows up exactly where a map is useful, **far from the stations**:
 
 ```mermaid
 xychart-beta
-    title "Erro (MAE, µg/m³) por distância até a estação mais próxima"
-    x-axis ["< 10 km", "10–25 km", "25–50 km", "> 50 km (1 estação)"]
+    title "Error (MAE, µg/m³) by distance to the nearest station"
+    x-axis ["< 10 km", "10–25 km", "25–50 km", "> 50 km (1 station)"]
     y-axis "MAE (µg/m³)" 0 --> 5
     bar [2.94, 3.49, 2.42, 4.35]
     line [2.89, 3.28, 3.51, 4.07]
 ```
-<sub>Barras = LightGBM com satélite · linha = IDW (interpolação clássica). Perto das estações o IDW já é difícil de bater; a 25–50 km o modelo erra 31% menos.</sub>
+<sub>Bars = LightGBM with satellite data · line = IDW (classic interpolation). Near stations IDW is hard to beat; at 25–50 km the model makes 31% less error.</sub>
 
 <details>
-<summary><b>🔍 Leitura honesta: onde o modelo ainda erra</b></summary>
+<summary><b>🔍 An honest look: where the model still fails</b></summary>
 
 <br>
 
-90% dos dias de teste estão na faixa "Boa" do IQAr, então prever sempre "Boa" já acerta 90%. Por isso as métricas também incluem acurácia balanceada e detecção de dias poluídos.
+90% of test days fall in the "Good" air-quality band, so always predicting "Good" already scores 90%. That is why the evaluation also reports balanced accuracy and polluted-day detection.
 
 ```mermaid
 pie showData
-    title Dias de teste por faixa do IQAr (PM2.5 medido)
-    "Boa (≤ 25)" : 6998
-    "Moderada (25–50)" : 711
-    "Ruim (50–75)" : 46
-    "Muito Ruim (75–125)" : 6
+    title Test days by air-quality band (measured PM2.5)
+    "Good (≤ 25)" : 6998
+    "Moderate (25–50)" : 711
+    "Poor (50–75)" : 46
+    "Very poor (75–125)" : 6
 ```
 
-Árvores de decisão **suavizam os picos**: sozinho, o ponto central detecta 62% dos dias acima de 25 µg/m³, contra 79% do IDW. A solução foi usar a incerteza: o alerta pelo **limite superior do intervalo de 90%**, com regra fixa e sem ajuste no teste, detecta **94%** desses dias. O intervalo carrega a informação de risco que o ponto central perde.
+Tree models **smooth out peaks**: on its own, the point estimate catches 62% of days above 25 µg/m³, versus 79% for IDW. The fix was to use the uncertainty: alerting on the **upper bound of the 90% interval**, with a fixed rule and no tuning on the test set, catches **94%** of those days. The interval carries the risk signal that the point estimate loses.
 
-Todos os números estão em [`docs/DETALHES_TECNICOS.md`](docs/DETALHES_TECNICOS.md) e são gerados a partir dos CSVs em `reports/metrics/`.
+Every number lives in [`docs/DETALHES_TECNICOS.md`](docs/DETALHES_TECNICOS.md) (Portuguese) and is generated from the CSVs in `reports/metrics/`.
 </details>
 
-### 🗺️ Mapas de estimativa + incerteza
+### 🗺️ Estimate + uncertainty maps
 
-Dia de fumaça de queimadas (24/08/2021), previsão emitida na véspera. À direita, a largura do intervalo: a incerteza cresce longe das estações e nos episódios de fumaça.
+Wildfire-smoke day (2021-08-24), forecast issued the day before. On the right, the width of the interval: uncertainty grows far from stations and during smoke episodes.
 
-<img src="reports/figures/mapa_pm25_2021-08-24_h1.png" alt="Mapa de PM2.5 previsto para 24/08/2021 e largura do intervalo de 90%" width="100%">
+<img src="reports/figures/mapa_pm25_2021-08-24_h1.png" alt="Map of forecast PM2.5 for 2021-08-24 and width of the 90% interval" width="100%">
 
 <details>
-<summary><b>🖼️ Mais figuras (benchmark, SHAP, intervalos, episódios)</b></summary>
+<summary><b>🖼️ More figures (benchmark, SHAP, intervals, episodes)</b></summary>
 
 | | |
 |---|---|
-| <img src="reports/figures/benchmark_mae.png" alt="Benchmark de 25 modelos"> | <img src="reports/figures/shap_resumo.png" alt="SHAP resumo"> |
-| **Benchmark de 25 modelos**: baselines, árvores, redes neurais, krigagem | **SHAP**: o que mais pesa na correção sobre o IDW |
-| <img src="reports/figures/intervalos.png" alt="Intervalos conformais"> | <img src="reports/figures/episodios_serie.png" alt="Episódios extremos"> |
-| **Intervalos**: quantis brutos × CQR × conformal | **Episódios de fumaça**: onde o modelo erra e por quê |
-| <img src="reports/figures/previsao_d1.png" alt="Previsão D+1"> | <img src="reports/figures/dispersao_idw_vs_lgbm.png" alt="Dispersão IDW vs LightGBM"> |
-| **Previsão D+1** × persistência | **Dispersão**: IDW × modelo |
+| <img src="reports/figures/benchmark_mae.png" alt="Benchmark of 25 models"> | <img src="reports/figures/shap_resumo.png" alt="SHAP summary"> |
+| **Benchmark of 25 models**: baselines, trees, neural nets, kriging | **SHAP**: what drives the correction over IDW |
+| <img src="reports/figures/intervalos.png" alt="Conformal intervals"> | <img src="reports/figures/episodios_serie.png" alt="Extreme episodes"> |
+| **Intervals**: raw quantiles × CQR × conformal | **Smoke episodes**: where the model fails and why |
+| <img src="reports/figures/previsao_d1.png" alt="Next-day forecast"> | <img src="reports/figures/dispersao_idw_vs_lgbm.png" alt="IDW vs LightGBM scatter"> |
+| **Next-day forecast** × persistence | **Scatter**: IDW × model |
 
+<sub>Figure labels are in Portuguese.</sub>
 </details>
 
-### 📍 As 30 estações de referência (mapa interativo)
+### 📍 The 30 reference stations (interactive map)
 
-O GitHub mostra o mapa abaixo como um mapa navegável: clique numa estação para ver a média, o máximo e a fração de dias acima de 25 µg/m³. Laranja = média ≥ 15 µg/m³.
+GitHub renders the map below as a navigable map: click a station to see its mean, maximum and share of days above 25 µg/m³. Orange = mean ≥ 15 µg/m³.
 
 ```geojson
 {"type":"FeatureCollection","features":[
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7921,-23.5267]},"properties":{"estação":"Osasco","dias com PM2.5":410,"PM2.5 médio (µg/m³)":19.0,"máximo diário (µg/m³)":101.4,"dias acima de 25 µg/m³":"18%","marker-color":"#d95926","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.5363,-22.46]},"properties":{"estação":"Santa Gertrudes","dias com PM2.5":346,"PM2.5 médio (µg/m³)":17.2,"máximo diário (µg/m³)":66.6,"dias acima de 25 µg/m³":"18%","marker-color":"#d95926","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7433,-23.5187]},"properties":{"estação":"Marg.Tietê-Pte Remédios","dias com PM2.5":512,"PM2.5 médio (µg/m³)":16.8,"máximo diário (µg/m³)":80.4,"dias acima de 25 µg/m³":"12%","marker-color":"#d95926","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.702,-23.5615]},"properties":{"estação":"Pinheiros","dias com PM2.5":266,"PM2.5 médio (µg/m³)":15.5,"máximo diário (µg/m³)":59.4,"dias acima de 25 µg/m³":"15%","marker-color":"#d95926","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6607,-23.5918]},"properties":{"estação":"Ibirapuera","dias com PM2.5":329,"PM2.5 médio (µg/m³)":15.4,"máximo diário (µg/m³)":56.3,"dias acima de 25 µg/m³":"14%","marker-color":"#d95926","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6635,-23.6163]},"properties":{"estação":"Congonhas","dias com PM2.5":432,"PM2.5 médio (µg/m³)":15.1,"máximo diário (µg/m³)":44.1,"dias acima de 25 µg/m³":"8%","marker-color":"#d95926","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.629,-23.506]},"properties":{"estação":"Santana","dias com PM2.5":389,"PM2.5 médio (µg/m³)":14.6,"máximo diário (µg/m³)":51.7,"dias acima de 25 µg/m³":"11%","marker-color":"#2a78d6","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6277,-23.5448]},"properties":{"estação":"Parque D.Pedro II","dias com PM2.5":432,"PM2.5 médio (µg/m³)":14.5,"máximo diário (µg/m³)":51.6,"dias acima de 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.139,-22.7802]},"properties":{"estação":"Paulínia-Sta Terezinha","dias com PM2.5":276,"PM2.5 médio (µg/m³)":14.4,"máximo diário (µg/m³)":61.2,"dias acima de 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5185,-23.4555]},"properties":{"estação":"Guarulhos-Paço Municipal","dias com PM2.5":405,"PM2.5 médio (µg/m³)":14.2,"máximo diário (µg/m³)":44.5,"dias acima de 25 µg/m³":"8%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.4207,-23.5015]},"properties":{"estação":"Itaim Paulista","dias com PM2.5":517,"PM2.5 médio (µg/m³)":14.0,"máximo diário (µg/m³)":55.1,"dias acima de 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.1193,-22.9467]},"properties":{"estação":"Campinas-V.União","dias com PM2.5":352,"PM2.5 médio (µg/m³)":13.8,"máximo diário (µg/m³)":49.2,"dias acima de 25 µg/m³":"8%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7561,-23.4132]},"properties":{"estação":"Perus","dias com PM2.5":270,"PM2.5 médio (µg/m³)":13.8,"máximo diário (µg/m³)":41.2,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.4099,-23.4401]},"properties":{"estação":"Guarulhos-Pimentas","dias com PM2.5":430,"PM2.5 médio (µg/m³)":13.8,"máximo diário (µg/m³)":66.8,"dias acima de 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5564,-23.6184]},"properties":{"estação":"São Caetano do Sul","dias com PM2.5":409,"PM2.5 médio (µg/m³)":13.7,"máximo diário (µg/m³)":44.6,"dias acima de 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.5815,-22.439]},"properties":{"estação":"Rio Claro-Jd.Guanabara","dias com PM2.5":355,"PM2.5 médio (µg/m³)":13.5,"máximo diário (µg/m³)":53.5,"dias acima de 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6004,-23.5497]},"properties":{"estação":"Mooca","dias com PM2.5":349,"PM2.5 médio (µg/m³)":13.4,"máximo diário (µg/m³)":44.7,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-49.3983,-20.7847]},"properties":{"estação":"São José do Rio Preto","dias com PM2.5":301,"PM2.5 médio (µg/m³)":13.4,"máximo diário (µg/m³)":91.9,"dias acima de 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5462,-23.6987]},"properties":{"estação":"S.Bernardo-Centro","dias com PM2.5":419,"PM2.5 médio (µg/m³)":12.9,"máximo diário (µg/m³)":40.8,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.697,-23.7763]},"properties":{"estação":"Grajaú-Parelheiros","dias com PM2.5":400,"PM2.5 médio (µg/m³)":12.8,"máximo diário (µg/m³)":55.9,"dias acima de 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7374,-23.5663]},"properties":{"estação":"Cid.Universitária-USP-Ipen","dias com PM2.5":384,"PM2.5 médio (µg/m³)":12.5,"máximo diário (µg/m³)":62.2,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.466,-23.6685]},"properties":{"estação":"Mauá","dias com PM2.5":377,"PM2.5 médio (µg/m³)":12.5,"máximo diário (µg/m³)":49.3,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.6497,-22.7012]},"properties":{"estação":"Piracicaba","dias com PM2.5":381,"PM2.5 médio (µg/m³)":11.9,"máximo diário (µg/m³)":57.9,"dias acima de 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.8971,-23.192]},"properties":{"estação":"Jundiaí","dias com PM2.5":582,"PM2.5 médio (µg/m³)":11.7,"máximo diário (µg/m³)":53.9,"dias acima de 25 µg/m³":"5%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.1911,-22.8019]},"properties":{"estação":"Guaratinguetá","dias com PM2.5":446,"PM2.5 médio (µg/m³)":11.4,"máximo diário (µg/m³)":35.4,"dias acima de 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.3005,-23.9813]},"properties":{"estação":"Santos-Ponta da Praia","dias com PM2.5":414,"PM2.5 médio (µg/m³)":10.8,"máximo diário (µg/m³)":30.4,"dias acima de 25 µg/m³":"2%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.4143,-22.5636]},"properties":{"estação":"Limeira","dias com PM2.5":360,"PM2.5 médio (µg/m³)":10.7,"máximo diário (µg/m³)":43.0,"dias acima de 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.5758,-23.0324]},"properties":{"estação":"Taubaté","dias com PM2.5":407,"PM2.5 médio (µg/m³)":10.2,"máximo diário (µg/m³)":32.4,"dias acima de 25 µg/m³":"2%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7661,-23.4563]},"properties":{"estação":"Pico do Jaraguá","dias com PM2.5":378,"PM2.5 médio (µg/m³)":10.1,"máximo diário (µg/m³)":35.7,"dias acima de 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
-{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.8908,-23.2236]},"properties":{"estação":"S.José Campos-Jd.Satelite","dias com PM2.5":215,"PM2.5 médio (µg/m³)":7.9,"máximo diário (µg/m³)":23.1,"dias acima de 25 µg/m³":"0%","marker-color":"#2a78d6","marker-size":"small"}}
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7921,-23.5267]},"properties":{"station":"Osasco","days measured":410,"mean PM2.5 (µg/m³)":19.0,"daily max (µg/m³)":101.4,"days above 25 µg/m³":"18%","marker-color":"#d95926","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.5363,-22.46]},"properties":{"station":"Santa Gertrudes","days measured":346,"mean PM2.5 (µg/m³)":17.2,"daily max (µg/m³)":66.6,"days above 25 µg/m³":"18%","marker-color":"#d95926","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7433,-23.5187]},"properties":{"station":"Marg.Tietê-Pte Remédios","days measured":512,"mean PM2.5 (µg/m³)":16.8,"daily max (µg/m³)":80.4,"days above 25 µg/m³":"12%","marker-color":"#d95926","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.702,-23.5615]},"properties":{"station":"Pinheiros","days measured":266,"mean PM2.5 (µg/m³)":15.5,"daily max (µg/m³)":59.4,"days above 25 µg/m³":"15%","marker-color":"#d95926","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6607,-23.5918]},"properties":{"station":"Ibirapuera","days measured":329,"mean PM2.5 (µg/m³)":15.4,"daily max (µg/m³)":56.3,"days above 25 µg/m³":"14%","marker-color":"#d95926","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6635,-23.6163]},"properties":{"station":"Congonhas","days measured":432,"mean PM2.5 (µg/m³)":15.1,"daily max (µg/m³)":44.1,"days above 25 µg/m³":"8%","marker-color":"#d95926","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.629,-23.506]},"properties":{"station":"Santana","days measured":389,"mean PM2.5 (µg/m³)":14.6,"daily max (µg/m³)":51.7,"days above 25 µg/m³":"11%","marker-color":"#2a78d6","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6277,-23.5448]},"properties":{"station":"Parque D.Pedro II","days measured":432,"mean PM2.5 (µg/m³)":14.5,"daily max (µg/m³)":51.6,"days above 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.139,-22.7802]},"properties":{"station":"Paulínia-Sta Terezinha","days measured":276,"mean PM2.5 (µg/m³)":14.4,"daily max (µg/m³)":61.2,"days above 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5185,-23.4555]},"properties":{"station":"Guarulhos-Paço Municipal","days measured":405,"mean PM2.5 (µg/m³)":14.2,"daily max (µg/m³)":44.5,"days above 25 µg/m³":"8%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.4207,-23.5015]},"properties":{"station":"Itaim Paulista","days measured":517,"mean PM2.5 (µg/m³)":14.0,"daily max (µg/m³)":55.1,"days above 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.1193,-22.9467]},"properties":{"station":"Campinas-V.União","days measured":352,"mean PM2.5 (µg/m³)":13.8,"daily max (µg/m³)":49.2,"days above 25 µg/m³":"8%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7561,-23.4132]},"properties":{"station":"Perus","days measured":270,"mean PM2.5 (µg/m³)":13.8,"daily max (µg/m³)":41.2,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.4099,-23.4401]},"properties":{"station":"Guarulhos-Pimentas","days measured":430,"mean PM2.5 (µg/m³)":13.8,"daily max (µg/m³)":66.8,"days above 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5564,-23.6184]},"properties":{"station":"São Caetano do Sul","days measured":409,"mean PM2.5 (µg/m³)":13.7,"daily max (µg/m³)":44.6,"days above 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.5815,-22.439]},"properties":{"station":"Rio Claro-Jd.Guanabara","days measured":355,"mean PM2.5 (µg/m³)":13.5,"daily max (µg/m³)":53.5,"days above 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.6004,-23.5497]},"properties":{"station":"Mooca","days measured":349,"mean PM2.5 (µg/m³)":13.4,"daily max (µg/m³)":44.7,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-49.3983,-20.7847]},"properties":{"station":"São José do Rio Preto","days measured":301,"mean PM2.5 (µg/m³)":13.4,"daily max (µg/m³)":91.9,"days above 25 µg/m³":"9%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.5462,-23.6987]},"properties":{"station":"S.Bernardo-Centro","days measured":419,"mean PM2.5 (µg/m³)":12.9,"daily max (µg/m³)":40.8,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.697,-23.7763]},"properties":{"station":"Grajaú-Parelheiros","days measured":400,"mean PM2.5 (µg/m³)":12.8,"daily max (µg/m³)":55.9,"days above 25 µg/m³":"10%","marker-color":"#2a78d6","marker-size":"medium"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7374,-23.5663]},"properties":{"station":"Cid.Universitária-USP-Ipen","days measured":384,"mean PM2.5 (µg/m³)":12.5,"daily max (µg/m³)":62.2,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.466,-23.6685]},"properties":{"station":"Mauá","days measured":377,"mean PM2.5 (µg/m³)":12.5,"daily max (µg/m³)":49.3,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.6497,-22.7012]},"properties":{"station":"Piracicaba","days measured":381,"mean PM2.5 (µg/m³)":11.9,"daily max (µg/m³)":57.9,"days above 25 µg/m³":"7%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.8971,-23.192]},"properties":{"station":"Jundiaí","days measured":582,"mean PM2.5 (µg/m³)":11.7,"daily max (µg/m³)":53.9,"days above 25 µg/m³":"5%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.1911,-22.8019]},"properties":{"station":"Guaratinguetá","days measured":446,"mean PM2.5 (µg/m³)":11.4,"daily max (µg/m³)":35.4,"days above 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.3005,-23.9813]},"properties":{"station":"Santos-Ponta da Praia","days measured":414,"mean PM2.5 (µg/m³)":10.8,"daily max (µg/m³)":30.4,"days above 25 µg/m³":"2%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-47.4143,-22.5636]},"properties":{"station":"Limeira","days measured":360,"mean PM2.5 (µg/m³)":10.7,"daily max (µg/m³)":43.0,"days above 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.5758,-23.0324]},"properties":{"station":"Taubaté","days measured":407,"mean PM2.5 (µg/m³)":10.2,"daily max (µg/m³)":32.4,"days above 25 µg/m³":"2%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-46.7661,-23.4563]},"properties":{"station":"Pico do Jaraguá","days measured":378,"mean PM2.5 (µg/m³)":10.1,"daily max (µg/m³)":35.7,"days above 25 µg/m³":"3%","marker-color":"#2a78d6","marker-size":"small"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-45.8908,-23.2236]},"properties":{"station":"S.José Campos-Jd.Satelite","days measured":215,"mean PM2.5 (µg/m³)":7.9,"daily max (µg/m³)":23.1,"days above 25 µg/m³":"0%","marker-color":"#2a78d6","marker-size":"small"}}
 ]}
 ```
 
 ---
 
-## 🤖 Módulo 2 · Agente de normas ambientais
+## 🤖 Module 2 · Environmental-law agent
 
-Um assistente que responde perguntas sobre a legislação de qualidade do ar **citando o artigo exato**, e que sabe consultar o modelo de PM2.5 quando a pergunta envolve um lugar e uma data.
+An assistant that answers questions about Brazilian air-quality regulations **citing the exact article**, and knows when to call the PM2.5 model because the question involves a place and a date. The knowledge base and the conversation are in **Portuguese**: this is multilingual NLP over real legal text.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor U as Usuário
-    participant A as Agente (Qwen3-4B local)
-    participant R as Busca híbrida + reranker
-    participant M as Modelo PM2.5
-    participant V as Validador
+    actor U as User
+    participant A as Agent (local Qwen3-4B)
+    participant R as Hybrid search + reranker
+    participant M as PM2.5 model
+    participant V as Validator
 
-    U->>A: Em 2021-08-24 o ar em Sorocaba atendia ao padrão final da CONAMA 491?
-    A->>A: Plano: buscas na norma + chamada de ferramenta
-    A->>R: "CONAMA 491/2018 PF MP2,5 24h" (data 2021-08-24)
-    R-->>A: Anexo I da 491/2018 (relevância 0,99)
+    U->>A: On 2021-08-24, did Sorocaba meet the final PM2.5 standard of CONAMA 491?
+    A->>A: Plan: regulation searches + tool call
+    A->>R: "CONAMA 491/2018 PF MP2,5 24h" (date 2021-08-24)
+    R-->>A: Annex I of 491/2018 (relevance 0.99)
     A->>M: estimar_pm25(Sorocaba, 2021-08-24)
-    M-->>A: 54,4 µg/m³ · IC 90%: 32,6–85,9
-    A->>A: Compara com o padrão vigente NA DATA
-    A->>V: Resposta com citações [1] e [F1]
-    V-->>A: ✅ todo número tem fonte
-    A-->>U: Resposta + fontes + log auditável
+    M-->>A: 54.4 µg/m³ · 90% CI: 32.6–85.9
+    A->>A: Compare with the standard in force ON THAT DATE
+    A->>V: Answer with citations [1] and [F1]
+    V-->>A: ✅ every number has a source
+    A-->>U: Answer + sources + auditable log
 ```
 
-**Resposta real registrada no log** (`logs/agent_runs.jsonl`):
+**Real answer from the log** (`logs/agent_runs.jsonl`), in Portuguese with an English translation:
 
-> Em 2021-08-24, a concentração estimada de PM2,5 em Sorocaba foi de **54,4 µg/m³ (intervalo de 90%: 32,6–85,9)**. Na data, o padrão vigente para MP2,5 de 24 horas era o PI-1 de 60 µg/m³, conforme a Resolução CONAMA 491/2018, Anexo I [1]. A estimativa não ultrapassou o PI-1, mas ultrapassou os padrões PI-2 (50), PI-3 (37) e PF (25 µg/m³) [F1]. Como o padrão final (PF) foi ultrapassado, **a qualidade do ar não atendeu ao padrão final** da Resolução CONAMA 491/2018 na data referida.
+> 🇧🇷 *"Em 2021-08-24, a concentração estimada de PM2,5 em Sorocaba foi de **54,4 µg/m³ (intervalo de 90%: 32,6–85,9)**. Na data, o padrão vigente para MP2,5 de 24 horas era o PI-1 de 60 µg/m³, conforme a Resolução CONAMA 491/2018, Anexo I [1]. A estimativa não ultrapassou o PI-1, mas ultrapassou os padrões PI-2 (50), PI-3 (37) e PF (25 µg/m³) [F1]. Como o padrão final (PF) foi ultrapassado, **a qualidade do ar não atendeu ao padrão final** da Resolução CONAMA 491/2018 na data referida."*
 >
-> *Fontes: [1] Resolução CONAMA 491/2018, Anexo I (MP2,5, 24 horas)*
+> 🇺🇸 On 2021-08-24, the estimated PM2.5 in Sorocaba was **54.4 µg/m³ (90% interval: 32.6–85.9)**. On that date, the 24-hour standard in force was interim target PI-1 of 60 µg/m³, per CONAMA Resolution 491/2018, Annex I [1]. The estimate did not exceed PI-1, but exceeded PI-2 (50), PI-3 (37) and the final standard PF (25 µg/m³) [F1]. Since the final standard was exceeded, **air quality did not meet the final standard** of Resolution 491/2018 on that date.
+>
+> *Sources: [1] CONAMA Resolution 491/2018, Annex I (PM2.5, 24 hours)*
 
-### O que torna o agente confiável
+### What makes the agent trustworthy
 
-- **Chunking que respeita a estrutura jurídica:** capítulo → artigo → parágrafo → inciso → alínea → anexo. Tabelas viram linhas com o nome da coluna junto a cada valor, para o LLM não confundir PI-1, PI-2 e PF
-- **Vigência temporal:** a CONAMA 506/2024 revogou partes da 491/2018. O agente aplica o padrão **vigente na data perguntada**, calculado em código (ferramenta `padrao_mp25_vigente`), não pela "memória" do LLM
-- **Recuperação híbrida:** BM25 + embeddings multilíngues (Granite-278M) fundidos por RRF, e um reranker (Qwen3-0.6B) que também decide quando **recusar**
-- **Validação pós-geração:** números sem fonte nos trechos citados ou na saída da ferramenta bloqueiam a resposta
-- **100% local:** modelos GGUF via `llama.cpp` em CPU, custo de API zero. Também funciona com Ollama ou qualquer API compatível com OpenAI
-- **Auditável:** cada execução registra pergunta, trechos recuperados, chamadas de ferramenta, resposta, tokens e tempo
+- **Chunking that respects legal structure:** chapter → article → paragraph → item → sub-item → annex. Tables become rows with the column name next to each value, so the LLM never mixes up interim targets PI-1, PI-2 and the final standard
+- **Temporal validity:** CONAMA 506/2024 partially repealed 491/2018. The agent applies the standard **in force on the date asked**, computed in code (`padrao_mp25_vigente` tool), not from the LLM's "memory"
+- **Hybrid retrieval:** BM25 + multilingual embeddings (Granite-278M) fused with Reciprocal Rank Fusion, plus a reranker (Qwen3-0.6B) that also decides when to **refuse**
+- **Post-generation validation:** any number without support in the cited passages or tool output blocks the answer
+- **100% local:** GGUF models via `llama.cpp` on CPU, zero API cost. Also works with Ollama or any OpenAI-compatible API
+- **Auditable:** each run logs the question, retrieved passages, tool calls, answer, tokens and latency
 
-### 📊 Avaliação
+### 📊 Evaluation
 
-Conjunto de **36 perguntas escritas à mão** e conferidas contra o texto das normas: fatos, composição de vários trechos, vigência temporal, uso de ferramenta e perguntas **sem resposta na base** (que devem ser recusadas).
+A set of **36 hand-written questions**, checked against the text of the regulations: facts, multi-passage composition, temporal validity, tool use and questions **with no answer in the base** (which must be refused).
 
-| Métrica | Qwen3-4B (escolhido) | Gemma3-4B |
+| Metric | Qwen3-4B (chosen) | Gemma3-4B |
 |---|:---:|:---:|
-| Acerto nas perguntas respondíveis | **93%** | 70% |
-| Recusa correta (fora da base) | **100%** | 100% |
-| Recusa indevida | **3%** | 17% |
-| Precisão das citações (dispositivo exato) | **81%** | 59% |
-| Fidelidade às fontes (LLM-juiz) | **100%** | 64% |
-| Uso correto da ferramenta de PM2.5 | **100%** | 0% |
+| Accuracy on answerable questions | **93%** | 70% |
+| Correct refusal (out of scope) | **100%** | 100% |
+| Wrongful refusal | **3%** | 17% |
+| Citation precision (exact legal provision) | **81%** | 59% |
+| Faithfulness to sources (LLM-as-judge) | **100%** | 64% |
+| Correct use of the PM2.5 tool | **100%** | 0% |
 
-| Recuperação (30 perguntas com trecho-ouro) | recall@1 | recall@5 | MRR |
+| Retrieval (30 questions with a gold passage) | recall@1 | recall@5 | MRR |
 |---|:---:|:---:|:---:|
-| BM25 | 0,62 | 0,92 | 0,80 |
-| Embeddings (Granite-278M) | 0,58 | 0,90 | 0,76 |
-| **Híbrido RRF (BM25 + Granite)** | **0,72** | **0,98** | **0,86** |
+| BM25 | 0.62 | 0.92 | 0.80 |
+| Embeddings (Granite-278M) | 0.58 | 0.90 | 0.76 |
+| **Hybrid RRF (BM25 + Granite)** | **0.72** | **0.98** | **0.86** |
 
 ---
 
-## 🚀 Como rodar
+## 🚀 Quickstart
 
-**Requisitos:** Python 3.12 ou 3.13, CPU x86-64 (sem GPU), ~16 GB de RAM recomendados. A amostra de dados versionada tem ~12 MB; os modelos GGUF somam ~4,3 GB.
+**Requirements:** Python 3.12 or 3.13, x86-64 CPU (no GPU), ~16 GB RAM recommended. The versioned data sample is ~12 MB; the GGUF models add up to ~4.3 GB.
 
 ```bash
-git clone https://github.com/LucasBetioli123/respira-sp.git
-cd respira-sp
-make setup      # cria .venv e instala dependências com versões fixas
-make models     # baixa os modelos GGUF (LLM, embeddings, reranker)
+git clone https://github.com/LucasBetioli123/airiq-sp.git
+cd airiq-sp
+make setup      # creates .venv and installs pinned dependencies
+make models     # downloads the GGUF models (LLM, embeddings, reranker)
 cp .env.example .env
 ```
 
-**Demo rápida do Módulo 1** (treina, calibra, faz uma previsão e um mapa, em ~3 min):
+**Module 1 quick demo** (trains, calibrates, forecasts and draws a map in ~3 min):
 
 ```bash
 .venv/bin/python -m src.aq.pipeline --quick
 ```
 
-**Estimativa pontual e API:**
+**Point estimate and API:**
 
 ```bash
-make predict LAT=-23.50 LON=-47.45 DATE=2021-08-23 H=1   # previsão D+1 para Sorocaba
+make predict LAT=-23.50 LON=-47.45 DATE=2021-08-23 H=1   # next-day forecast for Sorocaba
 make api                                                 # GET /predict?municipio=Sorocaba&date=2021-08-23&horizon=1
 ```
 
-**Perguntar ao agente** (CLI ou chat web em http://localhost:7860):
+**Ask the agent** (CLI, or web chat at http://localhost:7860):
 
 ```bash
 make ask Q="Em 2021-08-24 a qualidade do ar em Sorocaba atendia ao padrão final (PF) de MP2,5 de 24 horas da CONAMA 491/2018?"
@@ -283,7 +290,7 @@ make chat
 ```
 
 <details>
-<summary><b>Windows (PowerShell, sem make)</b></summary>
+<summary><b>Windows (PowerShell, no make)</b></summary>
 
 ```powershell
 python -m venv .venv
@@ -298,69 +305,71 @@ Copy-Item .env.example .env
 </details>
 
 <details>
-<summary><b>Todos os comandos</b></summary>
+<summary><b>All commands</b></summary>
 
-| Operação | Comando | Tempo aproximado |
+| Task | Command | Approx. time |
 |---|---|---|
-| Pipeline completo do Módulo 1 sobre a amostra | `make all-sample` | 30–60 min |
-| Refazer do zero, baixando todos os dados brutos | `python -m src.aq.pipeline --full` | horas |
-| Benchmark de recuperação | `make rag-bench` | ~1 h 20 em CPU |
-| Avaliação completa do agente | `make rag-eval` | ~3 h em CPU |
-| Avaliação com LLM-juiz | `python -m eval.run_rag_eval --judge models/llm/gemma3-4b-it-q4_k_m.gguf --tag com-juiz` | mais que a anterior |
-| Testes | `make test` | ~20 s |
-| Notebooks com saída | `make notebooks` | alguns minutos |
-| Regenerar a documentação técnica | `python -m scripts.build_report` | segundos |
-| Regenerar os dados do dashboard | `python -m scripts.build_showcase` | segundos |
-| Validar uma instalação | `python -m scripts.verify_install` | ~1 min |
+| Full Module 1 pipeline on the sample | `make all-sample` | 30–60 min |
+| Rebuild from scratch, downloading all raw data | `python -m src.aq.pipeline --full` | hours |
+| Retrieval benchmark | `make rag-bench` | ~1 h 20 on CPU |
+| Full agent evaluation | `make rag-eval` | ~3 h on CPU |
+| Evaluation with LLM-as-judge | `python -m eval.run_rag_eval --judge models/llm/gemma3-4b-it-q4_k_m.gguf --tag with-judge` | longer than the above |
+| Tests | `make test` | ~20 s |
+| Notebooks with outputs | `make notebooks` | a few minutes |
+| Regenerate the technical report | `python -m scripts.build_report` | seconds |
+| Regenerate the dashboard data | `python -m scripts.build_showcase` | seconds |
+| Validate an installation | `python -m scripts.verify_install` | ~1 min |
 
-`horizon=1` retorna a previsão para `date + 1`. Os dados cobrem **jan/2021 a abr/2023** (demonstração histórica, sem feed em tempo real). No agente, "hoje/amanhã" usam a data de referência fixada por `AGENT_TODAY`.
+`horizon=1` returns the forecast for `date + 1`. Data cover **Jan 2021 to Apr 2023** (historical demo, no real-time feed). In the agent, "today/tomorrow" use the reference date set by `AGENT_TODAY`.
 
-**LLM configurável** (`.env`): `LLM_PROVIDER=llamacpp` (padrão, local), `ollama` ou `openai_compat`. `RAG_MODE`: `bm25`, `dense`, `hybrid` ou `hybrid_rerank` (padrão).
+**Configurable LLM** (`.env`): `LLM_PROVIDER=llamacpp` (default, local), `ollama` or `openai_compat`. `RAG_MODE`: `bm25`, `dense`, `hybrid` or `hybrid_rerank` (default).
 </details>
 
 ### 🐳 Docker
 
 ```bash
-docker build -t respira-sp .
-docker run --rm respira-sp python -m pytest -q
-docker run --rm -v "$PWD/models:/app/models" respira-sp python -m src.aq.pipeline --quick
-docker run --rm -p 7860:7860 -v "$PWD/models:/app/models" respira-sp make chat
+docker build -t airiq-sp .
+docker run --rm airiq-sp python -m pytest -q
+docker run --rm -v "$PWD/models:/app/models" airiq-sp python -m src.aq.pipeline --quick
+docker run --rm -p 7860:7860 -v "$PWD/models:/app/models" airiq-sp make chat
 ```
 
 ---
 
-## 🗂️ Estrutura
+## 🗂️ Project layout
 
 ```
-src/aq/data/     coletores: leitura parcial por HTTP range de NetCDF/HDF5 e COG (sem baixar arquivos inteiros)
-src/aq/          variáveis, validação espaço-temporal, modelos, CQR, mapas, CLI e API FastAPI
-src/rag/         parser jurídico, chunking, busca híbrida, reranker, LLM, ferramentas, agente, chat
-eval/            36 perguntas com gabarito + avaliação de recuperação e ponta a ponta
-reports/         métricas (CSV) e figuras geradas pelo código
-notebooks/       exploração de dados, modelagem e RAG, com saídas executadas
-docs/            dashboard interativo (GitHub Pages) e detalhes técnicos
-tests/           29 testes: causalidade, chunker, agente, avaliação, configuração
+src/aq/data/     collectors: partial HTTP-range reads of NetCDF/HDF5 and COG (no full-file downloads)
+src/aq/          features, spatio-temporal validation, models, CQR, maps, CLI and FastAPI API
+src/rag/         legal-text parser, chunking, hybrid search, reranker, LLM, tools, agent, chat
+eval/            36 questions with answer keys + retrieval and end-to-end evaluation
+reports/         metrics (CSV) and figures generated by the code
+notebooks/       data exploration, modeling and RAG, with executed outputs
+docs/            interactive dashboard (GitHub Pages) and technical deep dive
+tests/           29 tests: causality, chunker, agent, evaluation, configuration
 ```
 
-## 🧰 Stack
+Code comments and docstrings are in Portuguese.
 
-**ML e dados:** LightGBM · XGBoost · scikit-learn · PyTorch · SHAP · PyKrige · xarray · rasterio · GeoPandas · pandas
-**IA generativa:** llama.cpp · Qwen3-4B · Granite Embedding 278M · Qwen3 Reranker 0.6B · BM25 · RRF
-**Engenharia:** FastAPI · Docker · Makefile · pytest · Jupyter · Plotly
-**Fontes:** CETESB (via OpenAQ) · NOAA GOES-16 · ESA Sentinel-5P · ECMWF ERA5 · ESA WorldCover · Copernicus DEM · IBGE
+## 🧰 Tech stack
 
-## 🔭 Limitações e próximos passos
+**ML & data:** LightGBM · XGBoost · scikit-learn · PyTorch · SHAP · PyKrige · xarray · rasterio · GeoPandas · pandas
+**Generative AI:** llama.cpp · Qwen3-4B · Granite Embedding 278M · Qwen3 Reranker 0.6B · BM25 · RRF
+**Engineering:** FastAPI · Docker · Makefile · pytest · Jupyter · Plotly
+**Data sources:** CETESB (via OpenAQ) · NOAA GOES-16 · ESA Sentinel-5P · ECMWF ERA5 · ESA WorldCover · Copernicus DEM · IBGE
 
-- Dados de 2021 a 2023, sem feed em tempo real. A reanálise ERA5 tem latência que não é simulada; o próximo passo é usar meteorologia disponível no horário de emissão
-- Poucos dias muito poluídos no histórico: a cobertura do intervalo cai acima de 50 µg/m³
-- As faixas do IQAr seguem a CONAMA 491/2018 (correto para o período); datas após julho de 2024 precisariam da regra da 506/2024
-- A base do agente cobre 7 normas federais, não toda a legislação estadual
-- Próximos: mais estações e anos, limiar de alerta calibrado fora do teste, previsão numérica do tempo e um conjunto de avaliação do RAG maior e independente
+## 🔭 Limitations & next steps
+
+- Data from 2021 to 2023, no real-time feed. ERA5 reanalysis latency is not simulated; the next step is weather data available at issue time
+- Few very polluted days in the history: interval coverage drops above 50 µg/m³
+- Air-quality bands follow CONAMA 491/2018 (correct for the period); dates after July 2024 would need the 506/2024 rule
+- The agent's base covers 7 federal regulations, not all state legislation
+- Next: more stations and years, an alert threshold calibrated outside the test set, numerical weather prediction, and a larger independent RAG evaluation set
 
 ---
 
 <div align="center">
 
-Feito por **[Lucas Betioli](https://github.com/LucasBetioli123)** · Se este projeto foi útil ou interessante, deixe uma ⭐
+Built by **[Lucas Betioli](https://github.com/LucasBetioli123)** · If you found this useful or interesting, leave a ⭐
 
 </div>

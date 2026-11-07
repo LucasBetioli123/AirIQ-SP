@@ -1,4 +1,4 @@
-# Respira SP — detalhes técnicos
+# AirIQ SP — detalhes técnicos
 
 > Documento gerado por `scripts/build_report.py` a partir dos CSVs em `reports/metrics/`: nenhum número aqui foi digitado à mão. Visão geral e instalação no [README](../README.md).
 

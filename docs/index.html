@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Respira SP — Dashboard</title>
-<meta name="description" content="Qualidade do ar em São Paulo com satélite, machine learning e um agente de IA que consulta normas ambientais.">
+<title>AirIQ SP Dashboard</title>
+<meta name="description" content="Air quality in São Paulo, Brazil, with satellite data, machine learning and an AI agent that reads environmental regulations.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/3.1.0/plotly.min.js"></script>
@@ -64,76 +64,181 @@ select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid 
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; font-size: 13px; color: var(--text-secondary); }
 footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
 @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .chart.tall { height: 440px; } }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.lang { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.lang button { font: inherit; font-size: 13px; padding: 5px 10px; border: 0; background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--s1); color: #fff; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--s1); margin-bottom: 6px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <h1>Respira SP</h1>
-  <p>PM2.5 diário estimado e previsto para todo o estado de São Paulo a partir de satélite, reanálise meteorológica e 30 estações da CETESB, com intervalo de confiança calibrado. Um agente de IA local responde perguntas sobre normas ambientais e consulta o modelo, sempre citando a fonte.</p>
+  <div class="top">
+    <div><span class="tag" data-i="tag"></span><h1>AirIQ SP</h1></div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button><button type="button" data-lang="pt">PT</button>
+    </div>
+  </div>
+  <p data-i="intro"></p>
   <div class="links">
-    <a class="btn" href="https://github.com/LucasBetioli123/respira-sp">Código no GitHub</a>
-    <a class="btn" href="https://github.com/LucasBetioli123/respira-sp/blob/main/docs/DETALHES_TECNICOS.md">Detalhes técnicos</a>
+    <a class="btn" href="https://github.com/LucasBetioli123/airiq-sp" data-i="code"></a>
+    <a class="btn" href="https://github.com/LucasBetioli123/airiq-sp/blob/main/docs/DETALHES_TECNICOS.md" data-i="deep"></a>
   </div>
 </header>
 
 <section class="kpis" id="kpis"></section>
 
-<h2>1. Onde o ar é medido e como ele varia</h2>
-<p class="lead">São só 30 estações para um estado de 248 mil km². Clique numa estação no mapa (ou escolha na lista) para ver a série diária. Os picos de agosto–outubro coincidem com a temporada de queimadas.</p>
+<h2 data-i="h1"></h2>
+<p class="lead" data-i="l1"></p>
 <div class="grid">
-  <div class="card"><h3>Estações CETESB usadas no treino</h3><p>Cor = PM2.5 médio · tamanho = % de dias acima de 25 µg/m³ · clique para ver a série</p><div id="map" class="chart tall"></div></div>
-  <div class="card"><h3>PM2.5 diário medido</h3>
-    <div class="row"><label for="station">Estação:</label><select id="station"></select></div>
+  <div class="card"><h3 data-i="c_map"></h3><p data-i="c_map_s"></p><div id="map" class="chart tall"></div></div>
+  <div class="card"><h3 data-i="c_series"></h3>
+    <div class="row"><label for="station" data-i="station"></label><select id="station"></select></div>
     <div id="series" class="chart tall"></div></div>
 </div>
 
-<h2>2. O modelo bate os métodos clássicos onde importa</h2>
-<p class="lead">Validação honesta: a estação testada fica fora do treino <em>e</em> o período de teste é posterior ao de treino. O LightGBM aprende uma correção sobre a interpolação IDW usando satélite (AOD, NO₂, focos de fogo), meteorologia, uso do solo e relevo.</p>
+<h2 data-i="h2"></h2>
+<p class="lead" data-i="l2"></p>
 <div class="grid">
-  <div class="card"><h3>Erro médio absoluto por modelo (µg/m³, menor é melhor)</h3><p>Azul = modelo escolhido · cinza = métodos clássicos de referência</p><div id="bench" class="chart tall"></div></div>
-  <div class="card"><h3>Erro por distância até a estação mais próxima</h3><p>Longe das estações, que é onde um mapa é útil, o erro cai 31% em relação ao IDW</p><div id="dist" class="chart tall"></div></div>
+  <div class="card"><h3 data-i="c_bench"></h3><p data-i="c_bench_s"></p><div id="bench" class="chart tall"></div></div>
+  <div class="card"><h3 data-i="c_dist"></h3><p data-i="c_dist_s"></p><div id="dist" class="chart tall"></div></div>
 </div>
 
-<h2>3. Incerteza calibrada e previsão para amanhã</h2>
-<p class="lead">Cada estimativa vem com um intervalo de 90% calibrado por <em>Conformalized Quantile Regression</em> (CQR). A previsão D+1 usa apenas dados disponíveis até o fim do dia de emissão, sem nenhuma informação do futuro.</p>
+<h2 data-i="h3"></h2>
+<p class="lead" data-i="l3"></p>
 <div class="grid">
-  <div class="card"><h3>Cobertura real do intervalo de 90%</h3><p>Fração dos dias em que o valor medido caiu dentro do intervalo</p><div id="cov" class="chart"></div></div>
-  <div class="card"><h3>Previsão D+1: modelo × persistência</h3><p>Persistência = “amanhã será igual a hoje”, o baseline mais difícil de bater</p><div id="fc" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_cov"></h3><p data-i="c_cov_s"></p><div id="cov" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_fc"></h3><p data-i="c_fc_s"></p><div id="fc" class="chart"></div></div>
 </div>
 <div class="grid" style="margin-top:16px">
-  <div class="card"><h3>Detecção de dias poluídos (&gt; 25 µg/m³)</h3><p>O ponto central suaviza picos; usar o limite superior do intervalo como alerta recupera a detecção</p><div id="alert" class="chart"></div></div>
-  <div class="card"><h3>O que o modelo aprendeu (SHAP)</h3><p>Importância média das variáveis na correção sobre o IDW</p><div id="shap" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_alert"></h3><p data-i="c_alert_s"></p><div id="alert" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_shap"></h3><p data-i="c_shap_s"></p><div id="shap" class="chart"></div></div>
 </div>
 
-<h2>4. Agente RAG de normas ambientais</h2>
-<p class="lead">Sete normas federais (CONAMA 491/2018, 506/2024 e outras) divididas por artigo, inciso e linha de tabela. A busca combina BM25 e embeddings; um reranker decide quando <strong>recusar</strong>. Tudo roda localmente em CPU, com custo zero de API.</p>
+<h2 data-i="h4"></h2>
+<p class="lead" data-i="l4"></p>
 <div class="grid">
-  <div class="card"><h3>Recuperação: acerta o trecho certo?</h3><p>30 perguntas com o trecho-ouro anotado à mão</p><div id="ret" class="chart"></div></div>
-  <div class="card"><h3>Avaliação ponta a ponta do agente</h3><p>36 perguntas: fatos, vigência, composição de trechos, ferramentas e perguntas sem resposta na base</p><div id="rag" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_ret"></h3><p data-i="c_ret_s"></p><div id="ret" class="chart"></div></div>
+  <div class="card"><h3 data-i="c_rag"></h3><p data-i="c_rag_s"></p><div id="rag" class="chart"></div></div>
 </div>
-<div class="note">Exemplo real do log: <em>“Em 2021-08-24 a qualidade do ar em Sorocaba atendia ao padrão final (PF) de MP2,5 da CONAMA 491/2018?”</em> → o agente chama o modelo de PM2.5, recebe o valor com o intervalo de 90%, recupera o Anexo I da resolução, compara com o padrão vigente na data e cita cada número.</div>
+<div class="note" data-i="example"></div>
 
-<footer>Dados: CETESB (via OpenAQ), GOES-16, Sentinel-5P, ERA5, ESA WorldCover, Copernicus DEM, IBGE. Período 2021–2023 (demonstração histórica). Todos os números deste painel são gerados por <code>scripts/build_showcase.py</code> a partir dos CSVs do repositório.</footer>
+<footer data-i="footer"></footer>
 </div>
 
 <script>
+const I18N = {
+  en: {
+    tag: 'Air quality × AI',
+    intro: 'Daily PM2.5 estimated and forecast for the whole state of São Paulo, Brazil, from satellite data, weather reanalysis and 30 monitoring stations, with a calibrated confidence interval. A local AI agent answers questions about environmental regulations and queries the model, always citing its source.',
+    code: 'Code on GitHub', deep: 'Technical deep dive (PT)',
+    k_mae: 'mean error on never-seen stations', k_far: 'error at 25–50 km from stations vs. IDW', k_cov: 'real coverage of the 90% interval',
+    k_acc: 'agent accuracy on answerable questions', k_ref: 'correct refusals out of scope', k_cost: 'per query: local LLM on CPU', k_cost_v: '$0',
+    h1: '1. Where air is measured, and how it varies',
+    l1: 'Only 30 stations for a state of 248,000 km². Click a station on the map (or pick one from the list) to see its daily series. The August–October peaks match the wildfire season.',
+    c_map: 'CETESB stations used for training', c_map_s: 'Color = mean PM2.5 · size = % of days above 25 µg/m³ · click to see the series',
+    c_series: 'Measured daily PM2.5', station: 'Station:',
+    h2: '2. The model beats classic methods where it matters',
+    l2: 'Honest validation: the tested station is held out of training <em>and</em> the test period comes after training. LightGBM learns a correction on top of IDW interpolation using satellite data (AOD, NO₂, fire detections), weather, land use and terrain.',
+    c_bench: 'Mean absolute error by model (µg/m³, lower is better)', c_bench_s: 'Blue = chosen model · gray = classic reference methods',
+    c_dist: 'Error by distance to the nearest station', c_dist_s: 'Far from stations, which is where a map is useful, error drops 31% vs. IDW',
+    h3: '3. Calibrated uncertainty and next-day forecast',
+    l3: 'Every estimate comes with a 90% interval calibrated by <em>Conformalized Quantile Regression</em> (CQR). The next-day forecast only uses data available at the end of the issue day, with no information from the future.',
+    c_cov: 'Real coverage of the 90% interval', c_cov_s: 'Share of days where the measured value fell inside the interval',
+    c_fc: 'Next-day forecast: model × persistence', c_fc_s: 'Persistence = "tomorrow will be like today", the hardest baseline to beat',
+    c_alert: 'Detecting polluted days (&gt; 25 µg/m³)', c_alert_s: 'The point estimate smooths peaks; alerting on the interval\'s upper bound recovers detection',
+    c_shap: 'What the model learned (SHAP)', c_shap_s: 'Mean feature importance in the correction over IDW',
+    h4: '4. RAG agent for environmental regulations',
+    l4: 'Seven Brazilian federal regulations (CONAMA 491/2018, 506/2024 and others) split by article, item and table row. Search combines BM25 and embeddings; a reranker decides when to <strong>refuse</strong>. Everything runs locally on CPU, at zero API cost.',
+    c_ret: 'Retrieval: does it find the right passage?', c_ret_s: '30 questions with a hand-annotated gold passage',
+    c_rag: 'End-to-end agent evaluation', c_rag_s: '36 questions: facts, temporal validity, multi-passage, tool use and questions with no answer in the base',
+    example: 'Real example from the log: <em>"On 2021-08-24, did air quality in Sorocaba meet the final PM2.5 standard of CONAMA 491/2018?"</em> → the agent calls the PM2.5 model, gets the value with its 90% interval, retrieves Annex I of the resolution, compares it with the standard in force on that date and cites every number.',
+    footer: 'Data: CETESB (via OpenAQ), GOES-16, Sentinel-5P, ERA5, ESA WorldCover, Copernicus DEM, IBGE. Period 2021–2023 (historical demo). Every number on this page is generated by <code>scripts/build_showcase.py</code> from the CSVs in the repository.',
+    mean: 'Mean', max: 'Daily max', above: 'Days > 25', days: 'Days measured', limit: '25 µg/m³ ("Good" limit)',
+    mae_axis: 'MAE (µg/m³) · whisker = fold std. dev.', dist_axis: 'distance to the nearest reference station', one_st: '1 station only',
+    idw: 'IDW (interpolation)', krig: 'Ordinary kriging', lgbm: 'LightGBM + satellite', band_axis: 'measured PM2.5 band', nominal: 'nominal 90%',
+    coverage: 'Coverage', width: 'Mean width', with_st: 'Site with station', without_st: 'Site without station', persist: 'Persistence', model_d1: 'Model D+1',
+    a_idw: 'IDW', a_point: 'LightGBM (point)', a_alert: 'Alert on 90% CI', sens: 'recall', detects: 'Catches', of_polluted: 'of polluted days', precision: 'Precision',
+    shap_axis: 'mean |SHAP| (log correction)', emb: 'Embeddings', hyb: 'Hybrid', hybr: 'Hybrid + reranker',
+    m_acc: 'Accuracy', m_cit: 'Citation precision', m_faith: 'Faithfulness (LLM judge)', m_ref: 'Correct refusal', m_tool: 'Correct tool use', chosen: '(chosen)'
+  },
+  pt: {
+    tag: 'Qualidade do ar × IA',
+    intro: 'PM2.5 diário estimado e previsto para todo o estado de São Paulo a partir de satélite, reanálise meteorológica e 30 estações da CETESB, com intervalo de confiança calibrado. Um agente de IA local responde perguntas sobre normas ambientais e consulta o modelo, sempre citando a fonte.',
+    code: 'Código no GitHub', deep: 'Detalhes técnicos',
+    k_mae: 'erro médio em estações nunca vistas', k_far: 'de erro a 25–50 km das estações vs. IDW', k_cov: 'cobertura real do intervalo de 90%',
+    k_acc: 'de acerto do agente nas perguntas respondíveis', k_ref: 'de recusa correta fora da base', k_cost: 'por consulta: LLM local em CPU', k_cost_v: 'US$ 0',
+    h1: '1. Onde o ar é medido e como ele varia',
+    l1: 'São só 30 estações para um estado de 248 mil km². Clique numa estação no mapa (ou escolha na lista) para ver a série diária. Os picos de agosto–outubro coincidem com a temporada de queimadas.',
+    c_map: 'Estações CETESB usadas no treino', c_map_s: 'Cor = PM2.5 médio · tamanho = % de dias acima de 25 µg/m³ · clique para ver a série',
+    c_series: 'PM2.5 diário medido', station: 'Estação:',
+    h2: '2. O modelo bate os métodos clássicos onde importa',
+    l2: 'Validação honesta: a estação testada fica fora do treino <em>e</em> o período de teste é posterior ao de treino. O LightGBM aprende uma correção sobre a interpolação IDW usando satélite (AOD, NO₂, focos de fogo), meteorologia, uso do solo e relevo.',
+    c_bench: 'Erro médio absoluto por modelo (µg/m³, menor é melhor)', c_bench_s: 'Azul = modelo escolhido · cinza = métodos clássicos de referência',
+    c_dist: 'Erro por distância até a estação mais próxima', c_dist_s: 'Longe das estações, que é onde um mapa é útil, o erro cai 31% em relação ao IDW',
+    h3: '3. Incerteza calibrada e previsão para amanhã',
+    l3: 'Cada estimativa vem com um intervalo de 90% calibrado por <em>Conformalized Quantile Regression</em> (CQR). A previsão D+1 usa apenas dados disponíveis até o fim do dia de emissão, sem nenhuma informação do futuro.',
+    c_cov: 'Cobertura real do intervalo de 90%', c_cov_s: 'Fração dos dias em que o valor medido caiu dentro do intervalo',
+    c_fc: 'Previsão D+1: modelo × persistência', c_fc_s: 'Persistência = “amanhã será igual a hoje”, o baseline mais difícil de bater',
+    c_alert: 'Detecção de dias poluídos (&gt; 25 µg/m³)', c_alert_s: 'O ponto central suaviza picos; usar o limite superior do intervalo como alerta recupera a detecção',
+    c_shap: 'O que o modelo aprendeu (SHAP)', c_shap_s: 'Importância média das variáveis na correção sobre o IDW',
+    h4: '4. Agente RAG de normas ambientais',
+    l4: 'Sete normas federais (CONAMA 491/2018, 506/2024 e outras) divididas por artigo, inciso e linha de tabela. A busca combina BM25 e embeddings; um reranker decide quando <strong>recusar</strong>. Tudo roda localmente em CPU, com custo zero de API.',
+    c_ret: 'Recuperação: acerta o trecho certo?', c_ret_s: '30 perguntas com o trecho-ouro anotado à mão',
+    c_rag: 'Avaliação ponta a ponta do agente', c_rag_s: '36 perguntas: fatos, vigência, composição de trechos, ferramentas e perguntas sem resposta na base',
+    example: 'Exemplo real do log: <em>“Em 2021-08-24 a qualidade do ar em Sorocaba atendia ao padrão final (PF) de MP2,5 da CONAMA 491/2018?”</em> → o agente chama o modelo de PM2.5, recebe o valor com o intervalo de 90%, recupera o Anexo I da resolução, compara com o padrão vigente na data e cita cada número.',
+    footer: 'Dados: CETESB (via OpenAQ), GOES-16, Sentinel-5P, ERA5, ESA WorldCover, Copernicus DEM, IBGE. Período 2021–2023 (demonstração histórica). Todos os números deste painel são gerados por <code>scripts/build_showcase.py</code> a partir dos CSVs do repositório.',
+    mean: 'Média', max: 'Máximo diário', above: 'Dias > 25', days: 'Dias medidos', limit: '25 µg/m³ (limite “Boa”)',
+    mae_axis: 'MAE (µg/m³) · traço = desvio nos folds', dist_axis: 'distância até a estação de referência mais próxima', one_st: 'só 1 estação',
+    idw: 'IDW (interpolação)', krig: 'Krigagem ordinária', lgbm: 'LightGBM + satélite', band_axis: 'faixa de PM2.5 medido', nominal: 'nominal 90%',
+    coverage: 'Cobertura', width: 'Largura média', with_st: 'Local com estação', without_st: 'Local sem estação', persist: 'Persistência', model_d1: 'Modelo D+1',
+    a_idw: 'IDW', a_point: 'LightGBM (ponto)', a_alert: 'Alerta pelo IC 90%', sens: 'sensibilidade', detects: 'Detecta', of_polluted: 'dos dias poluídos', precision: 'Precisão',
+    shap_axis: '|SHAP| médio (correção em log)', emb: 'Embeddings', hyb: 'Híbrido', hybr: 'Híbrido + reranker',
+    m_acc: 'Acerto', m_cit: 'Precisão das citações', m_faith: 'Fidelidade (LLM-juiz)', m_ref: 'Recusa correta', m_tool: 'Uso correto da ferramenta', chosen: '(escolhido)'
+  }
+};
+// Rótulos que vêm dos CSVs (em português) e precisam de tradução no modo EN.
+const LABELS_EN = [
+  [/Krigagem ordinária/, 'Ordinary kriging'], [/Climatologia mensal/, 'Monthly climatology'], [/IDW \(baseline\)/, 'IDW (baseline)'],
+  [/regularizado/, 'regularized'], [/reg\. forte/, 'strong reg.'], [/sem satélite/, 'no satellite'], [/sem lag espacial/, 'no spatial lag'],
+  [/alvo bruto/, 'raw target'], [/saída tanh \[-0,7; 0,7\]/, 'tanh output [-0.7, 0.7]'],
+  [/PM2\.5 das estações vizinhas \(IDW\)/, 'Neighbor-station PM2.5 (IDW)'], [/Área construída \(5 km\)/, 'Built-up area (5 km)'],
+  [/Área construída \(célula\)/, 'Built-up area (cell)'], [/Cobertura arbórea \(5 km\)/, 'Tree cover (5 km)'], [/Chuva do dia anterior/, 'Previous-day rain'],
+  [/Agricultura \(5 km\)/, 'Cropland (5 km)'], [/Altitude/, 'Elevation'], [/Sazonalidade \(dia do ano\)/, 'Seasonality (day of year)'],
+  [/Pastagem \(5 km\)/, 'Grassland (5 km)'], [/Distância à estação mais próxima/, 'Distance to nearest station'],
+  [/NO₂ troposférico \(Sentinel-5P\)/, 'Tropospheric NO₂ (Sentinel-5P)'], [/Camada limite mínima/, 'Minimum boundary layer'],
+  [/NO₂ regional \(9×9\)/, 'Regional NO₂ (9×9)'], [/Temperatura a 2 m/, '2 m temperature']
+];
+let lang = 'en';
+try { const q = new URLSearchParams(location.search).get('lang'); lang = q || localStorage.getItem('airiq-lang') || (navigator.language || '').startsWith('pt') && 'pt' || 'en'; } catch (e) {}
+if (!I18N[lang]) lang = 'en';
+const t_ = k => I18N[lang][k];
+const label = s => lang === 'pt' ? s : LABELS_EN.reduce((acc, [re, en]) => acc.replace(re, en), s);
+
 const D = window.DATA;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const T = () => ({ s1: css('--s1'), s2: css('--s2'), s3: css('--s3'), base: css('--base'), soft: css('--soft'),
   text: css('--text-primary'), text2: css('--text-secondary'), grid: css('--grid'), surf: css('--surface-1') });
-const fmt = (v, d = 2) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmt = (v, d = 2) => Number(v).toLocaleString(lang === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = v => fmt(100 * v, 0) + '%';
 const cfg = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'] };
 function L(extra = {}) {
   const t = T();
   return Object.assign({
     paper_bgcolor: t.surf, plot_bgcolor: t.surf, font: { family: 'Inter, system-ui, sans-serif', color: t.text2, size: 12 },
+    separators: lang === 'pt' ? ',.' : '.,',
     margin: { l: 10, r: 14, t: 10, b: 40 }, hoverlabel: { font: { family: 'Inter, system-ui, sans-serif' } },
     xaxis: { gridcolor: t.grid, zeroline: false, automargin: true, linecolor: t.grid },
     yaxis: { gridcolor: t.grid, zeroline: false, automargin: true, linecolor: t.grid },
     legend: { orientation: 'h', y: -0.18, x: 0 }, bargap: 0.25, barcornerradius: 4
   }, extra);
+}
+
+function texts() {
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  document.querySelectorAll('[data-i]').forEach(el => { el.innerHTML = t_(el.dataset.i); });
+  document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
 }
 
 function kpis() {
@@ -143,12 +248,8 @@ function kpis() {
   const cqr = D.intervals.find(r => r.recorte === 'todos' && r.metodo.startsWith('CQR'));
   const q = D.rag.find(r => r.modelo.startsWith('qwen3'));
   const items = [
-    [fmt(best.MAE) + ' µg/m³', 'erro médio em estações nunca vistas'],
-    ['−' + pct(1 - fm / fi), 'de erro a 25–50 km das estações vs. IDW'],
-    [pct(cqr.cobertura_real), 'cobertura real do intervalo de 90%'],
-    [pct(q.acerto), 'de acerto do agente nas perguntas respondíveis'],
-    [pct(q['recusa_correta (sem resposta)']), 'de recusa correta fora da base'],
-    ['US$ 0', 'por consulta: LLM local em CPU'],
+    [fmt(best.MAE) + ' µg/m³', t_('k_mae')], ['−' + pct(1 - fm / fi), t_('k_far')], [pct(cqr.cobertura_real), t_('k_cov')],
+    [pct(q.acerto), t_('k_acc')], [pct(q['recusa_correta (sem resposta)']), t_('k_ref')], [t_('k_cost_v'), t_('k_cost')],
   ];
   document.getElementById('kpis').innerHTML = items.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
 }
@@ -163,12 +264,10 @@ function map() {
       marker: { size: s.map(r => 9 + 60 * r.acima25), color: s.map(r => r.media), line: { color: t.surf, width: 1.5 },
         colorscale: [[0, '#cde2fb'], [0.5, '#3987e5'], [1, '#0d366b']], cmin: 8, cmax: 19,
         colorbar: { title: { text: 'µg/m³', side: 'top' }, thickness: 10, len: 0.55, x: 1, tickfont: { color: t.text2 }, outlinewidth: 0 } },
-      hovertemplate: '<b>%{text}</b><br>Média: %{customdata[0]:.1f} µg/m³<br>Máximo diário: %{customdata[1]:.1f}<br>Dias > 25: %{customdata[2]:.0f}%<br>Dias medidos: %{customdata[3]}<extra></extra>' }
+      hovertemplate: `<b>%{text}</b><br>${t_('mean')}: %{customdata[0]:.1f} µg/m³<br>${t_('max')}: %{customdata[1]:.1f}<br>${t_('above')}: %{customdata[2]:.0f}%<br>${t_('days')}: %{customdata[3]}<extra></extra>` }
   ], L({ margin: { l: 0, r: 0, t: 0, b: 0 }, dragmode: 'pan', hovermode: 'closest',
     xaxis: { visible: false, range: [-53.3, -44] },
     yaxis: { visible: false, range: [-25.5, -19.6], scaleanchor: 'x', scaleratio: 1 / Math.cos(22.5 * Math.PI / 180) } }), cfg);
-  document.getElementById('map').on('plotly_click', e => { const pt = e.points.find(p => p.curveNumber === 1); if (!pt) return;
-    document.getElementById('station').value = pt.text; series(pt.text); });
 }
 
 function series(name) {
@@ -176,13 +275,13 @@ function series(name) {
   const t = T(), s = D.series[name];
   Plotly.react('series', [{
     type: 'scatter', mode: 'lines', x: s.x, y: s.y, name: name, line: { color: t.s1, width: 1.6 }, connectgaps: false,
-    hovertemplate: '%{x|%d/%m/%Y}<br><b>%{y:.1f} µg/m³</b><extra></extra>'
+    hovertemplate: '%{x|%Y-%m-%d}<br><b>%{y:.1f} µg/m³</b><extra></extra>'
   }], L({
     showlegend: false, hovermode: 'x unified', margin: { l: 10, r: 14, t: 10, b: 30 },
     yaxis: { title: { text: 'PM2.5 (µg/m³)' }, gridcolor: t.grid, zeroline: false, automargin: true, rangemode: 'tozero' },
     xaxis: { gridcolor: t.grid, automargin: true, rangeslider: { visible: true, thickness: 0.08, bgcolor: t.surf } },
     shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 25, y1: 25, line: { color: t.s2, width: 1.5, dash: 'dot' } }],
-    annotations: [{ xref: 'paper', x: 1, y: 25, text: '25 µg/m³ (limite “Boa”)', showarrow: false, xanchor: 'right', yanchor: 'bottom', font: { color: t.text2, size: 11 } }]
+    annotations: [{ xref: 'paper', x: 1, y: 25, text: t_('limit'), showarrow: false, xanchor: 'right', yanchor: 'bottom', font: { color: t.text2, size: 11 } }]
   }), cfg);
 }
 
@@ -191,10 +290,10 @@ function bench() {
   const color = r => r.modelo.startsWith('LightGBM regularizado (offset') ? t.s1 :
     /IDW \(baseline\)|Krigagem|Climatologia/.test(r.modelo) ? t.base : t.soft;
   Plotly.react('bench', [{
-    type: 'bar', orientation: 'h', y: b.map(r => r.modelo), x: b.map(r => r.MAE), marker: { color: b.map(color) },
+    type: 'bar', orientation: 'h', y: b.map(r => label(r.modelo)), x: b.map(r => r.MAE), marker: { color: b.map(color) },
     error_x: { type: 'data', array: b.map(r => r.MAE_std_folds), color: t.text2, thickness: 1, width: 0 },
     customdata: b.map(r => r.R2), hovertemplate: '<b>%{y}</b><br>MAE %{x:.2f} µg/m³<br>R² %{customdata:.3f}<extra></extra>'
-  }], L({ showlegend: false, margin: { l: 10, r: 14, t: 6, b: 36 }, xaxis: { title: { text: 'MAE (µg/m³) · traço = desvio entre folds' }, gridcolor: t.grid, automargin: true }, yaxis: { automargin: true, tickfont: { size: 11 } } }), cfg);
+  }], L({ showlegend: false, margin: { l: 10, r: 14, t: 6, b: 36 }, xaxis: { title: { text: t_('mae_axis') }, gridcolor: t.grid, automargin: true }, yaxis: { automargin: true, tickfont: { size: 11 } } }), cfg);
 }
 
 function dist() {
@@ -204,81 +303,86 @@ function dist() {
     return { type: 'bar', name, x: order, y: rows.map(r => r.MAE), marker: { color, line: { color: t.surf, width: 2 } },
       customdata: rows.map(r => r.n), hovertemplate: name + '<br>%{x}: <b>%{y:.2f} µg/m³</b> (n=%{customdata})<extra></extra>' };
   };
-  Plotly.react('dist', [mk('IDW', 'IDW (interpolação)', t.base), mk('Krigagem', 'Krigagem ordinária', t.s2), mk('LightGBM', 'LightGBM + satélite', t.s1)],
+  Plotly.react('dist', [mk('IDW', t_('idw'), t.base), mk('Krigagem', t_('krig'), t.s2), mk('LightGBM', t_('lgbm'), t.s1)],
     L({ barmode: 'group', yaxis: { title: { text: 'MAE (µg/m³)' }, gridcolor: t.grid, automargin: true, rangemode: 'tozero' },
-      xaxis: { title: { text: 'distância até a estação de referência mais próxima' }, automargin: true },
-      annotations: [{ x: '>50 km', y: 4.9, text: 'só 1 estação', showarrow: false, font: { size: 11, color: t.text2 } }] }), cfg);
+      xaxis: { title: { text: t_('dist_axis') }, automargin: true },
+      annotations: [{ x: '>50 km', y: 4.9, text: t_('one_st'), showarrow: false, font: { size: 11, color: t.text2 } }] }), cfg);
 }
 
 function cov() {
   const t = T(), c = D.coverage;
   Plotly.react('cov', [{
     type: 'bar', x: c.map(r => r.faixa + ' µg/m³'), y: c.map(r => r.cobertura_cqr), marker: { color: t.s1 }, customdata: c.map(r => [r.n, r.largura_cqr]),
-    hovertemplate: '%{x}<br>Cobertura <b>%{y:.1%}</b><br>Largura média %{customdata[1]:.1f} µg/m³<br>n=%{customdata[0]:.0f}<extra></extra>'
-  }], L({ showlegend: false, yaxis: { tickformat: '.0%', range: [0.5, 1], gridcolor: t.grid, automargin: true }, xaxis: { title: { text: 'faixa de PM2.5 medido' } },
+    hovertemplate: `%{x}<br>${t_('coverage')} <b>%{y:.1%}</b><br>${t_('width')} %{customdata[1]:.1f} µg/m³<br>n=%{customdata[0]:.0f}<extra></extra>`
+  }], L({ showlegend: false, yaxis: { tickformat: '.0%', range: [0.5, 1], gridcolor: t.grid, automargin: true }, xaxis: { title: { text: t_('band_axis') } },
     shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 0.9, y1: 0.9, line: { color: t.s2, width: 1.5, dash: 'dot' } }],
-    annotations: [{ xref: 'paper', x: 1, y: 0.9, text: 'nominal 90%', showarrow: false, xanchor: 'right', yanchor: 'bottom', font: { size: 11, color: t.text2 } }] }), cfg);
+    annotations: [{ xref: 'paper', x: 1, y: 0.9, text: t_('nominal'), showarrow: false, xanchor: 'right', yanchor: 'bottom', font: { size: 11, color: t.text2 } }] }), cfg);
 }
 
 function fc() {
-  const t = T(), sc = ['A) local com estação', 'B) local sem estação'], lab = ['Local com estação', 'Local sem estação'];
+  const t = T(), sc = ['A) local com estação', 'B) local sem estação'], lab = [t_('with_st'), t_('without_st')];
   const pick = re => sc.map(s => D.forecast.find(r => r.cenario === s && re.test(r.metodo)));
   const p = pick(/Persist/), m = pick(/LightGBM/);
   Plotly.react('fc', [
-    { type: 'bar', name: 'Persistência', x: lab, y: p.map(r => r.MAE), marker: { color: t.base, line: { color: t.surf, width: 2 } }, hovertemplate: 'Persistência<br>%{x}: <b>%{y:.2f} µg/m³</b><extra></extra>' },
-    { type: 'bar', name: 'Modelo D+1', x: lab, y: m.map(r => r.MAE), marker: { color: t.s1, line: { color: t.surf, width: 2 } },
+    { type: 'bar', name: t_('persist'), x: lab, y: p.map(r => r.MAE), marker: { color: t.base, line: { color: t.surf, width: 2 } }, hovertemplate: t_('persist') + '<br>%{x}: <b>%{y:.2f} µg/m³</b><extra></extra>' },
+    { type: 'bar', name: t_('model_d1'), x: lab, y: m.map(r => r.MAE), marker: { color: t.s1, line: { color: t.surf, width: 2 } },
       text: m.map((r, i) => '−' + pct(1 - r.MAE / p[i].MAE)), textposition: 'outside', textfont: { color: t.text },
-      hovertemplate: 'Modelo D+1<br>%{x}: <b>%{y:.2f} µg/m³</b><extra></extra>' }
+      hovertemplate: t_('model_d1') + '<br>%{x}: <b>%{y:.2f} µg/m³</b><extra></extra>' }
   ], L({ barmode: 'group', yaxis: { title: { text: 'MAE (µg/m³)' }, gridcolor: t.grid, automargin: true, rangemode: 'tozero' } }), cfg);
 }
 
 function alertChart() {
-  const t = T(), rows = [
-    ['IDW', D.bands.find(r => r.tarefa === 'estimativa D' && r.metodo.startsWith('IDW')), t.base],
-    ['LightGBM (ponto)', D.bands.find(r => r.tarefa === 'estimativa D' && r.metodo.startsWith('LightGBM')), t.soft],
-    ['Alerta pelo IC 90%', D.bands.find(r => r.tarefa === 'estimativa D' && r.metodo.startsWith('Alerta')), t.s1]];
+  const t = T(), est = D.bands.filter(r => r.tarefa === 'estimativa D'), rows = [
+    [t_('a_idw'), est.find(r => r.metodo.startsWith('IDW')), t.base],
+    [t_('a_point'), est.find(r => r.metodo.startsWith('LightGBM')), t.soft],
+    [t_('a_alert'), est.find(r => r.metodo.startsWith('Alerta')), t.s1]];
   Plotly.react('alert', [{
     type: 'bar', x: rows.map(r => r[0]), y: rows.map(r => r[1]['sensibilidade_>25']), marker: { color: rows.map(r => r[2]) },
     text: rows.map(r => pct(r[1]['sensibilidade_>25'])), textposition: 'outside', textfont: { color: t.text },
-    customdata: rows.map(r => r[1]['precisao_>25']), hovertemplate: '%{x}<br>Detecta <b>%{y:.0%}</b> dos dias poluídos<br>Precisão %{customdata:.0%}<extra></extra>'
-  }], L({ showlegend: false, yaxis: { tickformat: '.0%', range: [0, 1.08], gridcolor: t.grid, automargin: true, title: { text: 'sensibilidade' } } }), cfg);
+    customdata: rows.map(r => r[1]['precisao_>25']), hovertemplate: `%{x}<br>${t_('detects')} <b>%{y:.0%}</b> ${t_('of_polluted')}<br>${t_('precision')} %{customdata:.0%}<extra></extra>`
+  }], L({ showlegend: false, yaxis: { tickformat: '.0%', range: [0, 1.08], gridcolor: t.grid, automargin: true, title: { text: t_('sens') } } }), cfg);
 }
 
 function shap() {
   const t = T(), s = [...D.shap].reverse();
-  Plotly.react('shap', [{ type: 'bar', orientation: 'h', y: s.map(r => r.var), x: s.map(r => r.valor), marker: { color: t.s1 },
-    hovertemplate: '%{y}<br>|SHAP| médio %{x:.4f}<extra></extra>' }],
-    L({ showlegend: false, margin: { l: 10, r: 14, t: 6, b: 36 }, xaxis: { title: { text: '|SHAP| médio (correção em log)' }, gridcolor: t.grid, automargin: true }, yaxis: { automargin: true, tickfont: { size: 11 } } }), cfg);
+  Plotly.react('shap', [{ type: 'bar', orientation: 'h', y: s.map(r => label(r.var)), x: s.map(r => r.valor), marker: { color: t.s1 },
+    hovertemplate: '%{y}<br>|SHAP| %{x:.4f}<extra></extra>' }],
+    L({ showlegend: false, margin: { l: 10, r: 14, t: 6, b: 36 }, xaxis: { title: { text: t_('shap_axis') }, gridcolor: t.grid, automargin: true }, yaxis: { automargin: true, tickfont: { size: 11 } } }), cfg);
 }
 
 function ret() {
-  const t = T(), names = { 'BM25': 'BM25', 'Vetorial (granite-multilingual-278m)': 'Embeddings', 'Híbrido RRF (BM25 + granite-multilingual-278m)': 'Híbrido', 'Híbrido + reranker Qwen3-0.6B (top 8, granite-multilingual-278m)': 'Híbrido + reranker' };
-  const r = Object.keys(names).map(k => D.retrieval.find(x => x.config === k));
-  const x = r.map(v => names[v.config]);
-  const mk = (key, name, color) => ({ type: 'bar', name, x, y: r.map(v => v[key]), marker: { color, line: { color: t.surf, width: 2 } }, hovertemplate: name + '<br>%{x}: <b>%{y:.0%}</b><extra></extra>' });
-  Plotly.react('ret', [mk('recall@1', 'recall@1', t.soft), mk('recall@5', 'recall@5', t.s1)],
+  const t = T(), keys = [['BM25', 'BM25'], ['Vetorial (granite-multilingual-278m)', t_('emb')], ['Híbrido RRF (BM25 + granite-multilingual-278m)', t_('hyb')],
+    ['Híbrido + reranker Qwen3-0.6B (top 8, granite-multilingual-278m)', t_('hybr')]];
+  const r = keys.map(([k]) => D.retrieval.find(x => x.config === k)), x = keys.map(k => k[1]);
+  const mk = (key, color) => ({ type: 'bar', name: key, x, y: r.map(v => v[key]), marker: { color, line: { color: t.surf, width: 2 } }, hovertemplate: key + '<br>%{x}: <b>%{y:.0%}</b><extra></extra>' });
+  Plotly.react('ret', [mk('recall@1', t.soft), mk('recall@5', t.s1)],
     L({ barmode: 'group', yaxis: { tickformat: '.0%', range: [0, 1.05], gridcolor: t.grid, automargin: true } }), cfg);
 }
 
 function rag() {
-  const t = T(), m = [['acerto', 'Acerto'], ['cit_precisao', 'Precisão das citações'], ['fidelidade_juiz', 'Fidelidade (LLM-juiz)'],
-    ['recusa_correta (sem resposta)', 'Recusa correta'], ['ferramenta_ok', 'Uso correto da ferramenta']];
+  const t = T(), m = [['acerto', 'm_acc'], ['cit_precisao', 'm_cit'], ['fidelidade_juiz', 'm_faith'], ['recusa_correta (sem resposta)', 'm_ref'], ['ferramenta_ok', 'm_tool']];
   const q = D.rag.find(r => r.modelo.startsWith('qwen3')), g = D.rag.find(r => r.modelo.startsWith('gemma3'));
-  const mk = (row, name, color) => ({ type: 'bar', orientation: 'h', name, y: m.map(v => v[1]), x: m.map(v => row[v[0]] || 0),
+  const mk = (row, name, color) => ({ type: 'bar', orientation: 'h', name, y: m.map(v => t_(v[1])), x: m.map(v => row[v[0]] || 0),
     marker: { color, line: { color: t.surf, width: 2 } }, hovertemplate: name + '<br>%{y}: <b>%{x:.0%}</b><extra></extra>' });
-  Plotly.react('rag', [mk(g, 'Gemma3-4B', t.base), mk(q, 'Qwen3-4B (escolhido)', t.s1)],
+  Plotly.react('rag', [mk(g, 'Gemma3-4B', t.base), mk(q, 'Qwen3-4B ' + t_('chosen'), t.s1)],
     L({ barmode: 'group', margin: { l: 10, r: 14, t: 6, b: 40 }, xaxis: { tickformat: '.0%', range: [0, 1.05], gridcolor: t.grid }, yaxis: { automargin: true, autorange: 'reversed' } }), cfg);
 }
 
 function renderAll() {
-  map(); bench(); dist(); cov(); fc(); alertChart(); shap(); ret(); rag(); series(current || document.getElementById('station').value);
+  texts(); kpis(); map(); bench(); dist(); cov(); fc(); alertChart(); shap(); ret(); rag(); series(current || sel.value);
 }
-kpis();
 const sel = document.getElementById('station');
 Object.keys(D.series).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(n => sel.add(new Option(n, n)));
 sel.value = D.stations[0].name;  // estação com maior PM2.5 médio
 sel.addEventListener('change', () => series(sel.value));
+document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem('airiq-lang', lang); } catch (e) {}
+  renderAll();
+}));
 renderAll();
+document.getElementById('map').on('plotly_click', e => { const pt = e.points.find(p => p.curveNumber === 1); if (!pt) return;
+  sel.value = pt.text; series(pt.text); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
 </script>
 </body>

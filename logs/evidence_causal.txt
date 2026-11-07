@@ -21,12 +21,12 @@ fumaça (fogo a favor do vento ≥ p95) LightGBM regularizado (offset IDW)  393 
                               normal                     IDW (baseline) 7286    11.851431 2.737409  0.836803   0.386681          0.532116
                               normal LightGBM regularizado (offset IDW) 7286    11.851431 2.499482 -0.413865   0.386681          0.532116
 src.aq.maps ['--date', '2022-10-11']
-mapa salvo em C:\Users\lucas\Documents\GitHub\respira-sp\reports\figures\mapa_pm25_2022-10-11_h0.png | área por faixa: {'Boa': 0.9977, 'Moderada': 0.0023, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 15.6
+mapa salvo em C:\Users\lucas\Documents\GitHub\airiq-sp\reports\figures\mapa_pm25_2022-10-11_h0.png | área por faixa: {'Boa': 0.9977, 'Moderada': 0.0023, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 15.6
 src.aq.maps ['--date', '2022-11-16']
-mapa salvo em C:\Users\lucas\Documents\GitHub\respira-sp\reports\figures\mapa_pm25_2022-11-16_h0.png | área por faixa: {'Boa': 1.0, 'Moderada': 0.0, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 7.8
+mapa salvo em C:\Users\lucas\Documents\GitHub\airiq-sp\reports\figures\mapa_pm25_2022-11-16_h0.png | área por faixa: {'Boa': 1.0, 'Moderada': 0.0, 'Ruim': 0.0, 'Muito Ruim': 0.0, 'Péssima': 0.0} | largura média IC: 7.8
 src.aq.maps ['--date', '2021-08-24']
-mapa salvo em C:\Users\lucas\Documents\GitHub\respira-sp\reports\figures\mapa_pm25_2021-08-24_h0.png | área por faixa: {'Moderada': 0.9237, 'Boa': 0.0388, 'Ruim': 0.0373, 'Muito Ruim': 0.0002, 'Péssima': 0.0} | largura média IC: 39.6
+mapa salvo em C:\Users\lucas\Documents\GitHub\airiq-sp\reports\figures\mapa_pm25_2021-08-24_h0.png | área por faixa: {'Moderada': 0.9237, 'Boa': 0.0388, 'Ruim': 0.0373, 'Muito Ruim': 0.0002, 'Péssima': 0.0} | largura média IC: 39.6
 src.aq.maps ['--date', '2021-08-23', '--horizon', '1']
-mapa salvo em C:\Users\lucas\Documents\GitHub\respira-sp\reports\figures\mapa_pm25_2021-08-24_h1.png | área por faixa: {'Moderada': 0.9257, 'Boa': 0.0416, 'Ruim': 0.0324, 'Muito Ruim': 0.0003, 'Péssima': 0.0} | largura média IC: 51.3
+mapa salvo em C:\Users\lucas\Documents\GitHub\airiq-sp\reports\figures\mapa_pm25_2021-08-24_h1.png | área por faixa: {'Moderada': 0.9257, 'Boa': 0.0416, 'Ruim': 0.0324, 'Muito Ruim': 0.0003, 'Péssima': 0.0} | largura média IC: 51.3
 scripts.verify_delivery []
-C:\Users\lucas\Documents\GitHub\respira-sp\logs\validacao_instalacao.txt
+C:\Users\lucas\Documents\GitHub\airiq-sp\logs\validacao_instalacao.txt

@@ -1,9 +1,9 @@
-docker run --rm respira-sp:latest python -m pytest -q
+docker run --rm airiq-sp:latest python -m pytest -q
 .............................                                            [100%]
 29 passed in 9.76s
 exit_code 0
 elapsed_seconds 167.2
-docker run --rm respira-sp:latest python -m src.aq.pipeline --quick
+docker run --rm airiq-sp:latest python -m src.aq.pipeline --quick
 Demonstração rápida: os CSVs de teste versionados não serão recalculados.
 Executando src.aq.build_dataset --from-sample
 bases de treino copiadas da amostra para data/processed

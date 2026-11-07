@@ -95,4 +95,4 @@ all-sample: ## pipeline completo sobre a amostra (também disponível sem make)
 	$(PY) -m src.aq.pipeline
 
 docker: ## imagem Docker reprodutível
-	docker build -t respira-sp .
+	docker build -t airiq-sp .
