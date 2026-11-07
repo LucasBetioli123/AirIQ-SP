@@ -1,7 +1,8 @@
-"""Embeddings e reranker locais (GGUF via llama.cpp), sem custo e sem rede na inferência.
+"""Local embeddings and reranker (GGUF via llama.cpp), zero cost and no network at inference.
 
-Cada família de modelo tem um formato de instrução próprio para consulta x documento.
-Usar o formato errado derruba bastante o recall, por isso o formato vai codificado aqui.
+Each model family has its own instruction format for query vs. document. Using the wrong
+format hurts recall a lot, so the formats are hard-coded here. Instructions written in
+Portuguese stay in Portuguese: the documents and queries are Brazilian legal text.
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ FORMATS = {
     "granite-embedding": (lambda q: q, lambda d: d),
 }
 
-# padrão escolhido no benchmark (reports/metrics/rag_retrieval.csv): melhor híbrido e o mais rápido em CPU
+# default chosen in the benchmark (reports/metrics/rag_retrieval.csv): best hybrid and fastest on CPU
 DEFAULT_EMB = "granite-multilingual-278m"
 EMB_MODELS = {
     "qwen3-emb-0.6b": "models/emb/qwen3-embedding-0.6b-q8_0.gguf",
@@ -46,7 +47,7 @@ class Embedder:
         self.llm = Llama(model_path=self.path, embedding=True, n_ctx=n_ctx, n_batch=n_ctx, n_ubatch=n_ctx,
                          n_threads=os.cpu_count(), verbose=False)
         train_ctx = self.llm._model.n_ctx_train()
-        if train_ctx < n_ctx:  # ex.: Granite (512): além disso a posição sai do treino e o vetor degrada
+        if train_ctx < n_ctx:  # e.g. Granite (512): beyond that, positions fall outside training and the vector degrades
             n_ctx = train_ctx
             self.llm = Llama(model_path=self.path, embedding=True, n_ctx=n_ctx, n_batch=n_ctx, n_ubatch=n_ctx,
                              n_threads=os.cpu_count(), verbose=False)
@@ -56,10 +57,10 @@ class Embedder:
         out = []
         for t in texts:
             toks = self.llm.tokenize(t.encode(), add_bos=True)
-            if len(toks) > self.n_ctx - 8:  # trunca com folga (chunks já são curtos)
+            if len(toks) > self.n_ctx - 8:  # truncate with headroom (chunks are already short)
                 t = self.llm.detokenize(toks[: self.n_ctx - 8]).decode(errors="ignore")
             v = np.asarray(self.llm.embed(t), dtype="float32")
-            if v.ndim == 2:  # modelo sem pooling -> média dos tokens
+            if v.ndim == 2:  # model without pooling -> mean over tokens
                 v = v.mean(0)
             out.append(v / (np.linalg.norm(v) + 1e-9))
         return np.vstack(out)
@@ -85,8 +86,8 @@ def get_embedder(path: str | None = None) -> Embedder:
 
 
 class Reranker:
-    """Qwen3-Reranker (cross-encoder gerativo): score = P("yes") para a pergunta
-    "o documento atende à consulta?". Usa o template oficial do modelo."""
+    """Qwen3-Reranker (generative cross-encoder): score = P("yes") for the question
+    "does the document satisfy the query?". Uses the model's official template."""
 
     PREFIX = ("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the "
               "Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n")
@@ -112,8 +113,8 @@ class Reranker:
                 toks = toks[:keep] + self.llm.tokenize(self.SUFFIX.encode(), add_bos=False, special=True)
             self.llm.reset()
             self.llm.eval(toks)
-            # sem logits_all, o llama-cpp-python >= 0.3 não copia mais os logits para `scores`:
-            # lê os do último token direto do contexto
+            # without logits_all, llama-cpp-python >= 0.3 no longer copies logits into `scores`:
+            # read the last token's logits straight from the context
             ptr = self.llm._ctx.get_logits_ith(-1)
             logits = np.ctypeslib.as_array(ptr, shape=(self.llm.n_vocab(),))
             a, b = float(logits[self.yes]), float(logits[self.no])

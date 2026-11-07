@@ -11,11 +11,11 @@
     ]
    },
    "properties": {
-    "estação": "Osasco",
-    "dias com PM2.5": 410,
-    "PM2.5 médio (µg/m³)": 19.0,
-    "máximo diário (µg/m³)": 101.4,
-    "dias acima de 25 µg/m³": "18%",
+    "station": "Osasco",
+    "days measured": 410,
+    "mean PM2.5 (µg/m³)": 19.0,
+    "daily max (µg/m³)": 101.4,
+    "days above 25 µg/m³": "18%",
     "marker-color": "#d95926",
     "marker-size": "medium"
    }
@@ -30,11 +30,11 @@
     ]
    },
    "properties": {
-    "estação": "Santa Gertrudes",
-    "dias com PM2.5": 346,
-    "PM2.5 médio (µg/m³)": 17.2,
-    "máximo diário (µg/m³)": 66.6,
-    "dias acima de 25 µg/m³": "18%",
+    "station": "Santa Gertrudes",
+    "days measured": 346,
+    "mean PM2.5 (µg/m³)": 17.2,
+    "daily max (µg/m³)": 66.6,
+    "days above 25 µg/m³": "18%",
     "marker-color": "#d95926",
     "marker-size": "medium"
    }
@@ -49,11 +49,11 @@
     ]
    },
    "properties": {
-    "estação": "Marg.Tietê-Pte Remédios",
-    "dias com PM2.5": 512,
-    "PM2.5 médio (µg/m³)": 16.8,
-    "máximo diário (µg/m³)": 80.4,
-    "dias acima de 25 µg/m³": "12%",
+    "station": "Marg.Tietê-Pte Remédios",
+    "days measured": 512,
+    "mean PM2.5 (µg/m³)": 16.8,
+    "daily max (µg/m³)": 80.4,
+    "days above 25 µg/m³": "12%",
     "marker-color": "#d95926",
     "marker-size": "medium"
    }
@@ -68,11 +68,11 @@
     ]
    },
    "properties": {
-    "estação": "Pinheiros",
-    "dias com PM2.5": 266,
-    "PM2.5 médio (µg/m³)": 15.5,
-    "máximo diário (µg/m³)": 59.4,
-    "dias acima de 25 µg/m³": "15%",
+    "station": "Pinheiros",
+    "days measured": 266,
+    "mean PM2.5 (µg/m³)": 15.5,
+    "daily max (µg/m³)": 59.4,
+    "days above 25 µg/m³": "15%",
     "marker-color": "#d95926",
     "marker-size": "medium"
    }
@@ -87,11 +87,11 @@
     ]
    },
    "properties": {
-    "estação": "Ibirapuera",
-    "dias com PM2.5": 329,
-    "PM2.5 médio (µg/m³)": 15.4,
-    "máximo diário (µg/m³)": 56.3,
-    "dias acima de 25 µg/m³": "14%",
+    "station": "Ibirapuera",
+    "days measured": 329,
+    "mean PM2.5 (µg/m³)": 15.4,
+    "daily max (µg/m³)": 56.3,
+    "days above 25 µg/m³": "14%",
     "marker-color": "#d95926",
     "marker-size": "medium"
    }
@@ -106,11 +106,11 @@
     ]
    },
    "properties": {
-    "estação": "Congonhas",
-    "dias com PM2.5": 432,
-    "PM2.5 médio (µg/m³)": 15.1,
-    "máximo diário (µg/m³)": 44.1,
-    "dias acima de 25 µg/m³": "8%",
+    "station": "Congonhas",
+    "days measured": 432,
+    "mean PM2.5 (µg/m³)": 15.1,
+    "daily max (µg/m³)": 44.1,
+    "days above 25 µg/m³": "8%",
     "marker-color": "#d95926",
     "marker-size": "small"
    }
@@ -125,11 +125,11 @@
     ]
    },
    "properties": {
-    "estação": "Santana",
-    "dias com PM2.5": 389,
-    "PM2.5 médio (µg/m³)": 14.6,
-    "máximo diário (µg/m³)": 51.7,
-    "dias acima de 25 µg/m³": "11%",
+    "station": "Santana",
+    "days measured": 389,
+    "mean PM2.5 (µg/m³)": 14.6,
+    "daily max (µg/m³)": 51.7,
+    "days above 25 µg/m³": "11%",
     "marker-color": "#2a78d6",
     "marker-size": "medium"
    }
@@ -144,11 +144,11 @@
     ]
    },
    "properties": {
-    "estação": "Parque D.Pedro II",
-    "dias com PM2.5": 432,
-    "PM2.5 médio (µg/m³)": 14.5,
-    "máximo diário (µg/m³)": 51.6,
-    "dias acima de 25 µg/m³": "10%",
+    "station": "Parque D.Pedro II",
+    "days measured": 432,
+    "mean PM2.5 (µg/m³)": 14.5,
+    "daily max (µg/m³)": 51.6,
+    "days above 25 µg/m³": "10%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -163,11 +163,11 @@
     ]
    },
    "properties": {
-    "estação": "Paulínia-Sta Terezinha",
-    "dias com PM2.5": 276,
-    "PM2.5 médio (µg/m³)": 14.4,
-    "máximo diário (µg/m³)": 61.2,
-    "dias acima de 25 µg/m³": "9%",
+    "station": "Paulínia-Sta Terezinha",
+    "days measured": 276,
+    "mean PM2.5 (µg/m³)": 14.4,
+    "daily max (µg/m³)": 61.2,
+    "days above 25 µg/m³": "9%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -182,11 +182,11 @@
     ]
    },
    "properties": {
-    "estação": "Guarulhos-Paço Municipal",
-    "dias com PM2.5": 405,
-    "PM2.5 médio (µg/m³)": 14.2,
-    "máximo diário (µg/m³)": 44.5,
-    "dias acima de 25 µg/m³": "8%",
+    "station": "Guarulhos-Paço Municipal",
+    "days measured": 405,
+    "mean PM2.5 (µg/m³)": 14.2,
+    "daily max (µg/m³)": 44.5,
+    "days above 25 µg/m³": "8%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -201,11 +201,11 @@
     ]
    },
    "properties": {
-    "estação": "Itaim Paulista",
-    "dias com PM2.5": 517,
-    "PM2.5 médio (µg/m³)": 14.0,
-    "máximo diário (µg/m³)": 55.1,
-    "dias acima de 25 µg/m³": "10%",
+    "station": "Itaim Paulista",
+    "days measured": 517,
+    "mean PM2.5 (µg/m³)": 14.0,
+    "daily max (µg/m³)": 55.1,
+    "days above 25 µg/m³": "10%",
     "marker-color": "#2a78d6",
     "marker-size": "medium"
    }
@@ -220,11 +220,11 @@
     ]
    },
    "properties": {
-    "estação": "Campinas-V.União",
-    "dias com PM2.5": 352,
-    "PM2.5 médio (µg/m³)": 13.8,
-    "máximo diário (µg/m³)": 49.2,
-    "dias acima de 25 µg/m³": "8%",
+    "station": "Campinas-V.União",
+    "days measured": 352,
+    "mean PM2.5 (µg/m³)": 13.8,
+    "daily max (µg/m³)": 49.2,
+    "days above 25 µg/m³": "8%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -239,11 +239,11 @@
     ]
    },
    "properties": {
-    "estação": "Perus",
-    "dias com PM2.5": 270,
-    "PM2.5 médio (µg/m³)": 13.8,
-    "máximo diário (µg/m³)": 41.2,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "Perus",
+    "days measured": 270,
+    "mean PM2.5 (µg/m³)": 13.8,
+    "daily max (µg/m³)": 41.2,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -258,11 +258,11 @@
     ]
    },
    "properties": {
-    "estação": "Guarulhos-Pimentas",
-    "dias com PM2.5": 430,
-    "PM2.5 médio (µg/m³)": 13.8,
-    "máximo diário (µg/m³)": 66.8,
-    "dias acima de 25 µg/m³": "10%",
+    "station": "Guarulhos-Pimentas",
+    "days measured": 430,
+    "mean PM2.5 (µg/m³)": 13.8,
+    "daily max (µg/m³)": 66.8,
+    "days above 25 µg/m³": "10%",
     "marker-color": "#2a78d6",
     "marker-size": "medium"
    }
@@ -277,11 +277,11 @@
     ]
    },
    "properties": {
-    "estação": "São Caetano do Sul",
-    "dias com PM2.5": 409,
-    "PM2.5 médio (µg/m³)": 13.7,
-    "máximo diário (µg/m³)": 44.6,
-    "dias acima de 25 µg/m³": "9%",
+    "station": "São Caetano do Sul",
+    "days measured": 409,
+    "mean PM2.5 (µg/m³)": 13.7,
+    "daily max (µg/m³)": 44.6,
+    "days above 25 µg/m³": "9%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -296,11 +296,11 @@
     ]
    },
    "properties": {
-    "estação": "Rio Claro-Jd.Guanabara",
-    "dias com PM2.5": 355,
-    "PM2.5 médio (µg/m³)": 13.5,
-    "máximo diário (µg/m³)": 53.5,
-    "dias acima de 25 µg/m³": "10%",
+    "station": "Rio Claro-Jd.Guanabara",
+    "days measured": 355,
+    "mean PM2.5 (µg/m³)": 13.5,
+    "daily max (µg/m³)": 53.5,
+    "days above 25 µg/m³": "10%",
     "marker-color": "#2a78d6",
     "marker-size": "medium"
    }
@@ -315,11 +315,11 @@
     ]
    },
    "properties": {
-    "estação": "Mooca",
-    "dias com PM2.5": 349,
-    "PM2.5 médio (µg/m³)": 13.4,
-    "máximo diário (µg/m³)": 44.7,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "Mooca",
+    "days measured": 349,
+    "mean PM2.5 (µg/m³)": 13.4,
+    "daily max (µg/m³)": 44.7,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -334,11 +334,11 @@
     ]
    },
    "properties": {
-    "estação": "São José do Rio Preto",
-    "dias com PM2.5": 301,
-    "PM2.5 médio (µg/m³)": 13.4,
-    "máximo diário (µg/m³)": 91.9,
-    "dias acima de 25 µg/m³": "9%",
+    "station": "São José do Rio Preto",
+    "days measured": 301,
+    "mean PM2.5 (µg/m³)": 13.4,
+    "daily max (µg/m³)": 91.9,
+    "days above 25 µg/m³": "9%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -353,11 +353,11 @@
     ]
    },
    "properties": {
-    "estação": "S.Bernardo-Centro",
-    "dias com PM2.5": 419,
-    "PM2.5 médio (µg/m³)": 12.9,
-    "máximo diário (µg/m³)": 40.8,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "S.Bernardo-Centro",
+    "days measured": 419,
+    "mean PM2.5 (µg/m³)": 12.9,
+    "daily max (µg/m³)": 40.8,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -372,11 +372,11 @@
     ]
    },
    "properties": {
-    "estação": "Grajaú-Parelheiros",
-    "dias com PM2.5": 400,
-    "PM2.5 médio (µg/m³)": 12.8,
-    "máximo diário (µg/m³)": 55.9,
-    "dias acima de 25 µg/m³": "10%",
+    "station": "Grajaú-Parelheiros",
+    "days measured": 400,
+    "mean PM2.5 (µg/m³)": 12.8,
+    "daily max (µg/m³)": 55.9,
+    "days above 25 µg/m³": "10%",
     "marker-color": "#2a78d6",
     "marker-size": "medium"
    }
@@ -391,11 +391,11 @@
     ]
    },
    "properties": {
-    "estação": "Cid.Universitária-USP-Ipen",
-    "dias com PM2.5": 384,
-    "PM2.5 médio (µg/m³)": 12.5,
-    "máximo diário (µg/m³)": 62.2,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "Cid.Universitária-USP-Ipen",
+    "days measured": 384,
+    "mean PM2.5 (µg/m³)": 12.5,
+    "daily max (µg/m³)": 62.2,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -410,11 +410,11 @@
     ]
    },
    "properties": {
-    "estação": "Mauá",
-    "dias com PM2.5": 377,
-    "PM2.5 médio (µg/m³)": 12.5,
-    "máximo diário (µg/m³)": 49.3,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "Mauá",
+    "days measured": 377,
+    "mean PM2.5 (µg/m³)": 12.5,
+    "daily max (µg/m³)": 49.3,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -429,11 +429,11 @@
     ]
    },
    "properties": {
-    "estação": "Piracicaba",
-    "dias com PM2.5": 381,
-    "PM2.5 médio (µg/m³)": 11.9,
-    "máximo diário (µg/m³)": 57.9,
-    "dias acima de 25 µg/m³": "7%",
+    "station": "Piracicaba",
+    "days measured": 381,
+    "mean PM2.5 (µg/m³)": 11.9,
+    "daily max (µg/m³)": 57.9,
+    "days above 25 µg/m³": "7%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -448,11 +448,11 @@
     ]
    },
    "properties": {
-    "estação": "Jundiaí",
-    "dias com PM2.5": 582,
-    "PM2.5 médio (µg/m³)": 11.7,
-    "máximo diário (µg/m³)": 53.9,
-    "dias acima de 25 µg/m³": "5%",
+    "station": "Jundiaí",
+    "days measured": 582,
+    "mean PM2.5 (µg/m³)": 11.7,
+    "daily max (µg/m³)": 53.9,
+    "days above 25 µg/m³": "5%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -467,11 +467,11 @@
     ]
    },
    "properties": {
-    "estação": "Guaratinguetá",
-    "dias com PM2.5": 446,
-    "PM2.5 médio (µg/m³)": 11.4,
-    "máximo diário (µg/m³)": 35.4,
-    "dias acima de 25 µg/m³": "3%",
+    "station": "Guaratinguetá",
+    "days measured": 446,
+    "mean PM2.5 (µg/m³)": 11.4,
+    "daily max (µg/m³)": 35.4,
+    "days above 25 µg/m³": "3%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -486,11 +486,11 @@
     ]
    },
    "properties": {
-    "estação": "Santos-Ponta da Praia",
-    "dias com PM2.5": 414,
-    "PM2.5 médio (µg/m³)": 10.8,
-    "máximo diário (µg/m³)": 30.4,
-    "dias acima de 25 µg/m³": "2%",
+    "station": "Santos-Ponta da Praia",
+    "days measured": 414,
+    "mean PM2.5 (µg/m³)": 10.8,
+    "daily max (µg/m³)": 30.4,
+    "days above 25 µg/m³": "2%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -505,11 +505,11 @@
     ]
    },
    "properties": {
-    "estação": "Limeira",
-    "dias com PM2.5": 360,
-    "PM2.5 médio (µg/m³)": 10.7,
-    "máximo diário (µg/m³)": 43.0,
-    "dias acima de 25 µg/m³": "3%",
+    "station": "Limeira",
+    "days measured": 360,
+    "mean PM2.5 (µg/m³)": 10.7,
+    "daily max (µg/m³)": 43.0,
+    "days above 25 µg/m³": "3%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -524,11 +524,11 @@
     ]
    },
    "properties": {
-    "estação": "Taubaté",
-    "dias com PM2.5": 407,
-    "PM2.5 médio (µg/m³)": 10.2,
-    "máximo diário (µg/m³)": 32.4,
-    "dias acima de 25 µg/m³": "2%",
+    "station": "Taubaté",
+    "days measured": 407,
+    "mean PM2.5 (µg/m³)": 10.2,
+    "daily max (µg/m³)": 32.4,
+    "days above 25 µg/m³": "2%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -543,11 +543,11 @@
     ]
    },
    "properties": {
-    "estação": "Pico do Jaraguá",
-    "dias com PM2.5": 378,
-    "PM2.5 médio (µg/m³)": 10.1,
-    "máximo diário (µg/m³)": 35.7,
-    "dias acima de 25 µg/m³": "3%",
+    "station": "Pico do Jaraguá",
+    "days measured": 378,
+    "mean PM2.5 (µg/m³)": 10.1,
+    "daily max (µg/m³)": 35.7,
+    "days above 25 µg/m³": "3%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }
@@ -562,11 +562,11 @@
     ]
    },
    "properties": {
-    "estação": "S.José Campos-Jd.Satelite",
-    "dias com PM2.5": 215,
-    "PM2.5 médio (µg/m³)": 7.9,
-    "máximo diário (µg/m³)": 23.1,
-    "dias acima de 25 µg/m³": "0%",
+    "station": "S.José Campos-Jd.Satelite",
+    "days measured": 215,
+    "mean PM2.5 (µg/m³)": 7.9,
+    "daily max (µg/m³)": 23.1,
+    "days above 25 µg/m³": "0%",
     "marker-color": "#2a78d6",
     "marker-size": "small"
    }

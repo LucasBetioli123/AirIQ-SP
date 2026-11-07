@@ -1,7 +1,8 @@
-# Base de conhecimento do agente (módulo RAG). Só documentos públicos, de fontes oficiais.
-# vigencia_inicio/vigencia_fim permitem responder "qual regra valia na data X".
-# urls: tentadas em ordem; o conteúdo baixado é validado por `must_contain`.
-# Também é possível colocar o arquivo manualmente em data/raw/normas/<id>.<html|pdf>.
+# The agent's knowledge base (RAG module): Brazilian federal regulations, in Portuguese.
+# Public documents from official sources only.
+# vigencia_inicio/vigencia_fim (start/end of validity) let the agent answer "which rule applied on date X".
+# urls: tried in order; downloaded content is validated with `must_contain`.
+# You can also place the file manually in data/raw/normas/<id>.<html|pdf>.
 documentos:
   - id: conama_491_2018
     titulo: "Resolução CONAMA nº 491, de 19 de novembro de 2018"
@@ -12,13 +13,13 @@ documentos:
     vigencia_inicio: "2018-11-21"
     vigencia_fim: null
     must_contain: ["491", "qualidade do ar"]
-    # Revogação PARCIAL pela 506/2024 (art. 11, I): arts. 9º-11 e Anexos II-IV continuam vigentes.
+    # PARTIAL repeal by 506/2024 (art. 11, I): arts. 9-11 and Annexes II-IV remain in force.
     revogacoes_parciais:
       - dispositivos: ["art. 1º", "art. 2º", "art. 3º", "art. 4º", "art. 5º", "art. 6º", "art. 7º", "art. 8º",
                        "art. 12", "art. 13", "art. 14", "Anexo I"]
         vigencia_fim: "2024-07-08"
         revogado_por: "Resolução CONAMA 506/2024, art. 11, inciso I"
-    # O DOU (in.gov.br) responde 403 a acesso automatizado; a FAOLEX (FAO) guarda a impressão da página do DOU.
+    # The Official Gazette (in.gov.br) returns 403 to automated access; FAOLEX (FAO) keeps a print of the DOU page.
     urls:
       - "https://faolex.fao.org/docs/pdf/bra215752.pdf"
       - "https://www.in.gov.br/materia/-/asset_publisher/Kujrw0TZC2Mb/content/id/51058895/do1-2018-11-21-resolucao-n-491-de-19-de-novembro-de-2018-51058603"
@@ -34,7 +35,7 @@ documentos:
     vigencia_inicio: "2024-07-09"
     vigencia_fim: null
     must_contain: ["506", "qualidade do ar"]
-    # impressão da página do DOU publicada pela Prefeitura do Rio (o DOU bloqueia acesso automatizado)
+    # print of the DOU page published by Rio de Janeiro City Hall (the DOU blocks automated access)
     urls:
       - "https://ambienteclima.prefeitura.rio/wp-content/uploads/sites/81/2024/11/Resolucao-CONAMA-no-506-de-05-de-julho-de-2024-1.pdf"
     busca_dou: "Resolução Conama nº 506, de 5 de julho de 2024"
@@ -46,7 +47,7 @@ documentos:
     tipo: resolucao
     data_publicacao: "1990-08-22"
     vigencia_inicio: "1990-08-22"
-    vigencia_fim: "2018-11-20"   # revogada pela Resolução CONAMA 491/2018
+    vigencia_fim: "2018-11-20"   # repealed by CONAMA Resolution 491/2018
     revogada_por: "Resolução CONAMA 491/2018, art. 14"
     must_contain: ["qualidade do ar"]
     urls:
@@ -59,8 +60,8 @@ documentos:
     tipo: resolucao
     data_publicacao: "1989-08-25"
     vigencia_inicio: "1989-08-25"
-    # Revogada inteira pela Res. CONAMA 513/2026 (DOU de 09/04/2026). O texto da 513 não entrou na base:
-    # só está no DOU, que bloqueia acesso automatizado (ver docs/DETALHES_TECNICOS.md).
+    # Fully repealed by CONAMA Res. 513/2026 (DOU of 2026-04-09). The text of 513 is not in the base:
+    # it is only on the DOU, which blocks automated access (see docs/TECHNICAL_DETAILS.md).
     vigencia_fim: "2026-04-08"
     revogada_por: "Resolução CONAMA 513/2026 (texto fora da base)"
     revogacoes_parciais:

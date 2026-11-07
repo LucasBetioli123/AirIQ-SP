@@ -13,9 +13,9 @@
 
 **🇺🇸 English** · [🇧🇷 Português](README.pt-BR.md)
 
-**[📊 Open the interactive dashboard](https://lucasbetioli123.github.io/airiq-sp/)** · **[🔬 Technical deep dive (PT)](docs/DETALHES_TECNICOS.md)** · **[📓 Notebooks](notebooks/)**
+**[📊 Open the interactive dashboard](https://lucasbetioli123.github.io/AirIQ-SP/)** · **[🤖 Ask the agent](https://lucasbetioli123.github.io/AirIQ-SP/#agent)** · **[🔬 Technical deep dive](docs/TECHNICAL_DETAILS.md)** · **[📓 Notebooks](notebooks/)**
 
-<a href="https://lucasbetioli123.github.io/airiq-sp/"><img src="docs/assets/dashboard.png" alt="Preview of the AirIQ SP interactive dashboard" width="900"></a>
+<a href="https://lucasbetioli123.github.io/AirIQ-SP/"><img src="docs/assets/dashboard.png" alt="Preview of the AirIQ SP interactive dashboard" width="900"></a>
 
 </div>
 
@@ -129,7 +129,7 @@ pie showData
 
 Tree models **smooth out peaks**: on its own, the point estimate catches 62% of days above 25 µg/m³, versus 79% for IDW. The fix was to use the uncertainty: alerting on the **upper bound of the 90% interval**, with a fixed rule and no tuning on the test set, catches **94%** of those days. The interval carries the risk signal that the point estimate loses.
 
-Every number lives in [`docs/DETALHES_TECNICOS.md`](docs/DETALHES_TECNICOS.md) (Portuguese) and is generated from the CSVs in `reports/metrics/`.
+Every number lives in [`docs/TECHNICAL_DETAILS.md`](docs/TECHNICAL_DETAILS.md) and is generated from the CSVs in `reports/metrics/`.
 </details>
 
 ### 🗺️ Estimate + uncertainty maps
@@ -150,7 +150,6 @@ Wildfire-smoke day (2021-08-24), forecast issued the day before. On the right, t
 | <img src="reports/figures/previsao_d1.png" alt="Next-day forecast"> | <img src="reports/figures/dispersao_idw_vs_lgbm.png" alt="IDW vs LightGBM scatter"> |
 | **Next-day forecast** × persistence | **Scatter**: IDW × model |
 
-<sub>Figure labels are in Portuguese.</sub>
 </details>
 
 ### 📍 The 30 reference stations (interactive map)
@@ -196,7 +195,12 @@ GitHub renders the map below as a navigable map: click a station to see its mean
 
 ## 🤖 Module 2 · Environmental-law agent
 
-An assistant that answers questions about Brazilian air-quality regulations **citing the exact article**, and knows when to call the PM2.5 model because the question involves a place and a date. The knowledge base and the conversation are in **Portuguese**: this is multilingual NLP over real legal text.
+An assistant that answers questions about Brazilian air-quality regulations **citing the exact article**, and knows when to call the PM2.5 model because the question involves a place and a date.
+
+> [!NOTE]
+> 🇧🇷 **The regulations are in Portuguese (pt-BR) because they are Brazil's own laws** (CONAMA resolutions and federal acts). The knowledge base, the questions and the agent's answers are therefore in Portuguese, while the code and documentation are in English. Retrieval and generation over real Portuguese legal text is part of what this module demonstrates.
+
+**▶ [Try it in the dashboard](https://lucasbetioli123.github.io/AirIQ-SP/#agent):** pick one of the 36 evaluation questions and watch a replay of the real recorded run: planning, regulation search, PM2.5 tool call, streamed answer, validation and the cited legal passages.
 
 ```mermaid
 sequenceDiagram
@@ -262,8 +266,8 @@ A set of **36 hand-written questions**, checked against the text of the regulati
 **Requirements:** Python 3.12 or 3.13, x86-64 CPU (no GPU), ~16 GB RAM recommended. The versioned data sample is ~12 MB; the GGUF models add up to ~4.3 GB.
 
 ```bash
-git clone https://github.com/LucasBetioli123/airiq-sp.git
-cd airiq-sp
+git clone https://github.com/LucasBetioli123/AirIQ-SP.git
+cd AirIQ-SP
 make setup      # creates .venv and installs pinned dependencies
 make models     # downloads the GGUF models (LLM, embeddings, reranker)
 cp .env.example .env
@@ -349,7 +353,7 @@ docs/            interactive dashboard (GitHub Pages) and technical deep dive
 tests/           29 tests: causality, chunker, agent, evaluation, configuration
 ```
 
-Code comments and docstrings are in Portuguese.
+Code, comments and docs are in English. Data keys (CSV columns, JSON fields, log records), LLM prompts and the legal text stay in Portuguese, as they belong to the Brazilian-law domain.
 
 ## 🧰 Tech stack
 

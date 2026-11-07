@@ -1,4 +1,4 @@
-"""Sessão HTTP com retentativas e utilitários para buckets S3 públicos (acesso anônimo)."""
+"""HTTP session with retries, plus helpers for public S3 buckets (anonymous access)."""
 from __future__ import annotations
 
 import re
@@ -17,13 +17,13 @@ def session() -> requests.Session:
         s = requests.Session()
         retry = Retry(total=5, backoff_factor=1.5, status_forcelist=(429, 500, 502, 503, 504))
         s.mount("https://", HTTPAdapter(max_retries=retry, pool_maxsize=64))
-        s.headers["User-Agent"] = "airiq-sp/1.0 (pesquisa; dados publicos)"
+        s.headers["User-Agent"] = "airiq-sp/1.0 (research; public data)"
         _session = s
     return _session
 
 
 def s3_list(bucket_url: str, prefix: str, delimiter: str | None = None) -> tuple[list[tuple[str, int]], list[str]]:
-    """Lista objetos (key, size) e prefixos comuns de um bucket S3 público via ListObjectsV2."""
+    """List objects (key, size) and common prefixes of a public S3 bucket via ListObjectsV2."""
     keys: list[tuple[str, int]] = []
     prefixes: list[str] = []
     token = None
@@ -45,7 +45,7 @@ def s3_list(bucket_url: str, prefix: str, delimiter: str | None = None) -> tuple
 
 
 def download(url: str, dest, timeout: int = 300) -> None:
-    """Baixa para arquivo de forma atômica (escreve .part e renomeia)."""
+    """Download to a file atomically (write .part, then rename)."""
     from pathlib import Path
 
     dest = Path(dest)

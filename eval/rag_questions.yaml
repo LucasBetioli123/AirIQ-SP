@@ -1,13 +1,14 @@
-# Conjunto de avaliação do agente (escrito à mão, conferido contra o texto das normas em data/raw/normas).
-# tipo: fato | multi (exige juntar 2+ trechos) | temporal (vigência) | ferramenta (modelo de PM2.5) |
-#       sem_resposta (não está na base)
-# gold: ids dos chunks que contêm a resposta. "doc:art4" casa também com as partes "doc:art4:p2", e
-#       "doc" sozinho casa com qualquer trecho do documento.
-# fatos_chave: o que a resposta PRECISA conter (um item pode ser lista de alternativas equivalentes)
-# data: data em que a regra é avaliada (só para o benchmark de recuperação; o agente tira a data da pergunta)
-# Datas da ferramenta: no modo amostra só há satélite/meteorologia nas janelas de configs/config.yaml.
+# Agent evaluation set, hand-written and checked against the text of the regulations (data/raw/normas).
+# Questions and expected answers are in Portuguese because the regulations are Brazilian law.
+# tipo (type): fato (fact) | multi (needs 2+ passages) | temporal (validity) | ferramenta (PM2.5 model tool) |
+#       sem_resposta (not in the base)
+# gold: ids of the chunks holding the answer. "doc:art4" also matches its parts "doc:art4:p2", and
+#       "doc" alone matches any passage of the document.
+# fatos_chave (key facts): what the answer MUST contain (an item can be a list of equivalent alternatives)
+# data: date on which the rule is evaluated (retrieval benchmark only; the agent takes the date from the question)
+# Tool dates: in sample mode, satellite/weather data exist only in the windows of configs/config.yaml.
 perguntas:
-  # ---------------- fatos (um trecho) ----------------
+  # ---------------- facts (one passage) ----------------
   - id: q01
     tipo: fato
     pergunta: "Qual é o padrão de qualidade do ar final (PF) para MP2,5 na média de 24 horas segundo a Resolução CONAMA 491/2018?"
@@ -96,7 +97,7 @@ perguntas:
     tipo: fato
     pergunta: "Quais são os objetivos do PRONAR instituído pela Resolução CONAMA 05/1989?"
     resposta_esperada: "Limitar os níveis de emissão de poluentes por fontes de poluição atmosférica, com vistas à melhoria da qualidade do ar, ao atendimento dos padrões e ao não comprometimento da qualidade do ar em áreas não degradadas (item I)."
-    fatos_chave: [["emiss"], ["qualidade do ar"]]  # radical: "emissão" ou "emissões"
+    fatos_chave: [["emiss"], ["qualidade do ar"]]  # stem: "emissão" or "emissões"
     gold: [conama_005_1989:itemi]
 
   - id: q14
@@ -127,7 +128,7 @@ perguntas:
     fatos_chave: ["15"]
     gold: [conama_506_2024:anexoii]
 
-  # ---------------- exigem juntar trechos ----------------
+  # ---------------- need several passages ----------------
   - id: q18
     tipo: multi
     pergunta: "Quais são as etapas dos padrões de qualidade do ar da CONAMA 491/2018 e qual o valor de MP2,5 (24 h) em cada uma?"
@@ -170,7 +171,7 @@ perguntas:
     fatos_chave: ["50", "2025"]
     gold: [conama_506_2024:art4, conama_506_2024:anexoi:l3]
 
-  # ---------------- temporais (vigência) ----------------
+  # ---------------- temporal (validity) ----------------
   - id: q24
     tipo: temporal
     pergunta: "Em 2015, qual resolução CONAMA definia os padrões nacionais de qualidade do ar?"
@@ -208,12 +209,12 @@ perguntas:
     gold: [conama_491_2018:art4, conama_491_2018:anexoi:l3]
     data: "2020-07-01"
 
-  # ---------------- ferramenta (modelo de PM2.5) ----------------
+  # ---------------- tool (PM2.5 model) ----------------
   - id: q30
     tipo: ferramenta
     pergunta: "Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 e em qual faixa do IQAr ela fica?"
     resposta_esperada: "Valor da ferramenta e faixa (Boa/Moderada/...)."
-    # Valor, IC e a faixa EXATA da ferramenta são conferidos por tool_answer_checks.
+    # The tool's value, interval and EXACT band are checked by tool_answer_checks.
     fatos_chave: []
     gold: []
     deve_chamar_ferramenta: true
@@ -233,7 +234,7 @@ perguntas:
     horizonte_esperado: 0
     etapa_comparacao: "PF"
 
-  # ---------------- sem resposta na base ----------------
+  # ---------------- not answerable from the base ----------------
   - id: q32
     tipo: sem_resposta
     pergunta: "Qual o limite de ruído permitido em área residencial no período noturno?"

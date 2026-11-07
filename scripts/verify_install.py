@@ -1,6 +1,6 @@
-"""Valida uma instalação: testes, inferência real, API e métricas publicadas; grava evidência UTF-8.
+"""Validate an installation: tests, real inference, API and published metrics; writes UTF-8 evidence.
 
-Uso: python -m scripts.verify_install (depois de treinar com `python -m src.aq.pipeline --quick`)."""
+Usage: python -m scripts.verify_install (after training with `python -m src.aq.pipeline --quick`)."""
 import json
 import subprocess
 import sys
@@ -30,7 +30,7 @@ def main():
             assert result["intervalo_90"][0] <= result["pm25_ug_m3"] <= result["intervalo_90"][1]
             assert result["feature_schema"] == FEATURE_SCHEMA
             record("inferencia", result)
-        # A previsão deve funcionar mesmo sem observações na data-alvo.
+        # The forecast must work even without observations on the target date.
         day = available_index().max()
         record("previsao_sem_contexto_futuro", predict_one(-22.9053, -47.0659, str(day.date()), 1))
         obs = station_obs()
@@ -55,7 +55,7 @@ def main():
             assert (g.data_alvo == g.date + pd.Timedelta(days=1)).all()
             record("cobertura_d1_recalculada", {"cenario": row.cenario, "recorte": row.recorte,
                                                "n": len(g), "cobertura": coverage})
-        record("conclusao", "testes, inferência, API e cobertura D+1 aprovados")
+        record("conclusao", "tests, inference, API and D+1 coverage passed")
     print(path)
 
 

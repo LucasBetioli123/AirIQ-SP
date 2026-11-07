@@ -1,19 +1,19 @@
-"""Avaliação ponta a ponta do agente sobre eval/rag_questions.yaml.
+"""End-to-end agent evaluation over eval/rag_questions.yaml (questions in Portuguese).
 
-Métricas (método em docs/DETALHES_TECNICOS.md):
-  acerto         todos os `fatos_chave` da resposta esperada aparecem na resposta
-                 (números/termos normalizados); `acerto_parcial` = fração dos fatos
-  cit_precisao   fração dos trechos citados que casam com o dispositivo-ouro (gold_match)
-  cit_recall     fração dos chunks-ouro efetivamente citados
-  fidelidade     (a) checagem automática: números e citações da resposta têm suporte nos
-                 trechos citados/ferramentas; (b) LLM-juiz (modelo DIFERENTE do gerador)
-                 nota de 0 a 1 para "tudo o que foi afirmado está nas fontes citadas?"
-  recusa         nas perguntas sem resposta na base: taxa de recusa correta. Nas com
-                 resposta: taxa de recusa indevida
-  ferramenta     local, data-alvo, horizonte, valor, limites do IC e faixa quando solicitada;
-                 checagem numérica usa a saída da ferramenta registrada na execução
+Metrics (method in docs/TECHNICAL_DETAILS.md; column names stay in Portuguese):
+  acerto         accuracy: every `fatos_chave` (key fact) of the expected answer appears in the
+                 answer (normalized numbers/terms); `acerto_parcial` = share of facts present
+  cit_precisao   citation precision: share of cited passages matching the gold provision
+  cit_recall     citation recall: share of gold chunks actually cited
+  fidelidade     faithfulness: (a) automatic check that the answer's numbers and citations are
+                 supported by the cited passages/tools; (b) LLM judge (a DIFFERENT model from the
+                 generator) scoring 0-1 for "is everything stated in the cited sources?"
+  recusa         refusals: correct-refusal rate on unanswerable questions; wrongful-refusal rate
+                 on answerable ones
+  ferramenta     tool use: place, target date, horizon, value, interval bounds and band when
+                 asked; the numeric check uses the tool output recorded in the run
 
-  python -m eval.run_rag_eval [--llm caminho.gguf] [--judge caminho.gguf] [--tag nome]
+  python -m eval.run_rag_eval [--llm path.gguf] [--judge path.gguf] [--tag name]
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _norm(s: str) -> str:
 
 
 def fact_present(fact, answer: str) -> bool:
-    """Um fato pode ser string ou lista de alternativas (qualquer uma vale)."""
+    """A fact can be a string or a list of alternatives (any one counts)."""
     alts = fact if isinstance(fact, list) else [fact]
     a = _norm(answer)
     for f in alts:
@@ -55,10 +55,10 @@ def fact_present(fact, answer: str) -> bool:
 
 
 def tool_answer_checks(q: dict, run: dict) -> dict:
-    """Confere argumentos, saída e resposta, incluindo a faixa correta e o IC.
+    """Check the tool's arguments, output and answer, including the correct band and the interval.
 
-    O resultado registrado da ferramenta é o gabarito numérico daquela execução.
-    Assim, modelos retreinados não exigem editar valores esperados à mão.
+    The tool result recorded in the run is the numeric answer key for that run, so retrained
+    models never require editing expected values by hand.
     """
     checks = {"local": False, "data_horizonte": False, "valor": False, "intervalo": False,
               "faixa": True, "padrao_citado": True}
@@ -111,7 +111,7 @@ def judge(llm, run: dict, sources_text: str) -> dict:
 
 
 def _merge(rows: list[dict], tag: str, only) -> pd.DataFrame:
-    """Com --only, as perguntas refeitas substituem as linhas da avaliação já gravada com a mesma tag."""
+    """With --only, the re-run questions replace their rows in the saved evaluation with the same tag."""
     df = pd.DataFrame(rows)
     p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
     if only and p.exists():
@@ -152,7 +152,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             v = run.get("validacao") or {}
             r["fidelidade_auto"] = float(v.get("ok", False)) if run["encontrado"] else None
             if judge_model and run["encontrado"]:
-                # só os trechos CITADOS: fidelidade = o que foi afirmado está nas fontes que a resposta cita
+                # CITED passages only: faithfulness = what was stated is in the sources the answer cites
                 src = "\n\n".join(f"[{t['n']}] {chunks[t['id']]['sigla']}, {chunks[t['id']]['label']}\n{chunks[t['id']]['text']}"
                                   for t in run["trechos"] if t["id"] in chunks and t["n"] in run["citacoes"])
                 tools = [t["resultado"] for t in run["ferramentas"] if t["ferramenta"] != "buscar_normas"]
@@ -163,7 +163,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
             checks = tool_answer_checks(q, run)
             r["ferramenta_ok"] = all(checks.values())
             r["checagens_ferramenta"] = json.dumps(checks, ensure_ascii=False)
-            # sem a estimativa não há resposta: citar só o padrão legal não conta como acerto
+            # without the estimate there is no answer: citing only the legal standard does not count
             r["acerto"] = bool(r.get("acerto")) and r["ferramenta_ok"]
         r["resposta"] = run["resposta"][:600]
         rows.append(r)
@@ -171,7 +171,7 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
         print(f"{q['id']} [{q['tipo']}] encontrado={run['encontrado']} acerto={r.get('acerto', r.get('recusa_correta'))} "
               f"t={run['tempo_total_s']}s")
     if judge_model:
-        # o juiz roda depois, com o gerador descarregado: dois LLMs de 4B juntos apertam 12 GB de RAM
+        # the judge runs afterwards, with the generator unloaded: two 4B LLMs together strain 12 GB of RAM
         import gc
 
         from src.rag.llm import LLM, get_llm
@@ -190,20 +190,20 @@ def main(llm_model=None, judge_model=None, tag=None, only=None):
 
 
 def rescore(tag: str):
-    """Recalcula acerto/recusa com o gabarito atual a partir das respostas completas do log da avaliação
-    (sem rodar o LLM de novo). As notas do juiz e os tempos são mantidos."""
+    """Recompute accuracy/refusals with the current answer keys from the full answers in the evaluation log
+    (without running the LLM again). Judge scores and latencies are kept."""
     qs = {q["pergunta"]: q for q in load_questions()}
     runs = {}
     with open(data_path("logs", f"eval_runs_{tag}.jsonl"), encoding="utf-8") as f:
         for line in f:
             r = json.loads(line)
-            runs[r["pergunta"]] = r  # a última execução de cada pergunta
+            runs[r["pergunta"]] = r  # the latest run of each question
     p = data_path("metrics", f"rag_eval_detalhe_{tag}.csv")
     df = pd.read_csv(p)
     if "checagens_ferramenta" not in df:
         df["checagens_ferramenta"] = pd.Series(pd.NA, index=df.index, dtype="string")
-    # CSVs antigos podem codificar True como 1.0. Pandas 3 não permite atribuir
-    # bool numa coluna float; preserve também as células sem avaliação como NA.
+    # older CSVs may encode True as 1.0. Pandas 3 does not allow assigning a bool
+    # into a float column; also keep unevaluated cells as NA.
     for col in ("encontrado", "acerto", "recusa_correta", "recusa_indevida", "ferramenta_ok"):
         if col in df:
             df[col] = df[col].map(lambda v: pd.NA if pd.isna(v) else str(v).lower() in ("true", "1", "1.0")).astype("boolean")
@@ -216,8 +216,8 @@ def rescore(tag: str):
             df.at[i, "checagens_ferramenta"] = json.dumps(checks, ensure_ascii=False)
         found = bool(run["encontrado"])
         if blocked_by_validation(run, run.get("validacao")):
-            # execução gravada antes da regra "número sem fonte depois da correção -> recusa"
-            # (src/rag/agent.py): a regra é determinística, então é aplicada aqui sobre o log
+            # run recorded before the rule "unsourced number after the correction -> refuse"
+            # (src/rag/agent.py): the rule is deterministic, so it is applied to the log here
             found = False
             for c in ("cit_precisao", "cit_recall", "fidelidade_auto", "fidelidade_juiz"):
                 if c in df:
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     ap.add_argument("--judge")
     ap.add_argument("--tag")
     ap.add_argument("--only", nargs="*")
-    ap.add_argument("--rescore", metavar="TAG", help="recalcula as notas de uma avaliação já feita")
+    ap.add_argument("--rescore", metavar="TAG", help="recompute the scores of an evaluation already run")
     a = ap.parse_args()
     if a.rescore:
         rescore(a.rescore)

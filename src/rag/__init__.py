@@ -1,1 +1,1 @@
-"""Módulo 2 — agente com RAG sobre normas ambientais brasileiras."""
+"""Module 2: RAG agent over Brazilian environmental regulations."""

@@ -1,2 +1,2 @@
-# Rede neural do benchmark (MLP com saída tanh). Instala torch do PyPI (CPU funciona).
+# Neural network for the benchmark (tanh-output MLP). Installs torch from PyPI (CPU works).
 torch==2.14.1

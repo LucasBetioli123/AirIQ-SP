@@ -1,20 +1,20 @@
-"""Divisão do texto normativo em trechos citáveis (chunks).
+"""Split legal text into citable passages (chunks).
 
-Estratégia (justificativa em docs/DETALHES_TECNICOS.md):
-  - Unidade básica = ARTIGO inteiro (caput + §§ + incisos + alíneas). Na prática
-    jurídica, o artigo é a unidade de sentido: um inciso solto ("II - 60 µg/m³") não diz
-    nada sem o caput que o introduz
-  - Artigo longo (> MAX_WORDS): divide em blocos de incisos/§§, e cada bloco leva o
-    CAPUT repetido no início, para continuar autocontido
-  - Cada chunk carrega um "breadcrumb" citável: documento › capítulo › seção › art.,
-    mais a lista dos dispositivos que contém (art. 4º, § 1º, inciso II...). É isso que
-    permite ao agente citar "art. 4º, § 2º" com precisão
-  - Preâmbulo (ementa + considerandos) vira um chunk próprio
-  - Anexos/tabelas: um chunk por tabela ou anexo pequeno. Tabela grande vira um
-    chunk por linha, com o cabeçalho repetido (assim "MP2,5 24 h PI-1 = 60" fica
-    recuperável sozinho)
-  - Dispositivos revogados (riscados no Planalto) ficam fora do índice vigente, e a
-    norma revogada inteira (vigencia_fim) fica marcada para o filtro temporal
+Strategy (rationale in docs/TECHNICAL_DETAILS.md):
+  - Basic unit = the whole ARTICLE (caput + paragraphs + items + sub-items). In legal
+    practice the article is the unit of meaning: a lone item ("II - 60 µg/m³") says
+    nothing without the caput that introduces it
+  - Long article (> MAX_WORDS): split into blocks of items/paragraphs, each starting with
+    the CAPUT repeated, so it stays self-contained
+  - Every chunk carries a citable breadcrumb: document › chapter › section › article,
+    plus the list of provisions it contains (art. 4º, § 1º, inciso II...). This is what
+    lets the agent cite "art. 4º, § 2º" precisely
+  - The preamble (summary + recitals) becomes its own chunk
+  - Annexes/tables: one chunk per table or small annex. A large table becomes one chunk
+    per row with the header repeated (so "MP2,5 24 h PI-1 = 60" is retrievable on its own)
+  - Repealed provisions (struck through on Planalto) stay out of the in-force index, and
+    a fully repealed regulation (vigencia_fim) is flagged for the temporal filter
+Labels such as "preâmbulo" stay in Portuguese: they are part of the citations.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ class Chunk:
         return f"{self.sigla}, {self.label}"
 
     def for_index(self) -> str:
-        """Texto usado na indexação (contexto + conteúdo)."""
+        """Text used for indexing (context + content)."""
         head = f"{self.sigla} - {self.path + ' - ' if self.path else ''}{self.label}"
         return f"{head}\n{self.text}"
 
@@ -77,15 +77,15 @@ def _dispositivos(art_label: str, lines: list[Line]) -> list[str]:
 
 
 def _table_chunks(base: dict, label: str, rows: list[Line], start_idx: int) -> list[Chunk]:
-    """Tabela (linhas 'a | b | c'): se pequena, 1 chunk; se grande, 1 chunk por linha + cabeçalho."""
+    """Table (rows 'a | b | c'): if small, 1 chunk; if large, 1 chunk per row + header."""
     texts = [r.text for r in rows]
     if _words(" ".join(texts)) <= MAX_WORDS:
         return [Chunk(id=f"{base['doc_id']}:{_slug(label)}", label=label, dispositivos=[label],
                       text="\n".join(texts), **_b(base))]
-    # título/notas + linha de cabeçalho repetidos em cada linha; o rótulo nomeia a linha pelas 1as células
+    # title/notes + header row repeated on every row; the label names the row by its first cells
     rows = [t for t in texts if "|" in t]
     first = texts.index(rows[0])
-    title = [t for t in texts if "|" not in t and _words(t) <= 60][:8]  # título e notas curtas
+    title = [t for t in texts if "|" not in t and _words(t) <= 60][:8]  # title and short notes
     head, data = rows[:1], rows[1:]
     out = []
     for i, t in enumerate(data, start=1):
@@ -105,9 +105,9 @@ def _b(base: dict) -> dict:
 
 
 def _numbered_as_units(lines: list[Line]) -> list[Line]:
-    """Norma sem artigos (a CONAMA 05/1989 se organiza em itens "I -", "2 -", "2.2.1 -"): cada item
-    numerado vira a unidade citável, no papel do artigo. O inciso "I -" anterior ao primeiro item
-    numerado é o item I da parte dispositiva."""
+    """Regulation without articles (CONAMA 05/1989 is organized in items "I -", "2 -", "2.2.1 -"): each
+    numbered item becomes the citable unit, playing the role of the article. The "I -" item before the
+    first numbered item is item I of the operative part."""
     out, started = [], False
     for l in lines:
         if l.kind == "num" or (l.kind == "inciso" and not started):
@@ -121,9 +121,9 @@ def _numbered_as_units(lines: list[Line]) -> list[Line]:
 
 
 def _apply_partial_revocations(doc: dict, chunks: list[Chunk]) -> None:
-    """Revogação de dispositivos específicos (ex.: a 506/2024 revogou os arts. 1º-8º, 12-14 e o
-    Anexo I da 491/2018, mas manteve os arts. 9º-11 e os Anexos II-IV). O chunk fica no índice, com
-    vigencia_fim própria, para responder "o que valia na data X"."""
+    """Repeal of specific provisions (e.g. 506/2024 repealed arts. 1-8, 12-14 and Annex I of 491/2018,
+    but kept arts. 9-11 and Annexes II-IV). The chunk stays in the index with its own vigencia_fim
+    (end of validity), to answer "what applied on date X"."""
     for rv in doc.get("revogacoes_parciais", []):
         alvo = set(rv["dispositivos"])
         for c in chunks:
@@ -152,7 +152,7 @@ def _chunk_lines(doc: dict, lines: list[Line], url: str | None = None) -> list[C
     pre: list[str] = []
     i = 0
     n = len(lines)
-    # preâmbulo: tudo antes do primeiro artigo
+    # preamble: everything before the first article
     while i < n and lines[i].kind not in ("art", "anexo"):
         if lines[i].kind in ("titulo", "capitulo", "secao", "subsecao"):
             hier[lines[i].kind] = lines[i].text
@@ -168,7 +168,7 @@ def _chunk_lines(doc: dict, lines: list[Line], url: str | None = None) -> list[C
             order = ["titulo", "capitulo", "secao", "subsecao"]
             for k in order[order.index(l.kind):]:
                 hier.pop(k, None)
-            # o nome do capítulo costuma vir na linha seguinte ("DOS PADRÕES ...")
+            # the chapter name usually comes on the next line ("DOS PADRÕES ...")
             name = l.text
             if i + 1 < n and lines[i + 1].kind == "texto" and lines[i + 1].text.isupper():
                 name += " - " + lines[i + 1].text
@@ -224,7 +224,7 @@ def _chunk_lines(doc: dict, lines: list[Line], url: str | None = None) -> list[C
                 tbl = [Line("texto", "", t) for t in title] + rows
                 chunks.extend(_table_chunks(b, label, tbl, 0))
             else:
-                # anexo em texto corrido: blocos de ~MAX_WORDS
+                # annex in running text: blocks of ~MAX_WORDS
                 buf, part = [], 1
                 for x in body:
                     buf.append(x.text)
@@ -238,8 +238,8 @@ def _chunk_lines(doc: dict, lines: list[Line], url: str | None = None) -> list[C
                                         label=lab, dispositivos=[label], text="\n".join(buf), **b))
             i = j
             continue
-        i += 1  # texto solto entre dispositivos (raro): ignorado
-    # ids únicos (artigos repetidos em textos compilados, p.ex. redação antiga + nova)
+        i += 1  # loose text between provisions (rare): ignored
+    # unique ids (articles repeated in consolidated texts, e.g. old + new wording)
     seen: dict[str, int] = {}
     for c in chunks:
         if c.id in seen:

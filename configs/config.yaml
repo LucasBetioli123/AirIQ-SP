@@ -1,70 +1,70 @@
-# Configuração única do projeto. Todos os scripts leem daqui.
+# Single project configuration. Every script reads from here.
 seed: 42
 
 region:
   name: "Estado de São Paulo"
-  # bbox do estado de SP (lon_min, lat_min, lon_max, lat_max)
+  # São Paulo state bbox (lon_min, lat_min, lon_max, lat_max)
   bbox: [-53.2, -25.4, -44.1, -19.7]
-  # bbox ampliada para focos de queimada (transporte de fumaça de MS, MT, GO, MG, PR)
+  # extended bbox for fire detections (smoke transport from MS, MT, GO, MG, PR)
   fire_bbox: [-60.0, -30.0, -40.0, -14.0]
   grid_res_deg: 0.05
   tz: "America/Sao_Paulo"
 
 period:
-  # janela limitada pela disponibilidade do espelho CETESB no arquivo OpenAQ (ver docs/DETALHES_TECNICOS.md)
+  # window limited by the CETESB mirror available in the OpenAQ archive (see docs/TECHNICAL_DETAILS.md)
   start: "2021-01-01"
   end: "2023-04-30"
 
 split:
-  # validação espaço-temporal: estação nunca vista (GroupKFold) + período posterior.
-  # Origem móvel com 2 cortes, sempre testando DEPOIS do treino. T1 testa a estação seca de
-  # 2021 (episódios de fumaça); T2 testa jul/2022-abr/2023. O arquivo OpenAQ tem poucos dias
-  # em jul-set/2022, por isso um corte só deixaria o teste quase todo na estação chuvosa.
+  # spatio-temporal validation: never-seen station (GroupKFold) + later period.
+  # Rolling origin with 2 splits, always testing AFTER training. T1 tests the 2021 dry season
+  # (smoke episodes); T2 tests Jul 2022-Apr 2023. The OpenAQ archive has few days in
+  # Jul-Sep 2022, so a single split would leave the test almost entirely in the wet season.
   temporal_folds:
     - {name: T1, train_end: "2021-05-31", calib_start: "2021-06-01", calib_end: "2021-06-30",
        test_start: "2021-07-01", test_end: "2021-12-31"}
     - {name: T2, train_end: "2022-03-31", calib_start: "2022-04-01", calib_end: "2022-06-30",
        test_start: "2022-07-01", test_end: "2023-04-30"}
-  # corte temporal padrão de referência; os modelos finais usam todos os dados.
+  # default reference split; the final models use all data.
   train_end: "2022-03-31"
   calib_start: "2022-04-01"
   calib_end: "2022-06-30"
   test_start: "2022-07-01"
   n_station_folds: 5
-  interval_alpha: 0.10   # intervalo de 90%
+  interval_alpha: 0.10   # 90% interval
 
 sample:
-  # amostra versionada em data/sample: bases de treino completas (com variáveis) +
-  # cubos de satélite/meteorologia só nestas janelas (para mapas, CLI, API e agente)
+  # versioned sample in data/sample: full training tables (with features) +
+  # satellite/weather cubes only for these windows (for maps, CLI, API and agent)
   context_windows:
-    - ["2021-08-20", "2021-08-28"]   # episódio de fumaça (estação seca 2021)
+    - ["2021-08-20", "2021-08-28"]   # smoke episode (2021 dry season)
     - ["2022-09-05", "2022-09-12"]
     - ["2022-10-09", "2022-10-12"]
     - ["2022-11-14", "2022-11-17"]
-    - ["2023-03-28", "2023-04-04"]   # fim dos dados (data de referência do agente)
+    - ["2023-03-28", "2023-04-04"]   # end of the data (the agent's reference date)
 
 openaq:
   bucket_url: "https://openaq-data-archive.s3.amazonaws.com/"
-  # location IDs da rede CETESB no arquivo OpenAQ (descobertos varrendo o bucket, ver src/aq/data/openaq.py --discover)
+  # CETESB network location IDs in the OpenAQ archive (found by scanning the bucket, see src/aq/data/openaq.py --discover)
   candidate_location_ids: [5012, 5220, 5222, 5231, 5233, 5239, 5243, 5252, 5254, 5255, 5256, 5257, 5258,
     5259, 5260, 5261, 5262, 5263, 5264, 5265, 5266, 5267, 5268, 5269, 5270, 5271, 5272, 5273, 5274, 5275,
     5276, 5277, 5278, 5279, 5280, 5281, 5282, 5283, 5284, 5285, 5286, 5287, 5288, 5289, 5290, 5291, 5292,
     5293, 5294, 5295, 5296, 5297, 5298, 5299, 5300, 5301, 5302, 5303, 5304, 5305, 233408, 233409, 233410]
-  min_valid_hours: 18     # média de 24 h só com >= 18 h válidas (75%)
-  max_valid_value: 500.0  # µg/m³, descarta valores fisicamente implausíveis
+  min_valid_hours: 18     # 24 h mean only with >= 18 valid hours (75%)
+  max_valid_value: 500.0  # µg/m³, discards physically implausible values
 
 goes:
   bucket_url: "https://noaa-goes16.s3.amazonaws.com/"
   aod_product: "ABI-L2-AODF"
   fire_product: "ABI-L2-FDCF"
-  # uma varredura por hora no período diurno local (09h-16h BRT = 12-19 UTC)
+  # one scan per hour during local daytime (09-16 h BRT = 12-19 UTC)
   aod_hours_utc: [12, 13, 14, 15, 16, 17, 18, 19]
   fire_hours_utc: [0, 3, 6, 9, 12, 15, 18, 21]
-  aod_dqf_max: 1          # 0 = alta, 1 = média qualidade
+  aod_dqf_max: 1          # 0 = high, 1 = medium quality
 
 era5:
   bucket_url: "https://nsf-ncar-era5.s3.amazonaws.com/"
-  # variáveis de superfície (análise): nome curto -> código do arquivo NCAR
+  # surface variables (analysis): short name -> NCAR file code
   an_vars:
     blh: "128_159_blh"
     t2m: "128_167_2t"
@@ -73,7 +73,7 @@ era5:
     v10: "128_166_10v"
     sp: "128_134_sp"
     tcc: "128_164_tcc"
-  # precipitação total (acumulada da previsão)
+  # total precipitation (accumulated from the forecast)
   tp_var: "128_228_tp"
 
 static:
@@ -91,7 +91,8 @@ paths:
   logs: "logs"
 
 aqi:
-  # Faixas do IQAr para MP2,5 (média de 24 h, µg/m³) - Guia técnico MMA/CETESB
+  # IQAr bands for PM2.5 (24 h mean, µg/m³) - MMA/CETESB technical guide.
+  # Band names stay in Portuguese (Boa = good ... Péssima = hazardous), as in the regulations.
   pm25_bands:
     - [0, 25, "Boa"]
     - [25, 50, "Moderada"]

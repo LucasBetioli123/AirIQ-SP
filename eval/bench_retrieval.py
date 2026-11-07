@@ -1,11 +1,12 @@
-"""Benchmark de recuperação sobre o conjunto de avaliação (eval/rag_questions.yaml).
+"""Retrieval benchmark on the evaluation set (eval/rag_questions.yaml).
 
-Para cada configuração (BM25, vetorial com cada modelo de embedding, híbrido RRF,
-híbrido + reranker), calcula sobre as perguntas COM resposta na base:
-  recall@k  fração dos chunks-ouro presentes no top-k (média por pergunta)
-  hit@k     pelo menos um chunk-ouro no top-k
-  MRR       1/posição do primeiro chunk-ouro
-e a latência média por consulta. Saída: reports/metrics/rag_retrieval.csv
+For each configuration (BM25, dense with each embedding model, hybrid RRF, hybrid +
+reranker), computes over the questions that HAVE an answer in the base:
+  recall@k  share of gold chunks in the top-k (averaged per question)
+  hit@k     at least one gold chunk in the top-k
+  MRR       1/rank of the first gold chunk
+plus the mean latency per query. Output: reports/metrics/rag_retrieval.csv
+Configuration labels stay in Portuguese (data keys used by reports and the dashboard).
 """
 from __future__ import annotations
 
@@ -27,14 +28,14 @@ def load_questions():
 
 
 def gold_match(chunk_id: str, gold: list[str]) -> bool:
-    """Um chunk-ouro 'conselho:art4' também casa com as partes 'conselho:art4:p2'."""
+    """A gold chunk 'conselho:art4' also matches its parts 'conselho:art4:p2'."""
     base = chunk_id.split("#")[0]
     return any(base == g or base.startswith(g + ":") for g in gold)
 
 
 def evaluate(ret: Retriever, qs, mode: str, ks=(1, 3, 5, 10), record: list | None = None) -> dict:
-    """Métricas só nas perguntas com gold. Se `record` for uma lista, guarda para TODAS as perguntas
-    (inclusive as sem resposta) o melhor escore do top-1, que serve para calibrar o limiar de recusa."""
+    """Metrics only on questions with gold passages. If `record` is a list, store the best top-1 score for
+    ALL questions (including unanswerable ones), used to calibrate the refusal threshold."""
     rec = {k: [] for k in ks}
     hit = {k: [] for k in ks}
     rr, lat = [], []
@@ -78,7 +79,7 @@ def main(emb_models=None, rerank=True, rerank_top=8):
     for name in emb_models or EMB_MODELS:
         path = EMB_MODELS[name]
         if not (ROOT / path).exists():
-            print(f"[pulando] {name}: {path} não baixado")
+            print(f"[skipping] {name}: {path} not downloaded")
             continue
         t0 = time.time()
         r = Retriever("hybrid", emb_path=path)
@@ -92,13 +93,13 @@ def main(emb_models=None, rerank=True, rerank_top=8):
         if best is None or (hyb["recall@5"], hyb["MRR"]) > (best[1]["recall@5"], best[1]["MRR"]):
             best = (name, hyb, r)
         print(_save(rows, gate).tail(2).to_string(index=False))
-    if best:  # ablação: o mesmo híbrido sem limitar trechos por dispositivo (diversify)
+    if best:  # ablation: the same hybrid without capping passages per provision (diversify)
         name, _, r = best
         r.max_per_group = 0
         rows.append({"config": f"Híbrido RRF (BM25 + {name}) sem diversificação", **evaluate(r, qs, "hybrid")})
         r.max_per_group = 2
         _save(rows, gate)
-    # reranker só sobre o melhor híbrido: em CPU ele custa segundos por trecho
+    # reranker only on the best hybrid: on CPU it costs seconds per passage
     if rerank and best and (ROOT / "models/rerank/qwen3-reranker-0.6b.gguf").exists():
         name, _, r = best
         r.rerank_top = rerank_top

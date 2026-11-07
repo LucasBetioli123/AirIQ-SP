@@ -1,8 +1,8 @@
-"""Limites geográficos e municípios (para a máscara do mapa e a geocodificação do agente).
+"""Boundaries and municipalities (for the map mask and the agent's geocoding).
 
-- Polígonos dos 645 municípios de SP (malha IBGE convertida em GeoJSON pelo projeto
-  tbrugz/geodata-br). A dissolução dos municípios dá o contorno do estado
-- Sedes municipais com lat/lon (IBGE, compiladas em kelvins/municipios-brasileiros)
+- Polygons of São Paulo's 645 municipalities (IBGE mesh converted to GeoJSON by the
+  tbrugz/geodata-br project). Dissolving them gives the state outline
+- Municipal seats with lat/lon (IBGE, compiled in kelvins/municipios-brasileiros)
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def fetch():
         p = data_path("raw", "geo", name)
         if not p.exists():
             download(url, p)
-    # cópia pequena e versionada para o agente/API funcionarem só com a amostra
+    # small versioned copy so the agent/API work with the sample alone
     sp = municipios_sp(refresh=True)
     sp.to_csv(data_path("sample", "municipios_sp.csv"), index=False)
     sp_boundary.cache_clear()
@@ -47,7 +47,7 @@ def sp_boundary(prefer_raw: bool = False):
     if not p.exists():
         fetch()
     g = gpd.read_file(p)
-    # buffer(0) corrige pequenas inconsistências topológicas da malha antes de dissolver
+    # buffer(0) fixes small topological inconsistencies in the mesh before dissolving
     return g.geometry.buffer(0).union_all().buffer(0.002).simplify(0.005)
 
 
@@ -61,7 +61,7 @@ def municipios_sp(refresh: bool = False) -> pd.DataFrame:
 
 
 def geocode(nome: str) -> dict | None:
-    """Município de SP -> coordenada da sede (comparação sem acento/caixa)."""
+    """São Paulo municipality -> seat coordinates (accent- and case-insensitive match)."""
     df = municipios_sp()
     key = _norm(nome)
     hit = df[df["nome"].map(_norm) == key]
@@ -75,4 +75,4 @@ def geocode(nome: str) -> dict | None:
 
 if __name__ == "__main__":
     fetch()
-    print(geocode("Campinas"), sp_boundary().bounds)
+    print(geocode("Sorocaba"), sp_boundary().bounds)

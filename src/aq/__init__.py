@@ -1,1 +1,1 @@
-"""Módulo 1 — estimativa e previsão de PM2.5 com satélite, meteorologia e ML."""
+"""Module 1: PM2.5 estimation and forecasting from satellite, weather and ML."""

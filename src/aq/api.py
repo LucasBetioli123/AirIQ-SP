@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Query
 from src.aq.data.geo import geocode
 from src.aq.predict import DataUnavailable, available_dates, predict_one
 
-app = FastAPI(title="PM2.5 SP - estimativa e previsão com intervalo de confiança", version="1.0")
+app = FastAPI(title="AirIQ SP - PM2.5 estimate and forecast with confidence interval", version="1.0")
 
 
 @app.get("/health")
@@ -25,10 +25,10 @@ def predict(date: str, lat: float | None = Query(None, ge=-26, le=-19), lon: flo
     if municipio:
         g = geocode(municipio)
         if g is None:
-            raise HTTPException(404, f"município não encontrado em SP: {municipio}")
+            raise HTTPException(404, f"municipality not found in São Paulo state: {municipio}")
         lat, lon = g["lat"], g["lon"]
     if lat is None or lon is None:
-        raise HTTPException(422, "informe lat/lon ou municipio")
+        raise HTTPException(422, "provide lat/lon or municipio")
     try:
         return predict_one(lat, lon, date, horizon)
     except DataUnavailable as e:

@@ -1,9 +1,9 @@
-"""Baixa as normas das fontes oficiais (Planalto, DOU/in.gov.br, CONAMA).
+"""Download the regulations from official sources (Planalto, DOU/in.gov.br, CONAMA).
 
-Para cada documento de configs/normas.yaml: tenta as URLs em ordem. Se nenhuma
-funcionar e houver `busca_dou`, procura o ato na busca do DOU. Valida o conteúdo
-(`must_contain`) para não indexar uma página de erro. Arquivos já presentes em
-data/raw/normas/ (por exemplo, colocados à mão) são respeitados.
+For each document in configs/normas.yaml: try the URLs in order. If none works and
+`busca_dou` is set, look the act up in the Official Gazette (DOU) search. The content is
+validated (`must_contain`) so an error page is never indexed. Files already present in
+data/raw/normas/ (e.g. placed by hand) are kept.
 """
 from __future__ import annotations
 
@@ -45,25 +45,25 @@ def _valid(text: str, must: list[str]) -> bool:
 
 
 def _dou_search(query: str) -> list[str]:
-    """Busca no DOU (in.gov.br) e devolve links de matérias."""
+    """Search the Official Gazette (in.gov.br) and return article links."""
     u = "https://www.in.gov.br/consulta/-/buscar/dou?" + urllib.parse.urlencode(
         {"q": f'"{query}"', "s": "todos", "exactDate": "all", "sortType": "0"})
     r = session().get(u, timeout=60)
     r.raise_for_status()
-    # a página traz os resultados num JSON embutido (urlTitle)
+    # the page carries the results in an embedded JSON (urlTitle)
     slugs = re.findall(r'"urlTitle"\s*:\s*"([^"]+)"', r.text)
     return [f"https://www.in.gov.br/en/web/dou/-/{s}" for s in slugs[:3]]
 
 
 def fetch(doc: dict) -> str:
     if p := existing(doc["id"]):
-        return f"já existe: {p.name}"
+        return f"already present: {p.name}"
     urls = list(doc.get("urls", []))
     if doc.get("busca_dou"):
         try:
             urls += _dou_search(doc["busca_dou"])
-        except Exception as e:  # busca é só um reforço
-            print(f"  busca DOU falhou: {e}")
+        except Exception as e:  # the search is only a fallback
+            print(f"  DOU search failed: {e}")
     for u in urls:
         try:
             r = session().get(u, timeout=60)
@@ -78,7 +78,7 @@ def fetch(doc: dict) -> str:
             return f"ok: {u}"
         except Exception as e:
             print(f"  {u}: {e}")
-    return "FALHOU (coloque o arquivo manualmente em data/raw/normas/)"
+    return "FAILED (place the file manually in data/raw/normas/)"
 
 
 def main():

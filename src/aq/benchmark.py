@@ -1,13 +1,15 @@
-"""Benchmark de modelos para a ESTIMATIVA diária de PM2.5 em locais sem estação.
+"""Model benchmark for the daily PM2.5 ESTIMATE at sites without a station.
 
-Compara, na validação espaço-temporal (estações nunca vistas x período posterior):
-  baselines: IDW entre estações vizinhas, krigagem ordinária, climatologia mensal
-  modelos:   Ridge, Random Forest, HistGradientBoosting, XGBoost, LightGBM (alvo em log)
-  ablações:  LightGBM sem satélite, sem lag espacial (só satélite + meteorologia),
-             alvo bruto. E, como referência OTIMISTA, validação aleatória (não é o resultado principal)
+Compares, under spatio-temporal validation (never-seen stations x later period):
+  baselines: IDW between neighboring stations, ordinary kriging, monthly climatology
+  models:    Ridge, Random Forest, HistGradientBoosting, XGBoost, LightGBM (log target)
+  ablations: LightGBM without satellite data, without spatial lag (satellite + weather
+             only), raw target. Plus, as an OPTIMISTIC reference, random validation (not the
+             headline result)
 
-Saídas: reports/metrics/benchmark_estimativa.csv (+ _por_fold.csv) e
-        data/processed/oof_estimativa.parquet (previsões fora da amostra)
+Outputs: reports/metrics/benchmark_estimativa.csv (+ _por_fold.csv) and
+         data/processed/oof_estimativa.parquet (out-of-sample predictions)
+Model labels stay in Portuguese: they are data keys used by the reports and the dashboard.
 """
 from __future__ import annotations
 
@@ -51,7 +53,7 @@ def kriging(te: pd.DataFrame, pool: pd.DataFrame) -> np.ndarray:
     return out
 
 
-# (modelo, variáveis, alvo): alvo "log" = log1p(PM); "offset" = log1p(PM) - log1p(IDW do dia)
+# (model, features, target): "log" target = log1p(PM); "offset" = log1p(PM) - log1p(day's IDW)
 MODELS = {
     "LightGBM (offset IDW)": ("lightgbm", EST_FEATURES, "offset"),
     "LightGBM regularizado (offset IDW)": ("lightgbm_reg", EST_FEATURES, "offset"),
@@ -90,8 +92,8 @@ def fit_predict(kind, feats, target, Xtr, ytr, Xte):
 
 
 def one_fold(df, per, k, tname, models, do_kriging) -> pd.DataFrame:
-    """Um par (corte temporal, fold de estações): treina sem as estações do fold e prevê nelas
-    no período de teste. O IDW (baseline e variável) usa só as estações de referência."""
+    """One (temporal split, station fold) pair: train without the fold's stations and predict on
+    them over the test period. The IDW (baseline and feature) uses only reference stations."""
     t0 = time.time()
     pool = df[df["fold"] != k]
     tr = with_lag(pool[per["train"][pool.index]], pool)
@@ -102,11 +104,11 @@ def one_fold(df, per, k, tname, models, do_kriging) -> pd.DataFrame:
     if do_kriging:
         out["Krigagem ordinária"] = kriging(te.reset_index(drop=True), pool)
     clim = tr.groupby(tr["date"].dt.month)["pm25"].mean()
-    # mês sem treino (T1 não tem jul-dez no treino) -> média geral do treino
+    # month absent from training (T1 has no Jul-Dec in training) -> overall training mean
     out["Climatologia mensal"] = te["date"].dt.month.map(clim).fillna(tr["pm25"].mean()).values
     for name, (kind, feats, log) in models.items():
         out[name] = fit_predict(kind, feats, log, tr, tr["pm25"].values, te)
-    print(f"{tname} fold {k}: {te['location_id'].nunique()} estações de teste, {len(te)} linhas, "
+    print(f"{tname} fold {k}: {te['location_id'].nunique()} test stations, {len(te)} rows, "
           f"{time.time() - t0:.0f}s", flush=True)
     return out
 
@@ -123,21 +125,21 @@ def run(df: pd.DataFrame | None = None, models: dict | None = None, do_kriging: 
         for k in sorted(df["fold"].unique()):
             preds.append(one_fold(df, per, k, tf["name"], models, do_kriging))
     oof = pd.concat(preds, ignore_index=True)
-    # distância de cada estação de teste à estação de referência mais próxima (fora do seu fold)
+    # distance from each test station to the nearest reference station (outside its fold)
     st = df.groupby("location_id")[["lat", "lon"]].first()
     dmin = {s: min(haversine(st.lat[s], st.lon[s], st.lat[r], st.lon[r]) for r in st.index if folds[r] != folds[s])
             for s in st.index}
     oof["dist_ref_km"] = oof["location_id"].map(dmin)
     cols = [c for c in oof.columns if c not in ("location_id", "name", "date", "lat", "lon", "pm25", "fold", "tfold",
                                                 "dist_ref_km")]
-    ok = oof[cols].notna().all(axis=1)  # compara todos nas MESMAS linhas
+    ok = oof[cols].notna().all(axis=1)  # compare every model on the SAME rows
     res = []
     for c in cols:
         m = metrics(oof.loc[ok, "pm25"], oof.loc[ok, c], baseline=oof.loc[ok, "IDW (baseline)"])
         fm = [metrics(g["pm25"], g[c])["MAE"] for _, g in oof[ok].groupby("fold")]
         res.append({"modelo": c, **m, "MAE_std_folds": float(np.std(fm))})
     res = pd.DataFrame(res).sort_values("MAE")
-    # por corte temporal e por distância à estação de referência mais próxima
+    # by temporal split and by distance to the nearest reference station
     sub = []
     oof["faixa_dist"] = pd.cut(oof["dist_ref_km"], [0, 10, 25, 50, 1000], labels=["<10 km", "10-25 km", "25-50 km", ">50 km"])
     for key in ("tfold", "faixa_dist"):
@@ -146,7 +148,7 @@ def run(df: pd.DataFrame | None = None, models: dict | None = None, do_kriging: 
                 m = metrics(gg["pm25"], gg[c], baseline=gg["IDW (baseline)"])
                 sub.append({"recorte": key, "grupo": str(g), "modelo": c, **m, "estacoes": gg["location_id"].nunique()})
     pd.DataFrame(sub).to_csv(data_path("metrics", "benchmark_estimativa_recortes.csv"), index=False, float_format="%.4f")
-    # referência otimista: validação aleatória (linhas embaralhadas), NÃO é o resultado principal
+    # optimistic reference: random validation (shuffled rows), NOT the headline result
     rnd = random_cv_reference(df)
     res = pd.concat([res, pd.DataFrame([{"modelo": "LightGBM (offset IDW) - validação ALEATÓRIA [otimista]", **rnd}])])
     res.to_csv(data_path("metrics", "benchmark_estimativa.csv"), index=False, float_format="%.4f")
@@ -159,7 +161,7 @@ def run(df: pd.DataFrame | None = None, models: dict | None = None, do_kriging: 
 def random_cv_reference(df: pd.DataFrame) -> dict:
     from sklearn.model_selection import KFold
 
-    d = with_lag(df.drop(columns=["fold"], errors="ignore"), df)  # lag com todas as estações
+    d = with_lag(df.drop(columns=["fold"], errors="ignore"), df)  # lag computed from all stations
     yhat = np.zeros(len(d))
     for tr, te in KFold(5, shuffle=True, random_state=CFG["seed"]).split(d):
         yhat[te] = fit_predict("lightgbm", EST_FEATURES, "offset", d.iloc[tr], d["pm25"].values[tr], d.iloc[te])

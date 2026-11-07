@@ -1,7 +1,7 @@
-"""Migração idempotente das bases legadas: remove preenchimento temporal e met de D+1.
+"""Idempotent migration of legacy tables: removes temporal gap-filling and D+1 weather.
 
-Não inventa observações: usa apenas as três variáveis espaciais já armazenadas.
-O pipeline completo produz o mesmo esquema diretamente em build_dataset.
+Never invents observations: only uses the three spatial features already stored.
+The full pipeline produces the same schema directly in build_dataset.
 """
 import numpy as np
 import pandas as pd

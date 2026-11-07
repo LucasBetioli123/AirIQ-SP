@@ -1,4 +1,4 @@
-"""Carregamento da configuração e utilitários de caminho."""
+"""Configuration loading and path helpers."""
 from __future__ import annotations
 
 import functools
@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def load_env(path: Path | None = None) -> None:
-    """Lê KEY=value do .env local; variáveis já exportadas têm precedência.
+    """Read KEY=value pairs from the local .env; variables already exported take precedence.
 
-    Não executa código, substituição de shell ou expansão de variáveis.
+    Never executes code, shell substitution or variable expansion.
     """
     path = path or ROOT / ".env"
     if not path.exists():
@@ -35,7 +35,7 @@ def load_env(path: Path | None = None) -> None:
 
 
 def utf8_stdio() -> None:
-    """Saída UTF-8 também sem make: no Windows, stdout redirecionado usa cp1252 e quebra em '≤'."""
+    """UTF-8 output even without make: on Windows a redirected stdout uses cp1252 and breaks on '≤'."""
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure") and (stream.encoding or "").lower().replace("-", "") != "utf8":
             stream.reconfigure(encoding="utf-8")
@@ -53,7 +53,7 @@ def load_config(path: str | None = None) -> dict:
 
 
 def data_path(key: str, *parts: str) -> Path:
-    """Caminho absoluto dentro de uma das pastas de `paths` do config (cria se não existir)."""
+    """Absolute path inside one of the config `paths` folders (created if missing)."""
     p = ROOT / load_config()["paths"][key]
     p = p.joinpath(*parts)
     (p if not p.suffix else p.parent).mkdir(parents=True, exist_ok=True)

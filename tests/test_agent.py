@@ -1,5 +1,5 @@
-"""Testa o fluxo do agente (plano -> ferramentas -> resposta citada -> validação -> log)
-com um LLM falso e uma base normativa FICTÍCIA. Não depende de modelos nem de rede."""
+"""Test the agent flow (plan -> tools -> cited answer -> validation -> log) with a fake LLM and a
+FICTITIOUS regulation base (in Portuguese, like the real one). Needs no models and no network."""
 import json
 
 import pytest
@@ -75,7 +75,7 @@ def test_agent_flags_unsupported_number(patched):
     ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
     r = ag.ask("Qual o padrão?")
     assert "75" in r["validacao"]["numeros_sem_suporte"]
-    # o número continuou sem fonte depois da correção: recusa em vez de entregar o valor
+    # the number was still unsourced after the correction: refuse instead of delivering it
     assert not r["encontrado"] and r["resposta"].startswith("Não encontrei") and r["bloqueado_pela_validacao"] == ["75"]
 
 
@@ -92,19 +92,19 @@ def test_validate_numbers():
     assert A.validate("O prazo é de 3 anos e o padrão 60 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert not A.validate("O padrão é 61 µg/m³ [1].", [1], src, [], "q")["ok"]
     assert A.validate("Ver [7].", [7], src, [], "q")["citacoes_invalidas"] == [7]
-    # o texto cita [1]; o campo `citacoes` listou também um trecho inexistente: vale o texto
+    # the text cites [1]; the `citacoes` field also listed a missing passage: the text wins
     assert A.validate("O padrão é 60 µg/m³ [1] [F1].", [1, 7], src, [], "q")["ok"]
     assert A.used_citations("Sem número no texto.", [1]) == {1}
-    assert A.validate("O padrão de MP2,5 e de PM10 é 60 µg/m³ [1].", [1], src, [], "q")["ok"]  # nome não é valor
+    assert A.validate("O padrão de MP2,5 e de PM10 é 60 µg/m³ [1].", [1], src, [], "q")["ok"]  # a name is not a value
 
 
 def test_norm_date_and_query_cleanup():
     assert A.norm_date("2015-06-01", "Em 2015, qual era o padrão?") == "2015-06-01"
     assert A.norm_date("2015", "Em 2015, qual era o padrão?") == "2015-07-01"
-    # data inventada pelo plano sem ano na pergunta é descartada
+    # a date invented by the plan, with no year in the question, is discarded
     assert A.norm_date("2018-03-28", "Sorocaba amanhã ultrapassa o padrão da CONAMA 491?") is None
     assert A.norm_date(None, "Em 2015, qual resolução definia os padrões?") == "2015-07-01"
-    # o ano no número da norma não é data de vigência
+    # the year inside a regulation number is not a validity date
     assert A.norm_date(None, "O que diz a Resolução CONAMA 491/2018?") is None
     assert A.norm_date("", "Em 2021-08-24 o ar em Sorocaba atendia ao padrão?") is None
     assert A._clean_query('buscar_normas("padrão de MP2,5")') == "padrão de MP2,5"
@@ -112,7 +112,7 @@ def test_norm_date_and_query_cleanup():
 
 
 def test_agent_calls_tool_when_plan_forgets(patched):
-    # o plano não pede a ferramenta, mas a pergunta cita PM2.5, município e data: a regra chama
+    # the plan does not request the tool, but the question names PM2.5, a municipality and a date: the rule calls it
     tmp, calls = patched
     llm = FakeLLM([
         {"buscas": [], "pm25": []},
@@ -129,7 +129,7 @@ def test_padrao_vigente_tool():
     from src.rag.tools import padrao_call_from_question, padrao_mp25_vigente
     assert padrao_call_from_question("Em 2020, qual era o padrão nacional de MP2,5 para 24 horas aplicado?")
     assert padrao_call_from_question("Quando entram em vigor os padrões PI-3 e PI-4 da 506?")
-    assert not padrao_call_from_question("Qual o PF de MP2,5 em 24 horas na CONAMA 491/2018?")  # valor, não vigência
+    assert not padrao_call_from_question("Qual o PF de MP2,5 em 24 horas na CONAMA 491/2018?")  # a value, not validity
     r = padrao_mp25_vigente("2020-07-01")
     assert r["padrao_24h_vigente_na_data"]["etapa"] == "PI-1" and r["vigente_desde"] == "2018-11-21"
     r = padrao_mp25_vigente("2026-10-28")

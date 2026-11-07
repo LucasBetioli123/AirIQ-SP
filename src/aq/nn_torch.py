@@ -1,17 +1,17 @@
-"""MLP pequena com saída tanh, em PyTorch, para a competição de modelos.
+"""Small MLP with a tanh output, in PyTorch, for the model benchmark.
 
-Ideia testada: com a ativação tanh no neurônio de saída e o alvo normalizado para
-[-0.7, +0.7], a rede trabalha na região quase linear da tanh. tanh'(x) = 1 - tanh(x)^2,
-e para |tanh| <= 0.7 a derivada fica >= 0.51, então o gradiente não morre perto dos
-extremos da faixa de treino. A saída também fica limitada à faixa vista no treino, o que
-evita a extrapolação explosiva da MLP de saída linear. Em troca, a rede não consegue
-prever acima do máximo do treino.
+Idea tested: with tanh on the output neuron and the target scaled to [-0.7, +0.7], the
+network works in tanh's near-linear region. tanh'(x) = 1 - tanh(x)^2, and for |tanh| <= 0.7
+the derivative stays >= 0.51, so the gradient does not vanish near the edges of the
+training range. The output is also bounded to the range seen in training, which avoids
+the explosive extrapolation of a linear-output MLP. The trade-off: the network cannot
+predict above the training maximum.
 
-Arquitetura: entrada -> 64 (tanh) -> 32 (tanh) -> 1 (tanh).
-Treino: MSE + weight decay (L2), dropout opcional nas camadas ocultas, Adam,
-mini-batches de 128 e early stopping numa fração de validação (pesos da melhor época).
-Entradas: imputação pela mediana (com indicadores de ausência) + QuantileTransformer
-para normal, robusto às caudas longas de fogo e NO2.
+Architecture: input -> 64 (tanh) -> 32 (tanh) -> 1 (tanh).
+Training: MSE + weight decay (L2), optional dropout on hidden layers, Adam,
+mini-batches of 128 and early stopping on a validation fraction (best-epoch weights).
+Inputs: median imputation (with missingness indicators) + QuantileTransformer to normal,
+robust to the long tails of fire and NO2.
 """
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ class TanhMLP(nn.Module):
         for h in hidden:
             layers += [nn.Linear(prev, h), nn.Tanh()] + ([nn.Dropout(dropout)] if dropout > 0 else [])
             prev = h
-        layers += [nn.Linear(prev, 1), nn.Tanh()]  # saída tanh
+        layers += [nn.Linear(prev, 1), nn.Tanh()]  # tanh output
         self.net = nn.Sequential(*layers)
         for m in self.net:
-            if isinstance(m, nn.Linear):  # Xavier: adequada para tanh
+            if isinstance(m, nn.Linear):  # Xavier init: suited to tanh
                 nn.init.xavier_uniform_(m.weight)
                 nn.init.zeros_(m.bias)
 
@@ -41,7 +41,7 @@ class TanhMLP(nn.Module):
 
 
 class TorchTanhRegressor:
-    """Interface sklearn-like (fit/predict) em volta da TanhMLP."""
+    """sklearn-like interface (fit/predict) around TanhMLP."""
 
     def __init__(self, hidden=(64, 32), out_range: float = 0.7, weight_decay: float = 1e-3, lr: float = 1e-3,
                  batch: int = 128, epochs: int = 400, patience: int = 25, val_frac: float = 0.15, seed: int = 42,
@@ -50,7 +50,7 @@ class TorchTanhRegressor:
         self.dropout = dropout
         self.batch, self.epochs, self.patience, self.val_frac, self.seed = batch, epochs, patience, val_frac, seed
 
-    # alvo -> [-out_range, +out_range] (min-max do treino) e volta
+    # target -> [-out_range, +out_range] (training min-max) and back
     def _scale_y(self, y):
         return (2 * (y - self.ymin) / (self.ymax - self.ymin) - 1) * self.out_range
 

@@ -1,17 +1,16 @@
-"""Focos de queimada do GOES-16 ABI L2 FDCF (Fire Detection and Characterization).
+"""Fire detections from GOES-16 ABI L2 FDCF (Fire Detection and Characterization).
 
-Troca em relação ao sugerido (INPE BDQueimadas): o servidor do INPE não está
-acessível neste ambiente. O próprio BDQueimadas usa o GOES-16 como um dos
-satélites de detecção. O FDCF traz máscara de fogo e potência radiativa (FRP) em
-2 km a cada 10 min. Amostramos 8 varreduras por dia (de 3 em 3 h) numa bbox
-ampliada (SP e estados vizinhos), porque a fumaça viaja centenas de km.
+Why not INPE BDQueimadas: BDQueimadas itself uses GOES-16 as one of its detection
+satellites, and FDCF adds fire radiative power (FRP) at 2 km every 10 min. We sample
+8 scans per day (every 3 h) over an extended bbox (São Paulo and neighboring states),
+because smoke travels hundreds of km.
 
-Categorias aceitas (máscara): 10-14 e 30-34, ou seja, fogo processado, saturado,
-contaminado por nuvem e de alta/média probabilidade, com e sem filtro temporal. A
-baixa probabilidade (15/35) fica de fora para reduzir falsos positivos.
+Accepted mask categories: 10-14 and 30-34, i.e. processed, saturated, cloud-
+contaminated, high- and medium-probability fire, with and without the temporal
+filter. Low probability (15/35) is excluded to reduce false positives.
 
-Saída: data/interim/fires_daily.parquet (date, lat, lon, frp_max, n_det), um
-registro por pixel de 2 km com fogo no dia local.
+Output: data/interim/fires_daily.parquet (date, lat, lon, frp_max, n_det), one record
+per 2 km pixel with fire on the local day.
 """
 from __future__ import annotations
 
@@ -48,7 +47,7 @@ def process_day(date: pd.Timestamp) -> str:
         return "cached"
     frames = []
     for h in CFG["goes"]["fire_hours_utc"]:
-        # varreduras cujo dia LOCAL é `date`: UTC de date 03h até date+1 02h
+        # scans whose LOCAL day is `date`: UTC from date 03 h to date+1 02 h
         t = date + pd.Timedelta(hours=h + 3)
         try:
             ks = list_hour(PRODUCT, t.year, t.day_of_year, t.hour)
@@ -72,7 +71,7 @@ def main(start=None, end=None, workers: int = 12):
     files = [data_path("raw", "goes_fire", f"fire_{d.date()}.parquet") for d in dates]
     df = pd.concat([pd.read_parquet(f) for f in files if f.exists()], ignore_index=True)
     df.to_parquet(data_path("interim", "fires_daily.parquet"), index=False)
-    print(f"{len(df)} pixel-dias com fogo; mediana por dia = {df.groupby('date').size().median():.0f}")
+    print(f"{len(df)} pixel-days with fire; median per day = {df.groupby('date').size().median():.0f}")
 
 
 if __name__ == "__main__":

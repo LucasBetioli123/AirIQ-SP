@@ -1,22 +1,22 @@
-"""Meteorologia ERA5 (reanálise ECMWF, 0.25°, horária) via espelho público do NCAR no AWS.
+"""ERA5 weather (ECMWF reanalysis, 0.25°, hourly) via NCAR's public mirror on AWS.
 
-Troca em relação ao sugerido (Copernicus CDS): o CDS exige chave e não está acessível
-aqui. O NCAR (dataset RDA ds633.0) publica o MESMO ERA5 em NetCDF4 no bucket
-`nsf-ncar-era5` (anônimo), um arquivo por variável e mês. O arquivo é chunked
-(27 h x 139 lat x 277 lon), então lemos só o recorte de SP por HTTP range.
+Why not Copernicus CDS: the CDS requires an API key. NCAR (RDA dataset ds633.0)
+publishes the SAME ERA5 as NetCDF4 in the anonymous bucket `nsf-ncar-era5`, one file
+per variable and month. The files are chunked (27 h x 139 lat x 277 lon), so only the
+São Paulo window is read through HTTP range requests.
 
-Variáveis e justificativa física:
-  blh   altura da camada limite: volume de mistura. Com a mesma emissão, uma camada
-        limite baixa concentra o poluente perto da superfície
-  t2m, d2m  temperatura e ponto de orvalho, de onde sai a UR (crescimento higroscópico
-        do aerossol, que infla o AOD sem aumentar a massa seca medida pelo monitor)
-  u10, v10  vento: diluição/transporte e direção para "queimadas a favor do vento"
-  sp, tcc   pressão (sistemas sinóticos/estabilidade) e nebulosidade
-  lsp+cp    precipitação total: remoção úmida (washout)
+Variables and physical rationale:
+  blh   boundary-layer height: the mixing volume. For the same emissions, a shallow
+        boundary layer concentrates the pollutant near the surface
+  t2m, d2m  temperature and dew point, which give relative humidity (hygroscopic growth
+        of aerosol inflates AOD without increasing the dry mass the monitor measures)
+  u10, v10  wind: dilution/transport and direction for "upwind fires"
+  sp, tcc   pressure (synoptic systems/stability) and cloud cover
+  lsp+cp    total precipitation: wet removal (washout)
 
-Agregação no dia LOCAL (UTC-3): médias diárias, BLH da tarde (12-18 h local, quando a
-camada limite está desenvolvida) e BLH mínima (estabilidade noturna).
-Saída: data/interim/era5_daily.nc
+Aggregated over the LOCAL day (UTC-3): daily means, afternoon BLH (12-18 h local, when
+the boundary layer is developed) and minimum BLH (nighttime stability).
+Output: data/interim/era5_daily.nc
 """
 from __future__ import annotations
 
@@ -35,9 +35,9 @@ from src.common.http import s3_list
 CFG = load_config()
 E5 = CFG["era5"]
 BUCKET = E5["bucket_url"]
-# recorte com 1 célula de margem para interpolação bilinear nas bordas
+# window with a 1-cell margin for bilinear interpolation at the edges
 LON_MIN, LAT_MIN, LON_MAX, LAT_MAX = CFG["region"]["bbox"]
-LAT_SL = slice(LAT_MAX + 0.5, LAT_MIN - 0.5)            # latitude decrescente no arquivo
+LAT_SL = slice(LAT_MAX + 0.5, LAT_MIN - 0.5)            # latitude is decreasing in the file
 LON_SL = slice(LON_MIN % 360 - 0.5, LON_MAX % 360 + 0.5)  # longitude 0..360
 ACCUM = {"lsp": "128_142_lsp", "cp": "128_143_cp"}
 
@@ -52,7 +52,7 @@ def _main_var(ds: xr.Dataset) -> str:
 
 
 def _atomic_write(da: xr.DataArray, out) -> None:
-    """Grava em .tmp e renomeia: um processo interrompido não deixa arquivo truncado."""
+    """Write to .tmp and rename: an interrupted process never leaves a truncated file."""
     tmp = out.with_suffix(".tmp")
     da.to_dataset().to_netcdf(tmp)
     tmp.rename(out)
@@ -71,8 +71,8 @@ def fetch_an(var: str, code: str, month: pd.Timestamp) -> str:
 
 
 def fetch_accum(var: str, code: str, month: pd.Timestamp) -> str:
-    """Campos acumulados vêm de previsões (init 06/18 UTC, passos de 1-12 h), em arquivos
-    quinzenais. Convertemos para série horária por hora de validade."""
+    """Accumulated fields come from forecasts (06/18 UTC init, 1-12 h steps) in half-month
+    files. They are converted to an hourly series by valid time."""
     out = data_path("raw", "era5", f"{var}_{month:%Y%m}.nc")
     if out.exists():
         return str(out)
@@ -95,7 +95,7 @@ def fetch_accum(var: str, code: str, month: pd.Timestamp) -> str:
 
 
 def rh_from_t_td(t_k, td_k):
-    """UR (%) pela fórmula de Magnus a partir de T e Td (K)."""
+    """Relative humidity (%) from T and Td (K) via the Magnus formula."""
     t, td = t_k - 273.15, td_k - 273.15
     es = np.exp(17.625 * t / (243.04 + t))
     e = np.exp(17.625 * td / (243.04 + td))
@@ -103,7 +103,7 @@ def rh_from_t_td(t_k, td_k):
 
 
 def to_daily(h: xr.Dataset) -> xr.Dataset:
-    tz_offset = pd.Timedelta(hours=3)  # SP sem horário de verão desde 2019 -> UTC-3 fixo
+    tz_offset = pd.Timedelta(hours=3)  # São Paulo has had no daylight saving since 2019 -> fixed UTC-3
     h = h.assign_coords(time=h.time - tz_offset)
     h["rh"] = rh_from_t_td(h.t2m, h.d2m)
     h["ws"] = np.hypot(h.u10, h.v10)
@@ -119,7 +119,7 @@ def to_daily(h: xr.Dataset) -> xr.Dataset:
     d["ws_pm"] = h.ws.where((hour >= 12) & (hour <= 18)).groupby(day).mean()
     d["t2m"] = d.t2m - 273.15
     d["sp"] = d.sp / 100.0
-    # direção de onde vem o vento (convenção meteorológica), pela média vetorial
+    # direction the wind blows FROM (meteorological convention), from the vector mean
     d["wd"] = (np.degrees(np.arctan2(-d.u10, -d.v10)) + 360) % 360
     d = d.rename({"floor": "time"}) if "floor" in d.dims else d
     d = d.rename({"latitude": "lat", "longitude": "lon"})
@@ -134,11 +134,11 @@ def _run(job):
 def main(start=None, end=None, workers: int = 6):
     start = pd.Timestamp(start or CFG["period"]["start"])
     end = pd.Timestamp(end or CFG["period"]["end"])
-    # o dia local termina às 03 UTC do dia seguinte -> inclui o mês de end + 1 dia
+    # the local day ends at 03 UTC the next day -> include the month of end + 1 day
     months = pd.date_range(start.to_period("M").to_timestamp(), end + pd.Timedelta(days=1), freq="MS")
     jobs = [(fetch_an, v, c, m) for m in months for v, c in E5["an_vars"].items()]
     jobs += [(fetch_accum, v, c, m) for m in months for v, c in ACCUM.items()]
-    # processos, não threads: o HDF5 não é thread-safe (segfault com leituras concorrentes)
+    # processes, not threads: HDF5 is not thread-safe (segfaults on concurrent reads)
     with ProcessPoolExecutor(workers) as ex:
         list(tqdm(ex.map(_run, jobs), total=len(jobs), desc="ERA5 (NCAR)"))
     names = list(E5["an_vars"]) + list(ACCUM)

@@ -1,6 +1,7 @@
-"""Avaliação e explicação: figuras de métricas, SHAP e análise dos episódios extremos.
+"""Evaluation and explanation: metric figures, SHAP and analysis of extreme episodes.
 
-Lê os resultados de `benchmark.py` e `train.py`. Saídas em reports/figures e reports/metrics.
+Reads the results of `benchmark.py` and `train.py`. Writes to reports/figures and reports/metrics.
+CSV labels stay in Portuguese (data keys); figures are labeled in English.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from src.aq.modeling import EST_FEATURES, metrics, period_masks, with_lag
 from src.aq.predict import models
 from src.common.config import data_path, load_config
 
-import matplotlib.pyplot as plt  # noqa: E402  (depois do plotstyle)
+import matplotlib.pyplot as plt  # noqa: E402  (after plotstyle)
 
 warnings.filterwarnings("ignore")
 CFG = load_config()
@@ -27,16 +28,16 @@ BASELINES = {"IDW (baseline)", "Krigagem ordinária", "Climatologia mensal"}
 def fig_benchmark():
     b = pd.read_csv(data_path("metrics", "benchmark_estimativa.csv"))
     b = b[~b["modelo"].str.contains("ALEATÓRIA")].sort_values("MAE", ascending=True)
-    b = b[b["MAE"] < 3 * b["MAE"].min()]  # modelos que divergiram ficam só na tabela
+    b = b[b["MAE"] < 3 * b["MAE"].min()]  # models that diverged stay in the table only
     fig, ax = plt.subplots(figsize=(8, 0.42 * len(b) + 1.2))
     colors = [ps.GREY if m in BASELINES else (ps.ORANGE if m == BEST else ps.BLUE) for m in b["modelo"]]
-    ax.barh(b["modelo"], b["MAE"], color=colors, height=0.6, xerr=b["MAE_std_folds"],
+    ax.barh([ps.en(m) for m in b["modelo"]], b["MAE"], color=colors, height=0.6, xerr=b["MAE_std_folds"],
             error_kw={"elinewidth": 1, "ecolor": ps.MUTED})
     for y, v in enumerate(b["MAE"]):
         ax.text(v + 0.15, y, f"{v:.2f}", va="center", color=ps.TEXT, fontsize=9)
     ax.invert_yaxis()
-    ax.set_xlabel("MAE (µg/m³) - estações fora do treino, período posterior\n(traço = desvio entre folds)")
-    ax.set_title("Estimativa diária de PM2.5: cinza = baselines, laranja = escolhido")
+    ax.set_xlabel("MAE (µg/m³) on held-out stations, later period\n(whisker = std. dev. across folds)")
+    ax.set_title("Daily PM2.5 estimate\ngray = baselines, orange = chosen model")
     ax.grid(axis="y", visible=False)
     fig.tight_layout()
     fig.savefig(FIG("benchmark_mae.png"), dpi=130)
@@ -54,9 +55,9 @@ def fig_scatter():
         ax.plot([0, lim], [0, lim], color=ps.MUTED, lw=1)
         ax.set_xlim(0, lim)
         ax.set_ylim(0, lim)
-        ax.set_title(f"{col}\nMAE {m['MAE']:.2f} | RMSE {m['RMSE']:.2f} | R² {m['R2']:.2f}")
-        ax.set_xlabel("PM2.5 medido (µg/m³)")
-    axes[0].set_ylabel("PM2.5 estimado (µg/m³)")
+        ax.set_title(f"{ps.en(col)}\nMAE {m['MAE']:.2f} | RMSE {m['RMSE']:.2f} | R² {m['R2']:.2f}")
+        ax.set_xlabel("measured PM2.5 (µg/m³)")
+    axes[0].set_ylabel("estimated PM2.5 (µg/m³)")
     fig.tight_layout()
     fig.savefig(FIG("dispersao_idw_vs_lgbm.png"), dpi=130)
     plt.close(fig)
@@ -71,27 +72,27 @@ def fig_intervals():
     ax.bar(range(len(tab)), tab["cobertura_real"], color=[ps.GREY, ps.BLUE, ps.AQUA], width=0.6)
     ax.axhline(1 - CFG["split"]["interval_alpha"], color=ps.ORANGE, lw=1.5, ls="--", label="nominal 90%")
     for i, (cv, w) in enumerate(zip(tab["cobertura_real"], tab["largura_media"])):
-        ax.text(i, cv + 0.01, f"{cv:.1%}\nlarg. {w:.1f}", ha="center", fontsize=9)
-    ax.set_xticks(range(len(tab)), ["quantis\n(sem calibrar)", "CQR", "conformal\n|resíduo|"])
+        ax.text(i, cv + 0.01, f"{cv:.1%}\nwidth {w:.1f}", ha="center", fontsize=9)
+    ax.set_xticks(range(len(tab)), ["quantiles\n(uncalibrated)", "CQR", "conformal\n|residual|"])
     ax.set_ylim(0, 1.08)
-    ax.set_ylabel("cobertura real no teste")
+    ax.set_ylabel("real coverage on test")
     ax.legend(loc="lower right")
-    ax.set_title("Cobertura do intervalo de 90% (estações não vistas)")
-    # série temporal de uma estação de teste com o intervalo CQR
+    ax.set_title("Coverage of the 90% interval (unseen stations)")
+    # time series of one test station with the CQR interval
     st = r.groupby("name").size().idxmax()
     s = r[r["name"] == st].sort_values("date")
     ax = axes[1]
-    ax.fill_between(s["date"], s["cqr_lo"], s["cqr_hi"], color=ps.BLUE, alpha=0.18, lw=0, label="IC 90% (CQR)")
-    ax.plot(s["date"], s["pred"], color=ps.BLUE, lw=1.5, label="estimado")
-    ax.plot(s["date"], s["pm25"], color=ps.TEXT, lw=1, marker="o", ms=2.5, label="medido")
-    ax.set_title(f"Estação '{st}' (fora do treino)")
+    ax.fill_between(s["date"], s["cqr_lo"], s["cqr_hi"], color=ps.BLUE, alpha=0.18, lw=0, label="90% interval (CQR)")
+    ax.plot(s["date"], s["pred"], color=ps.BLUE, lw=1.5, label="estimated")
+    ax.plot(s["date"], s["pm25"], color=ps.TEXT, lw=1, marker="o", ms=2.5, label="measured")
+    ax.set_title(f"Station '{st}' (held out of training)")
     ax.set_ylabel("PM2.5 (µg/m³)")
     ax.legend(loc="upper right", ncols=3, fontsize=8)
     fig.autofmt_xdate()
     fig.tight_layout()
     fig.savefig(FIG("intervalos.png"), dpi=130)
     plt.close(fig)
-    # cobertura condicional por faixa de concentração
+    # conditional coverage by concentration band
     r["faixa"] = pd.cut(r["pm25"], [0, 15, 25, 35, 50, 500], labels=["0-15", "15-25", "25-35", "35-50", ">50"])
     cond = r.groupby("faixa").apply(lambda g: pd.Series({
         "n": len(g), "cobertura_cqr": float(np.mean((g.pm25 >= g.cqr_lo) & (g.pm25 <= g.cqr_hi))),
@@ -113,11 +114,11 @@ def shap_analysis(n: int = 3000):
     imp.to_csv(data_path("metrics", "shap_importancia.csv"), index=False, float_format="%.5f")
     plt.figure()
     shap.summary_plot(sv, X, max_display=18, show=False, plot_size=(8, 6.5))
-    plt.title("SHAP: contribuição para a correção log(1+PM2.5) - log(1+IDW)")
+    plt.title("SHAP: contribution to the correction log(1+PM2.5) - log(1+IDW)")
     plt.tight_layout()
     plt.savefig(FIG("shap_resumo.png"), dpi=130)
     plt.close("all")
-    # dependências físicas
+    # physical dependencies
     fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
     for ax, f in zip(axes, ["aod_dry_blh", "blh_pm", "fire_up_400km"]):
         i = EST_FEATURES.index(f)
@@ -127,24 +128,24 @@ def shap_analysis(n: int = 3000):
         ax.set_ylabel("SHAP")
         if X[f].max() > 50 * max(X[f].median(), 1e-3):
             ax.set_xscale("symlog")
-    axes[0].set_title("AOD seco / camada limite")
-    axes[1].set_title("Camada limite à tarde (m)")
-    axes[2].set_title("Fogo a favor do vento (400 km)")
+    axes[0].set_title("Dry AOD / boundary layer")
+    axes[1].set_title("Afternoon boundary layer (m)")
+    axes[2].set_title("Upwind fire (400 km)")
     fig.tight_layout()
     fig.savefig(FIG("shap_dependencia.png"), dpi=130)
     plt.close(fig)
-    # explicação local: o dia/estação de maior PM2.5 previsto
+    # local explanation: the station-day with the highest predicted PM2.5
     j = int(np.argmax(est["point"].predict(X)))
     contrib = pd.Series(sv[j], index=EST_FEATURES).sort_values(key=np.abs, ascending=False).head(10)
     row = test.iloc[j]
     contrib.to_frame("shap").assign(valor=X.iloc[j][contrib.index].values).to_csv(
         data_path("metrics", "shap_exemplo_local.csv"), float_format="%.4f")
-    print(f"exemplo local: {row['name']} {row['date'].date()} medido={row['pm25']:.1f}")
+    print(f"local example: {row['name']} {row['date'].date()} measured={row['pm25']:.1f}")
     print(imp.head(12).to_string(index=False))
 
 
 def episodes():
-    """Episódios extremos: dias com fumaça (muito fogo a favor do vento) ou PM2.5 alto."""
+    """Extreme episodes: smoke days (strong upwind fire) or high PM2.5."""
     oof = pd.read_parquet(data_path("processed", "oof_estimativa.parquet"))
     df = pd.read_parquet(data_path("processed", "station_days.parquet"),
                          columns=["location_id", "date", "fire_up_400km", "fire_n_400km", "aod_filled",
@@ -164,7 +165,7 @@ def episodes():
     tab = pd.DataFrame(rows)
     tab.to_csv(data_path("metrics", "episodios_extremos.csv"), index=False, float_format="%.3f")
     print(tab.to_string(index=False))
-    # piores dias
+    # worst days
     d["err"] = d[BEST] - d["pm25"]
     worst = d.groupby("date").agg(pm25=("pm25", "mean"), pred=(BEST, "mean"), idw=("IDW (baseline)", "mean"),
                                   err=("err", "mean"),
@@ -174,22 +175,22 @@ def episodes():
         data_path("metrics", "piores_dias.csv"), float_format="%.2f")
     fig, (ax, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True, height_ratios=[2.2, 1])
     t = worst.sort_index()
-    ax.plot(t.index, t["pm25"], color=ps.TEXT, lw=1.2, label="medido (média das estações de teste)")
-    ax.plot(t.index, t["pred"], color=ps.BLUE, lw=1.2, label="modelo (LightGBM offset IDW)")
+    ax.plot(t.index, t["pm25"], color=ps.TEXT, lw=1.2, label="measured (mean of test stations)")
+    ax.plot(t.index, t["pred"], color=ps.BLUE, lw=1.2, label="model (LightGBM, IDW offset)")
     ax.set_ylabel("PM2.5 (µg/m³)")
-    ax.set_title("Período de teste: medido x estimado (estações fora do treino)")
+    ax.set_title("Test period: measured vs. estimated (held-out stations)")
     ax.legend(loc="upper right", fontsize=8)
     ax2.bar(t.index, t["fogo"], color=ps.ORANGE, width=1)
-    ax2.set_ylabel("fogo a favor\ndo vento (índice)")
+    ax2.set_ylabel("upwind fire\n(index)")
     fig.tight_layout()
     fig.savefig(FIG("episodios_serie.png"), dpi=130)
     plt.close(fig)
 
 
 def band_metrics(y, yhat, limiar: float = 25.0) -> dict:
-    """Faixa do IQAr além do acerto bruto: ~90% dos dias são "Boa", então acertar a faixa quase
-    sempre é fácil. Acurácia balanceada e F1 macro dão o mesmo peso a cada faixa; a sensibilidade
-    acima de `limiar` (fora da faixa Boa) mede se os dias poluídos são detectados."""
+    """IQAr band metrics beyond raw accuracy: ~90% of days are "Boa" (good), so getting the band
+    right is almost always easy. Balanced accuracy and macro F1 weight every band equally; recall
+    above `limiar` (outside the good band) measures whether polluted days are caught."""
     from sklearn.metrics import balanced_accuracy_score, f1_score
 
     y, yhat = np.asarray(y, float), np.asarray(yhat, float)
@@ -203,13 +204,13 @@ def band_metrics(y, yhat, limiar: float = 25.0) -> dict:
 
 
 def band_analysis():
-    """Acerto de faixa do IQAr da estimativa (mesmas linhas do benchmark) e da previsão D+1."""
+    """IQAr band accuracy for the estimate (same rows as the benchmark) and for the D+1 forecast."""
     oof = pd.read_parquet(data_path("processed", "oof_estimativa.parquet"))
     cols = [c for c in oof.columns if c not in ("location_id", "name", "date", "lat", "lon", "pm25", "fold", "tfold",
                                                 "dist_ref_km", "faixa_dist")]
     oof = oof[oof[cols].notna().all(axis=1)]
-    # alerta pelo limite superior do IC 90%: regra fixa, sem limiar ajustado no teste. Só as colunas
-    # de sensibilidade/precisão fazem sentido para ela.
+    # alert on the upper bound of the 90% interval: a fixed rule, no threshold tuned on the test
+    # set. Only the recall/precision columns make sense for it.
     alerta = "Alerta: limite superior do IC 90% > 25"
     only_alert = lambda y, hi: {k: (v if k.startswith(("n", "sens", "prec")) else np.nan)  # noqa: E731
                                 for k, v in band_metrics(y, hi).items()}
@@ -225,7 +226,7 @@ def band_analysis():
                  {"tarefa": f"D+1 {cen}", "metodo": alerta, **only_alert(g["pm25"], g["cqr_hi"])}]
     tab = pd.DataFrame(rows)
     tab.to_csv(data_path("metrics", "faixas_iqar.csv"), index=False, float_format="%.4f")
-    # matriz de confusão do modelo escolhido (linhas = faixa medida, colunas = faixa estimada)
+    # confusion matrix of the chosen model (rows = measured band, columns = estimated band)
     conf = pd.crosstab(pd.Series(band(oof["pm25"].values), name="medida"),
                        pd.Series(band(oof[BEST].values), name="estimada")).reindex(index=LABELS, columns=LABELS,
                                                                                   fill_value=0)
@@ -238,14 +239,15 @@ def fig_forecast():
     t = pd.read_csv(data_path("metrics", "previsao_d1.csv"))
     t = t[t["recorte"] == "todos"].reset_index(drop=True)
     fig, ax = plt.subplots(figsize=(7.5, 3.4))
-    labels = [f"{c.split(')')[0]})\n{m}" for c, m in zip(t["cenario"], t["metodo"])]
+    scen = {"A": "A) site with station", "B": "B) site without station"}
+    labels = [f"{scen[c[0]]}\n{ps.en(m)}" for c, m in zip(t["cenario"], t["metodo"])]
     colors = [ps.GREY if "Persist" in m else ps.BLUE for m in t["metodo"]]
     ax.barh(labels, t["MAE"], color=colors, height=0.55)
     for y, v in enumerate(t["MAE"]):
         ax.text(v + 0.1, y, f"{v:.2f}", va="center", fontsize=9)
     ax.invert_yaxis()
-    ax.set_xlabel("MAE D+1 (µg/m³), período de teste")
-    ax.set_title("Previsão do dia seguinte x persistência")
+    ax.set_xlabel("D+1 MAE (µg/m³), test period")
+    ax.set_title("Next-day forecast vs. persistence")
     ax.grid(axis="y", visible=False)
     fig.tight_layout()
     fig.savefig(FIG("previsao_d1.png"), dpi=130)

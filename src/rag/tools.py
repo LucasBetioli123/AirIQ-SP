@@ -1,12 +1,12 @@
-"""Ferramentas do agente.
+"""Agent tools (names and outputs in Portuguese: the agent works on Brazilian law).
 
-  buscar_normas(consulta, data)        -> trechos normativos com citação (RAG)
-  estimar_pm25(local, data, horizonte) -> modelo de PM2.5 (estimativa/previsão + IC 90%)
-  padrao_mp25_vigente(data)            -> etapa do padrão de MP2,5 vigente na data + cronograma (art. 4º)
+  buscar_normas(consulta, data)        -> regulation passages with citations (RAG)
+  estimar_pm25(local, data, horizonte) -> PM2.5 model (estimate/forecast + 90% interval)
+  padrao_mp25_vigente(data)            -> PM2.5 standard stage in force on the date + schedule (art. 4)
 
-Datas relativas ("hoje", "amanhã") são resolvidas contra a DATA DE REFERÊNCIA do
-sistema. Como não há feed em tempo real (os dados públicos usados vão até abr/2023),
-o padrão é o último dia com dados completos. Dá para mudar com AGENT_TODAY=aaaa-mm-dd.
+Relative dates ("hoje" = today, "amanhã" = tomorrow) are resolved against the system's
+REFERENCE DATE. As there is no real-time feed (the public data used end in Apr 2023), the
+default is the last day with complete data. Override with AGENT_TODAY=yyyy-mm-dd.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def reference_today() -> pd.Timestamp:
         from src.aq.predict import available_index, station_obs
         idx = available_index()
         obs_days = pd.DatetimeIndex(station_obs()["date"].unique())
-        # Não exige dados observados de amanhã: somente o contexto até a emissão.
+        # Does not require tomorrow's observations: only the context up to issue time.
         ok = [d for d in obs_days if d in idx]
         return max(ok)
     except Exception:
@@ -40,7 +40,7 @@ def _strip(s: str) -> str:
 
 
 def resolve_date(text: str | None, horizon: int = 0) -> tuple[pd.Timestamp, int]:
-    """Devolve (data de referência, horizonte). 'amanhã' = previsão D+1 feita hoje."""
+    """Return (reference date, horizon). 'amanhã' (tomorrow) = D+1 forecast issued today."""
     t = _strip(text or "hoje")
     today = reference_today()
     if t in ("hoje", "agora", "atual", ""):
@@ -61,9 +61,9 @@ _AQ_WORDS = re.compile(r"\b(?:pm\s?2[.,]?5|mp\s?2[.,]?5|qualidade do ar|polui)",
 
 
 def pm25_call_from_question(question: str) -> dict | None:
-    """Reforço determinístico ao plano: se a pergunta fala de PM2.5/qualidade do ar num município de SP
-    e numa data (ou hoje/amanhã) e o LLM não pediu a ferramenta, monta a chamada. Na avaliação, o
-    Qwen3-4B deixou de chamar a ferramenta em 1 de 3 perguntas desse tipo."""
+    """Deterministic backstop for the plan: if the question is about PM2.5/air quality in a São Paulo
+    municipality on a date (or today/tomorrow) and the LLM did not request the tool, build the call.
+    In evaluation, Qwen3-4B skipped the tool on 1 of 3 such questions."""
     if not _AQ_WORDS.search(question):
         return None
     from src.aq.data.geo import municipios_sp
@@ -90,14 +90,14 @@ _WHEN_WORDS = re.compile(r"\b(?:em vigor|vigente|vigora|vale|valia|aplicad[oa]|d
 
 
 def padrao_call_from_question(question: str) -> bool:
-    """A pergunta é sobre QUAL etapa do padrão de MP2,5 vale numa data (ou quando entra em vigor)? Então o
-    agente consulta o cronograma, em vez de deixar o LLM deduzir a etapa vigente: na avaliação, o Qwen3-4B
-    respondeu o PF (25) para 2020, quando valia o PI-1 (60). Perguntas sobre o valor de uma etapa numa
-    norma não disparam (o cronograma da 506 só distrairia)."""
+    """Is the question about WHICH PM2.5 standard stage applies on a date (or when one takes effect)? Then
+    the agent looks up the schedule instead of letting the LLM infer the stage in force: in evaluation,
+    Qwen3-4B answered PF (25) for 2020, when PI-1 (60) applied. Questions about the value of a stage in
+    a given regulation do not trigger it (the 506 schedule would only distract)."""
     return bool(_STD_WORDS.search(question) and _WHEN_WORDS.search(question))
 
 
-# início de cada etapa do MP2,5, conferido no art. 4º de cada resolução
+# start of each PM2.5 stage, checked against art. 4 of each resolution
 _STAGE_SINCE = {("Resolução CONAMA 491/2018", "PI-1"): "2018-11-21", ("Resolução CONAMA 506/2024", "PI-1"): "2024-07-09",
                 ("Resolução CONAMA 506/2024", "PI-2"): "2025-01-01", ("Resolução CONAMA 506/2024", "PI-3"): "2033-01-01",
                 ("Resolução CONAMA 506/2024", "PI-4"): "2044-01-01"}
@@ -110,8 +110,8 @@ CRONOGRAMA_506 = {"PI-1": "60 µg/m³, vigora até 2024-12-31 (art. 4º, § 1º)
 
 
 def padrao_mp25_vigente(data: str | None = None) -> dict:
-    """Etapa do padrão nacional de MP2,5 (24 h) vigente na data (padrão: hoje, data real) e o cronograma da
-    Resolução CONAMA 506/2024. Determinístico: a regra vem do art. 4º das resoluções."""
+    """Stage of the national 24 h PM2.5 standard in force on the date (default: today, the real date) and
+    the CONAMA 506/2024 schedule. Deterministic: the rule comes from art. 4 of the resolutions."""
     d = pd.Timestamp(data) if data else pd.Timestamp.today().normalize()
     from src.aq.aqi import legal_standard_24h
     std = legal_standard_24h(d)
@@ -155,7 +155,7 @@ def get_retriever(mode: str | None = None) -> Retriever:
 
 
 def nota_vigencia(c: dict) -> str | None:
-    """Texto curto sobre a vigência do trecho, para o LLM não apresentar regra revogada como atual."""
+    """Short note on the passage's validity, so the LLM never presents a repealed rule as current."""
     fim, por = c.get("vigencia_fim"), (c.get("meta") or {}).get("revogado_por")
     if not fim:
         return None
@@ -179,7 +179,7 @@ def trecho_por_id(chunk_id: str, mode: str | None = None) -> dict | None:
 
 
 def base_legal_padrao(r: dict) -> list[str]:
-    """Trechos em que padrao_mp25_vigente se apoia (art. 4º das resoluções), para a resposta poder citá-los."""
+    """Passages that padrao_mp25_vigente relies on (art. 4 of the resolutions), so the answer can cite them."""
     ids = ["conama_506_2024:art4"]
     if r["padrao_24h_vigente_na_data"]["norma"].startswith("Resolução CONAMA 491/2018"):
         ids.insert(0, "conama_491_2018:art4")
@@ -193,8 +193,8 @@ def buscar_normas(consulta: str, data: str | None = None, k: int = 5, mode: str 
 
 def buscar_normas_varias(consultas: list[str], pergunta: str, data: str | None = None, k: int = 4,
                          mode: str | None = None) -> tuple[list[dict], dict[str, list[str]]]:
-    """Várias consultas do plano -> união dos candidatos (intercalando os rankings) -> reranker UMA vez,
-    contra a pergunta original. Devolve os trechos e, para o log, os ids que cada consulta trouxe."""
+    """Several queries from the plan -> union of candidates (interleaving the rankings) -> reranker ONCE,
+    against the original question. Returns the passages and, for the log, the ids each query found."""
     from src.rag.retrieve import rerank
 
     mode = mode or os.environ.get("RAG_MODE", "hybrid_rerank")
@@ -202,7 +202,7 @@ def buscar_normas_varias(consultas: list[str], pergunta: str, data: str | None =
     ret = get_retriever(mode)
     per_query = {q: ret.search(q, k=k, date=data, mode=base) for q in consultas}
     union, seen = [], set()
-    for rank in range(k):  # intercala: 1º de cada consulta, depois 2º de cada...
+    for rank in range(k):  # interleave: 1st of each query, then 2nd of each...
         for hs in per_query.values():
             if rank < len(hs) and hs[rank].chunk["id"] not in seen:
                 seen.add(hs[rank].chunk["id"])

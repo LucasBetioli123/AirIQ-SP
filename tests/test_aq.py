@@ -15,7 +15,7 @@ def test_bands():
 def test_band_metrics_expose_majority_class():
     from src.aq.evaluate import band_metrics
 
-    # 9 dias "Boa" e 1 "Moderada": prever sempre 10 acerta 90% das faixas, mas não detecta o dia poluído
+    # 9 "Boa" (good) days and 1 "Moderada": always predicting 10 gets 90% of bands right but misses the polluted day
     y = np.array([10.0] * 9 + [40.0])
     m = band_metrics(y, np.full(10, 10.0))
     assert m["acerto_faixa"] == 0.9 and m["acerto_sempre_Boa"] == 0.9
@@ -29,7 +29,7 @@ def test_legal_standard_by_date():
 
 
 def test_geometry():
-    # São Paulo -> Campinas ~ 84 km, rumo ~ noroeste
+    # São Paulo -> Campinas ~ 84 km, heading ~ northwest
     d = haversine(-23.55, -46.63, -22.90, -47.06)
     assert 75 < d < 90
     b = bearing(-23.55, -46.63, -22.90, -47.06)
@@ -38,7 +38,7 @@ def test_geometry():
 
 def test_idw_excludes_self_and_weights_by_distance():
     v, dmin, n = idw(0.0, 0.0, np.array([0.0, 0.0, 0.1]), np.array([0.0, 0.05, 0.0]), np.array([999, 10.0, 20.0]))
-    assert n == 2 and 10 < v < 20 and v < 15  # a mais próxima pesa mais; a própria (d=0) é ignorada
+    assert n == 2 and 10 < v < 20 and v < 15  # the closest one weighs more; the station itself (d=0) is ignored
 
 
 def test_spatial_lag_same_date_only():

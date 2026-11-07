@@ -1,13 +1,13 @@
-"""NO2 troposférico do Sentinel-5P TROPOMI (passagem ~13h30 local), espelho MEEO no AWS.
+"""Tropospheric NO2 from Sentinel-5P TROPOMI (~13:30 local overpass), MEEO mirror on AWS.
 
-O bucket `meeo-s5p` publica o produto L2 OFFL já convertido em Cloud-Optimized
-GeoTIFF (grade global 0.035°, EPSG:4326, uma imagem por órbita), então lemos só a
-janela de SP. Mantemos pixels com qa_value >= 75 (recomendação do PUM do produto:
-exclui nuvem e neve). O NO2 é traçador de emissão de combustão (tráfego/indústria) e
-de precursores de aerossol secundário (nitrato). Ajuda a separar urbano/industrial
-de fumaça.
+The `meeo-s5p` bucket publishes the L2 OFFL product already converted to Cloud-Optimized
+GeoTIFF (global 0.035° grid, EPSG:4326, one image per orbit), so only the São Paulo
+window is read. Pixels with qa_value >= 75 are kept (the product PUM recommendation:
+excludes cloud and snow). NO2 traces combustion emissions (traffic/industry) and
+secondary-aerosol precursors (nitrate). It helps tell urban/industrial pollution
+from smoke.
 
-Saída: data/interim/no2_daily.nc (µmol/m², grade de 0.05°)
+Output: data/interim/no2_daily.nc (µmol/m², 0.05° grid)
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def _orbits(date: pd.Timestamp) -> list[str]:
             continue
         m = re.search(r"____(\d{8}T\d{6})_(\d{8}T\d{6})_", k)
         t0, t1 = pd.Timestamp(m.group(1)), pd.Timestamp(m.group(2))
-        # órbitas diurnas que cruzam SP: passagem ~16-17 UTC
+        # daytime orbits crossing SP: overpass ~16-17 UTC
         if t1 >= date + pd.Timedelta(hours=15, minutes=30) and t0 <= date + pd.Timedelta(hours=18, minutes=30):
             out.append(k)
     return out
@@ -91,7 +91,7 @@ def main(start=None, end=None, workers: int = 8):
     arr = np.stack([np.load(data_path("raw", "s5p_no2", f"no2_{d.date()}.npy")) for d in dates])
     ds = xr.Dataset({"no2": (("time", "lat", "lon"), arr)}, coords={"time": dates, "lat": lats, "lon": lons})
     ds.to_netcdf(data_path("interim", "no2_daily.nc"))
-    print(f"NO2: cobertura média de pixels {np.isfinite(arr).mean():.1%}")
+    print(f"NO2: mean pixel coverage {np.isfinite(arr).mean():.1%}")
 
 
 if __name__ == "__main__":

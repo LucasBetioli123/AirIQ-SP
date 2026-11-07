@@ -1,18 +1,21 @@
-"""Agente de normas ambientais com RAG e ferramenta de qualidade do ar.
+"""Environmental-law agent with RAG and an air-quality tool.
 
-Fluxo (poucas chamadas ao LLM, porque em CPU cada chamada custa segundos):
-  1. PLANEJAR (LLM, JSON): quais buscas na base normativa e quais consultas de PM2.5
-     (local, data, horizonte) a pergunta exige
-  2. EXECUTAR as ferramentas (buscar_normas, estimar_pm25 e, nas perguntas sobre qual
-     etapa do padrão de MP2,5 vale numa data, padrao_mp25_vigente)
-  3. RESPONDER (LLM, JSON): resposta em português, citando os trechos [n] e os
-     resultados de ferramenta [F1..]. `encontrado=false` quando a base não cobre
-  4. VALIDAR (sem LLM): citações existem? Os números da resposta aparecem nos trechos
-     citados, nas ferramentas ou na pergunta? Se não, uma regeneração é tentada; se
-     ainda sobrar número sem fonte, o agente recusa
-  5. REGISTRAR tudo em logs/agent_runs.jsonl
-Recusa honesta: se o melhor trecho tem relevância abaixo do limiar e nenhuma
-ferramenta foi pedida, o agente recusa sem gerar, para não inventar.
+Flow (few LLM calls, because each one costs seconds on CPU):
+  1. PLAN (LLM, JSON): which searches over the regulations and which PM2.5 lookups
+     (place, date, horizon) the question needs
+  2. RUN the tools (buscar_normas, estimar_pm25 and, for questions about which PM2.5
+     standard stage applies on a date, padrao_mp25_vigente)
+  3. ANSWER (LLM, JSON): answer in Portuguese, citing passages [n] and tool results
+     [F1..]. `encontrado=false` (not found) when the base does not cover the question
+  4. VALIDATE (no LLM): do the citations exist? Does every number in the answer appear in
+     the cited passages, the tool outputs or the question? If not, one regeneration is
+     attempted; if an unsourced number remains, the agent refuses
+  5. LOG everything to logs/agent_runs.jsonl
+Honest refusal: if the best passage scores below the relevance threshold and no tool was
+requested, the agent refuses without generating, so it never makes things up.
+
+Prompts, refusal text and answers are in Portuguese on purpose: the knowledge base is
+Brazilian law and the users ask in Portuguese.
 """
 from __future__ import annotations
 
@@ -32,15 +35,15 @@ from src.rag.tools import (base_legal_padrao, buscar_normas_varias, estimar_pm25
 REFUSAL = ("Não encontrei essa informação na base de normas consultada "
            "(Resoluções CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; "
            "Lei 9.605/1998). Prefiro não responder sem uma fonte.")
-# limiares de recusa sem gerar (calibrados em reports/metrics/rag_limiar_recusa.csv): escore do reranker
-# (modo *_rerank) ou maior cosseno da busca vetorial (modos dense/hybrid)
+# refusal thresholds before generation (calibrated in reports/metrics/rag_limiar_recusa.csv): reranker
+# score (*_rerank modes) or the top cosine of dense retrieval (dense/hybrid modes)
 RERANK_MIN = float(os.environ.get("RAG_RERANK_MIN", "0.8"))
 COS_MIN = float(os.environ.get("RAG_COS_MIN", "0.675"))
-KEEP_MIN = 0.05  # trechos (além dos 2 primeiros) com rerank abaixo disto não vão para o LLM
+KEEP_MIN = 0.05  # passages (beyond the first 2) with a rerank score below this are not sent to the LLM
 
 
 def gate_score(sources: list[dict], mode: str) -> float | None:
-    """Relevância do melhor trecho para a recusa sem gerar. None = modo sem escore calibrável (BM25)."""
+    """Relevance of the best passage, for refusing without generating. None = mode without a calibratable score (BM25)."""
     key = "rerank" if mode.endswith("_rerank") else "cos"
     vals = [s[key] for s in sources if s.get(key) is not None]
     return max(vals) if vals else None
@@ -79,17 +82,17 @@ ANSWER_SCHEMA = {"type": "object", "properties": {
 
 
 def _clean_query(q: str) -> str:
-    """Modelos pequenos às vezes devolvem a chamada inteira: 'buscar_normas("padrão MP2,5")'."""
+    """Small models sometimes return the whole call: 'buscar_normas("padrão MP2,5")'."""
     m = re.match(r'^\s*\w+\(\s*["\']?(.*?)["\']?\s*\)\s*$', q, flags=re.S)
     return (m.group(1) if m else q).strip()
 
 
 def norm_date(plan_date, question: str) -> str | None:
-    """Data em que a norma deve estar vigente. Vem do plano ('AAAA-MM-DD' ou só 'AAAA') ou, se o
-    plano não trouxer, de um ano citado na pergunta ('Em 2015, ...'). Sem data = vigente hoje."""
+    """Date on which the regulation must be in force. Comes from the plan ('YYYY-MM-DD' or just 'YYYY') or,
+    if the plan has none, from a year cited in the question ('Em 2015, ...'). No date = in force today."""
     d = str(plan_date or "").strip()
-    # o plano às vezes inventa uma data (ex.: "2018-03-28" para "padrão da CONAMA 491"); só vale se a
-    # própria pergunta tiver um ano ou uma data
+    # the plan sometimes invents a date (e.g. "2018-03-28" for "padrão da CONAMA 491"); it only counts
+    # if the question itself contains a year or a date
     if not re.search(r"\b(?:19|20)\d{2}\b(?!\s*\?)", re.sub(r"\b\d+\s*/\s*(?:19|20)?\d{2}\b", "", question)):
         d = ""
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
@@ -99,7 +102,7 @@ def norm_date(plan_date, question: str) -> str | None:
     m = re.search(r"\b(\d{2})/(\d{2})/((?:19|20)\d{2})\b", question)
     if m:
         return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
-    # ano solto ("em 2015", "no ano de 2020"), mas não o ano no número da norma ("491/2018")
+    # a standalone year ("em 2015", "no ano de 2020"), but not the year inside a regulation number ("491/2018")
     m = re.search(r"\b(?:em|no ano de|durante|até)\s+((?:19|20)\d{2})\b(?!\s*[-/])", question, flags=re.I)
     return f"{m.group(1)}-07-01" if m else None
 
@@ -115,8 +118,8 @@ def _numbers(s: str) -> set[str]:
 
 
 def used_citations(answer: str, cited: list[int]) -> set[int]:
-    """As citações [n] do texto valem; o campo `citacoes` do JSON só quando o texto não cita nenhum trecho.
-    Na avaliação, o Qwen3-4B citou [1] no texto e listou [1..7] no campo (inclusive um trecho inexistente)."""
+    """Citations [n] in the text win; the JSON `citacoes` field is used only when the text cites nothing.
+    In evaluation, Qwen3-4B cited [1] in the text and listed [1..7] in the field (including a missing passage)."""
     inline = {int(x) for x in re.findall(r"\[(\d+)\]", answer)}
     return inline or {c for c in cited if isinstance(c, int)}
 
@@ -128,7 +131,7 @@ def validate(answer: str, cited: list[int], sources: list[dict], tools: list[dic
     support = " ".join(sources[i - 1]["texto"] + " " + sources[i - 1]["citacao"] + " " + (sources[i - 1].get("vigencia") or "")
                        for i in used & valid_ids)
     support += " " + json.dumps(tools, ensure_ascii=False) + " " + question
-    # nomes de poluente (MP2,5, PM10) não são valores
+    # pollutant names (MP2,5, PM10) are not values
     plain = re.sub(r"\b(?:MP|PM)\s?(?:2[.,]5|10)\b", " ", re.sub(r"\[(?:F?\d+)\]", "", answer), flags=re.I)
     nums = {n for n in _numbers(plain) if len(n) > 0}
     sup_nums = _numbers(support)
@@ -147,7 +150,7 @@ class Agent:
         self.llm = get_llm(provider, model)
         self.rag_mode = rag_mode or os.environ.get("RAG_MODE", "hybrid_rerank")
         self.k = k_per_search
-        # cada trecho custa ~400-600 tokens de prompt; em CPU o prompt domina o tempo da resposta
+        # each passage costs ~400-600 prompt tokens; on CPU the prompt dominates response time
         self.max_sources = max_sources or int(os.environ.get("AGENT_MAX_SOURCES", "6"))
 
     def ask(self, question: str, log: bool = True) -> dict:
@@ -161,25 +164,25 @@ class Agent:
         plan = p.data or {"buscas": [question], "pm25": []}
         buscas = [_clean_query(b) for b in plan.get("buscas", []) if isinstance(b, str) and b.strip()] or [question]
         if question not in buscas:
-            buscas.append(question)  # a pergunta original sempre entra como consulta
+            buscas.append(question)  # the original question is always one of the queries
         date = norm_date(plan.get("data_da_norma"), question)
         # 2) ferramentas
         t1 = time.time()
-        # união dos candidatos de todas as consultas; o reranker (se houver) roda uma vez só
+        # union of candidates from every query; the reranker (if any) runs only once
         sources, per_query = buscar_normas_varias(buscas[:4], question, data=date, k=self.k, mode=self.rag_mode)
         for q, ids in per_query.items():
             run["ferramentas"].append({"ferramenta": "buscar_normas", "args": {"consulta": q, "data": date},
                                        "resultado": ids})
         sources = sources[: self.max_sources]
         best = gate_score(sources, self.rag_mode)
-        # trecho com escore de reranker muito baixo só gasta prompt (o prompt domina o tempo em CPU)
+        # a passage with a very low reranker score only wastes prompt (the prompt dominates CPU time)
         if best is not None and self.rag_mode.endswith("_rerank"):
             sources = [s for i, s in enumerate(sources) if i < 2 or (s["rerank"] or 0) >= KEEP_MIN]
         tools_out, seen_calls = [], set()
         calls = [c for c in plan.get("pm25", []) if isinstance(c, dict)][:3]
         if not calls and (c := pm25_call_from_question(question)):
             calls = [c]
-            run["ferramenta_por_regra"] = True  # o plano não pediu; a regra da pergunta pediu
+            run["ferramenta_por_regra"] = True  # the plan did not ask for it; the question rule did
         for c in calls:
             key = json.dumps(c, sort_keys=True, ensure_ascii=False)
             if key in seen_calls:  # o plano às vezes repete a mesma chamada
@@ -190,11 +193,11 @@ class Agent:
             run["ferramentas"].append({"ferramenta": "estimar_pm25", "args": c, "resultado": r})
         pm25_used = bool(tools_out)
         if not pm25_used and padrao_call_from_question(question):
-            # (com estimar_pm25 a etapa vigente já vem no resultado, em comparacao_com_padroes)
+            # (with estimar_pm25 the stage in force already comes in the result, in comparacao_com_padroes)
             r = padrao_mp25_vigente(date)
             tools_out.append(r)
             run["ferramentas"].append({"ferramenta": "padrao_mp25_vigente", "args": {"data": date}, "resultado": r})
-            # o art. 4º (cronograma) entra no contexto: sem ele, o modelo recusou mesmo com a ferramenta (q23)
+            # art. 4 (the schedule) goes into the context: without it, the model refused even with the tool (q23)
             have = {s["id"] for s in sources}
             extra = [t for i in base_legal_padrao(r) if i not in have and (t := trecho_por_id(i, self.rag_mode))]
             if extra:
@@ -203,7 +206,7 @@ class Agent:
         run["trechos"] = [{"n": i + 1, "id": s["id"], "citacao": s["citacao"], "score": s["score"], "rerank": s["rerank"]}
                           for i, s in enumerate(sources)]
         run["escore_relevancia"] = best
-        # recusa sem gerar se a base claramente não cobre e não há ferramenta
+        # refuse without generating if the base clearly does not cover it and no tool is involved
         if not pm25_used and best is not None and best < (RERANK_MIN if self.rag_mode.endswith("rerank") else COS_MIN):
             return self._finish(run, t0, {"encontrado": False, "resposta": REFUSAL, "citacoes": []}, sources, tools_out,
                                 question, gate=True, log=log)
@@ -211,8 +214,8 @@ class Agent:
         ctx = "\n\n".join(f"[{i + 1}] {s['citacao']}" + (f" ({s['vigencia']})" if s.get("vigencia") else "") +
                           f"\n{s['texto']}" for i, s in enumerate(sources))
         tctx = "\n".join(f"[F{i + 1}] {json.dumps(t, ensure_ascii=False)}" for i, t in enumerate(tools_out))
-        # a data de referência só interessa quando há estimativa de PM2.5 ("hoje"/"amanhã"); nas perguntas
-        # só de norma ela distrai o modelo
+        # the reference date only matters when there is a PM2.5 estimate ("hoje"/"amanhã"); in
+        # regulation-only questions it distracts the model
         today = reference_today()
         ref = (f"Data de referência do sistema: hoje = {today.date()}, amanhã = {(today + pd.Timedelta(days=1)).date()}.\n"
                if pm25_used else "")
@@ -222,7 +225,7 @@ class Agent:
         ans = a.data or {"encontrado": False, "resposta": REFUSAL, "citacoes": []}
         v = validate(ans.get("resposta", ""), ans.get("citacoes", []), sources, tools_out, ref + question)
         if ans.get("encontrado") and not v["ok"]:
-            # 4) uma regeneração apontando o problema
+            # 4) one regeneration that points out the problem
             fix = (f"{user}\nATENÇÃO: sua resposta anterior tinha problemas: {json.dumps(v, ensure_ascii=False)}. "
                    "Corrija usando apenas números e dispositivos presentes nas FONTES/FERRAMENTAS.")
             a2 = self.llm.chat_json(ANSWER_SYS, fix, ANSWER_SCHEMA, max_tokens=450)
@@ -232,8 +235,8 @@ class Agent:
                 if v2["ok"] or len(v2["numeros_sem_suporte"]) < len(v["numeros_sem_suporte"]):
                     ans, v = a2.data, v2
         if blocked_by_validation(ans, v):
-            # número sem fonte mesmo depois da correção: melhor recusar do que entregar um valor inventado
-            # (na avaliação, o modelo inventou "desde 12 de abril de 2024" para o padrão de MP2,5)
+            # a number is still unsourced after the correction: refusing beats delivering an invented value
+            # (in evaluation, the model invented "desde 12 de abril de 2024" for the PM2.5 standard)
             run["bloqueado_pela_validacao"] = v["numeros_sem_suporte"]
             run["resposta_bloqueada"] = ans.get("resposta", "")
             ans = {"encontrado": False, "resposta": REFUSAL, "citacoes": []}

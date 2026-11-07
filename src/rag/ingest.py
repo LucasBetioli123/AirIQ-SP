@@ -1,4 +1,4 @@
-"""Ingestão: arquivos das normas -> linhas estruturais -> chunks -> data/processed/rag/chunks.jsonl
+"""Ingestion: regulation files -> structural lines -> chunks -> data/processed/rag/chunks.jsonl
 
   python -m src.rag.ingest
 """
@@ -37,7 +37,7 @@ def main():
     for doc in registry():
         p = existing(doc["id"])
         if p is None:
-            print(f"[aviso] {doc['id']}: arquivo ausente (rode `make rag-download`)")
+            print(f"[warning] {doc['id']}: file missing (run `make rag-download`)")
             missing.append(doc["id"])
             continue
         urlf = p.with_suffix(".url")
@@ -47,21 +47,21 @@ def main():
         if not ch:
             missing.append(doc["id"])
         kinds = Counter(l.kind for l in lines)
-        print(f"{doc['id']}: {len(lines)} linhas ({dict(kinds)}) -> {len(ch)} chunks "
-              f"({sum(c.revogado for c in ch)} revogados)")
+        print(f"{doc['id']}: {len(lines)} lines ({dict(kinds)}) -> {len(ch)} chunks "
+              f"({sum(c.revogado for c in ch)} repealed)")
         all_chunks += ch
     if missing:
-        print("[aviso] ingestão incompleta; base existente e amostra preservadas: " + ", ".join(missing))
+        print("[warning] incomplete ingestion; existing base and sample preserved: " + ", ".join(missing))
         if not chunks_path().exists():
             sample = data_path("sample", "rag_chunks.jsonl")
             rows = [json.loads(s) for s in sample.read_text(encoding="utf-8").splitlines() if s.strip()]
             if not {d["id"] for d in registry()} <= {c["doc_id"] for c in rows}:
-                raise RuntimeError("amostra normativa incompleta; obtenha os documentos ausentes")
+                raise RuntimeError("incomplete regulation sample; obtain the missing documents")
             _write_atomic(chunks_path(), sample.read_text(encoding="utf-8"))
-            print(f"usando amostra completa: {len(rows)} chunks")
+            print(f"using the complete sample: {len(rows)} chunks")
         return
     _write_atomic(chunks_path(), "".join(json.dumps(c.to_dict(), ensure_ascii=False) + "\n" for c in all_chunks))
-    # A ingestão não altera a amostra versionada; sua atualização exige revisão explícita.
+    # Ingestion never changes the versioned sample; updating it requires an explicit review.
     print(f"{len(all_chunks)} chunks -> {chunks_path()}")
 
 

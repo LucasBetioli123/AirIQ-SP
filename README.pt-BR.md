@@ -13,9 +13,9 @@
 
 [🇺🇸 English](README.md) · **🇧🇷 Português**
 
-**[📊 Abrir o dashboard interativo](https://lucasbetioli123.github.io/airiq-sp/?lang=pt)** · **[🔬 Detalhes técnicos](docs/DETALHES_TECNICOS.md)** · **[📓 Notebooks](notebooks/)**
+**[📊 Abrir o dashboard interativo](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt)** · **[🤖 Pergunte ao agente](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#agent)** · **[🔬 Detalhes técnicos (em inglês)](docs/TECHNICAL_DETAILS.md)** · **[📓 Notebooks](notebooks/)**
 
-<a href="https://lucasbetioli123.github.io/airiq-sp/?lang=pt"><img src="docs/assets/dashboard_pt.png" alt="Prévia do dashboard interativo do AirIQ SP" width="900"></a>
+<a href="https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt"><img src="docs/assets/dashboard_pt.png" alt="Prévia do dashboard interativo do AirIQ SP" width="900"></a>
 
 </div>
 
@@ -129,7 +129,7 @@ pie showData
 
 Árvores de decisão **suavizam os picos**: sozinho, o ponto central detecta 62% dos dias acima de 25 µg/m³, contra 79% do IDW. A solução foi usar a incerteza: o alerta pelo **limite superior do intervalo de 90%**, com regra fixa e sem ajuste no teste, detecta **94%** desses dias. O intervalo carrega a informação de risco que o ponto central perde.
 
-Todos os números estão em [`docs/DETALHES_TECNICOS.md`](docs/DETALHES_TECNICOS.md) e são gerados a partir dos CSVs em `reports/metrics/`.
+Todos os números estão em [`docs/TECHNICAL_DETAILS.md`](docs/TECHNICAL_DETAILS.md) (em inglês) e são gerados a partir dos CSVs em `reports/metrics/`.
 </details>
 
 ### 🗺️ Mapas de estimativa + incerteza
@@ -197,6 +197,8 @@ O GitHub mostra o mapa abaixo como um mapa navegável: clique numa estação par
 
 Um assistente que responde perguntas sobre a legislação de qualidade do ar **citando o artigo exato**, e que sabe consultar o modelo de PM2.5 quando a pergunta envolve um lugar e uma data.
 
+**▶ [Teste no dashboard](https://lucasbetioli123.github.io/AirIQ-SP/?lang=pt#agent):** escolha uma das 36 perguntas da avaliação e veja o replay da execução real gravada: planejamento, busca nas normas, chamada do modelo de PM2.5, resposta, validação e os trechos de lei citados.
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -259,8 +261,8 @@ Conjunto de **36 perguntas escritas à mão** e conferidas contra o texto das no
 **Requisitos:** Python 3.12 ou 3.13, CPU x86-64 (sem GPU), ~16 GB de RAM recomendados. A amostra de dados versionada tem ~12 MB; os modelos GGUF somam ~4,3 GB.
 
 ```bash
-git clone https://github.com/LucasBetioli123/airiq-sp.git
-cd airiq-sp
+git clone https://github.com/LucasBetioli123/AirIQ-SP.git
+cd AirIQ-SP
 make setup      # cria .venv e instala dependências com versões fixas
 make models     # baixa os modelos GGUF (LLM, embeddings, reranker)
 cp .env.example .env

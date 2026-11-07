@@ -1,7 +1,7 @@
-"""Mapa diário de PM2.5 do estado de SP e mapa da incerteza (largura do intervalo de 90%).
+"""Daily PM2.5 map of São Paulo state and uncertainty map (width of the 90% interval).
 
   python -m src.aq.maps --date 2022-10-15 [--horizon 0]
-  python -m src.aq.maps --auto            # um dia típico e o dia mais poluído do teste
+  python -m src.aq.maps --auto            # a typical day and the most polluted day of the test period
 """
 from __future__ import annotations
 
@@ -47,22 +47,22 @@ def make_map(date: str, horizon: int = 0, out: str | None = None):
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.6), constrained_layout=True)
     edges = [0] + [b[1] for b in BANDS[:-1]] + [10000]
     ext = [lons[0], lons[-1], lats[0], lats[-1]]
-    # magnitude contínua (um só matiz) + contornos nos limites das faixas do IQAr
+    # continuous magnitude (single hue) + contours at the IQAr band limits
     im = axes[0].imshow(pm, origin="lower", extent=ext, cmap=ps.SEQ_PM, vmin=0, vmax=max(40, np.nanpercentile(pm, 99)))
     axes[0].contour(LO, LA, np.nan_to_num(pm, nan=-1), levels=[25, 50], colors=[ps.BLUE, "#7d2a8a"], linewidths=1)
     plt.colorbar(im, ax=axes[0], label="PM2.5 (µg/m³)")
     if len(obs):
         axes[0].scatter(obs["lon"], obs["lat"], c=obs["pm25"], cmap=ps.SEQ_PM, vmin=im.norm.vmin, vmax=im.norm.vmax,
-                        edgecolor="k", s=40, label="estações CETESB (medido)")
+                        edgecolor="k", s=40, label="CETESB stations (measured)")
         axes[0].legend(loc="lower left", fontsize=8)
-    tipo = "estimativa" if horizon == 0 else f"previsão D+{horizon} (feita em {date})"
-    axes[0].set_title(f"PM2.5 {tipo} - {target.date()}\n(contornos: 25 e 50 µg/m³, limites Boa/Moderada/Ruim)")
+    kind = "estimate" if horizon == 0 else f"D+{horizon} forecast (issued {date})"
+    axes[0].set_title(f"PM2.5 {kind} - {target.date()}\n(contours: 25 and 50 µg/m³, Good/Moderate/Poor limits)")
     im2 = axes[1].imshow(wid, origin="lower", extent=ext, cmap=ps.SEQ_UNC)
-    plt.colorbar(im2, ax=axes[1], label="largura do IC 90% (µg/m³)")
+    plt.colorbar(im2, ax=axes[1], label="90% interval width (µg/m³)")
     st = obs[["lon", "lat"]].drop_duplicates() if len(obs) else station_obs()[["lon", "lat"]].drop_duplicates()
-    axes[1].scatter(st["lon"], st["lat"], marker="^", c="cyan", edgecolor="k", s=30, label="estações")
+    axes[1].scatter(st["lon"], st["lat"], marker="^", c="cyan", edgecolor="k", s=30, label="stations")
     axes[1].legend(loc="lower left", fontsize=8)
-    axes[1].set_title("Incerteza: largura do intervalo de 90% (CQR)")
+    axes[1].set_title("Uncertainty: width of the 90% interval (CQR)")
     for ax in axes:
         b = sp_boundary()
         for g in getattr(b, "geoms", [b]):
@@ -73,15 +73,15 @@ def make_map(date: str, horizon: int = 0, out: str | None = None):
     out = out or data_path("figures", f"mapa_pm25_{target.date()}_h{horizon}.png")
     fig.savefig(out, dpi=130)
     plt.close(fig)
-    # tabela-resumo do mapa (fração da área por faixa)
+    # map summary (share of the area in each band)
     bands = pd.cut(pm[inside], bins=edges, labels=[b[2] for b in BANDS], include_lowest=True)
     summary = pd.Series(bands).value_counts(normalize=True).round(4).to_dict()
-    print(f"mapa salvo em {out} | área por faixa: {summary} | largura média IC: {np.nanmean(wid):.1f}")
+    print(f"map saved to {out} | area by band: {summary} | mean interval width: {np.nanmean(wid):.1f}")
     return out
 
 
 def auto_days():
-    """Um dia típico (mediana) e o dia mais poluído do período de teste."""
+    """A typical (median) day and the most polluted day of the test period."""
     obs = station_obs()
     t = obs[obs["date"] >= CFG["split"]["test_start"]].groupby("date")["pm25"].mean()
     typical = (t - t.median()).abs().idxmin()

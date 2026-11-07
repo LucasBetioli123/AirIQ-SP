@@ -1,11 +1,11 @@
-"""Parse de texto normativo (HTML do Planalto/DOU ou PDF) em linhas estruturais.
+"""Parse legal text (Planalto/DOU HTML or PDF) into structural lines.
 
-O texto normativo brasileiro tem hierarquia explícita (LC 95/1998, art. 10):
+Brazilian legal text has an explicit hierarchy (Complementary Law 95/1998, art. 10):
   Título > Capítulo > Seção > Subseção > Artigo > Parágrafo (§) > Inciso (I, II...) >
-  Alínea (a, b...) > Item (1, 2...), além de Anexos (muitas vezes tabelas).
-Cada linha é classificada por expressões regulares. No HTML do Planalto, o texto
-riscado (<strike>/<s>/<del>) marca dispositivos revogados ou com redação antiga. A
-linha fica marcada como `revogado` e, por padrão, não é indexada como vigente.
+  Alínea (a, b...) > Item (1, 2...), plus Anexos (annexes, often tables).
+Each line is classified with regular expressions (which match the Portuguese text). In
+Planalto's HTML, struck-through text (<strike>/<s>/<del>) marks repealed provisions or old
+wording; the line is flagged `revogado` (repealed) and, by default, not indexed as in force.
 """
 from __future__ import annotations
 
@@ -23,15 +23,15 @@ RE = {
     "secao": re.compile(r"^SE[ÇC][ÃA]O\s+([IVXLC]+(?:-[A-Z])?)\b", re.I),
     "subsecao": re.compile(r"^SUBSE[ÇC][ÃA]O\s+([IVXLC]+)\b", re.I),
     "anexo": re.compile(r"^ANEXO\s*([IVXLC]+|[0-9]+|[ÚU]NICO)?\b"),
-    # "Art. 9º-A.", "Art. 9 o -A." (HTML do Planalto com <sup>o</sup>). A letra só é sufixo se vier seguida
-    # de ponto/travessão; senão "Art. 1º - Esta Lei" viraria "art. 1º-E"
+    # "Art. 9º-A.", "Art. 9 o -A." (Planalto HTML with <sup>o</sup>). The letter is only a suffix when
+    # followed by a period/dash; otherwise "Art. 1º - Esta Lei" would become "art. 1º-E"
     "art": re.compile(rf"^Art(?:igo)?\.?\s*(\d+)\s?{ORD}(?:\s?-\s?([A-Z])(?=\s*[.\-–—]))?\s*[\.\-–—:]?\s*"),
     "par": re.compile(rf"^(?:§\s*(\d+)\s?{ORD}(?:\s?-\s?([A-Z])(?=\s*[.\-–—]))?|Par[áa]grafo\s+[úu]nico)"
                       rf"\s*[\.\-–—:]?\s*", re.I),
     "inciso": re.compile(r"^([IVXLC]+)(?:\s*-\s*([A-Z]))?\s*[-–—]\s+"),
     "alinea": re.compile(r"^([a-z])\)\s+"),
     "item": re.compile(r"^(\d{1,2})[\.\)]\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇa-z])"),
-    # itens numerados "2 - ESTRATÉGIAS", "2.2.1 - Ficam..." (resoluções antigas sem artigos, ex.: CONAMA 05/1989)
+    # numbered items "2 - ESTRATÉGIAS", "2.2.1 - Ficam..." (old resolutions without articles, e.g. CONAMA 05/1989)
     "num": re.compile(r"^(\d{1,2}(?:\.\d{1,2})*)\s*-\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇa-z])"),
 }
 
@@ -39,23 +39,23 @@ RE = {
 @dataclass
 class Line:
     kind: str            # titulo|capitulo|secao|subsecao|anexo|art|par|inciso|alinea|item|texto
-    label: str           # "art. 4º", "§ 2º", "inciso II", "alínea a"...
+    label: str           # "art. 4º", "§ 2º", "inciso II", "alínea a" (provision labels used in citations)...
     text: str
     revogado: bool = False
     extra: dict = field(default_factory=dict)
 
 
-# PDFs "impressos" do DOU trazem ligaduras (ﬁ), mu grego espaçado ("μ g/m ᶟ") e subscritos
-# (MP₂,₅). NFKC resolveria, mas também troca "º" por "o" e "³" por "3", então a troca é pontual.
+# DOU pages "printed" to PDF carry ligatures (ﬁ), a spaced Greek mu ("μ g/m ᶟ") and subscripts
+# (MP₂,₅). NFKC would fix them but also turns "º" into "o" and "³" into "3", so targeted replacements are used.
 _CHARS = str.maketrans({"ﬁ": "fi", "ﬂ": "fl", "ﬀ": "ff", "ﬃ": "ffi", "ﬄ": "ffl", "ᶟ": "³", "μ": "µ",
                         **{chr(0x2080 + i): str(i) for i in range(10)}})
 
-# cabeçalho/rodapé que o navegador grava ao imprimir a página do DOU em PDF
+# header/footer the browser adds when printing a DOU page to PDF
 _PDF_NOISE = [re.compile(p) for p in (
     r"^\d{1,2}/\d{1,2}/\d{2,4},?\s+\d{1,2}:\d{2}",   # "4/20/23, 9:46 AM RESOLUÇÃO Nº 491..."
-    r"^https?://\S+(\s+\d+/\d+)?$",                  # URL da página + "3/6"
+    r"^https?://\S+(\s+\d+/\d+)?$",                  # page URL + "3/6"
     r"^Este conteúdo não substitui o publicado na versão certificada",
-    r"^RESOLUÇÕES DO CONAMA$",                          # cabeçalho da compilação do CONAMA
+    r"^RESOLUÇÕES DO CONAMA$",                          # header of the CONAMA compilation
     r"^.*RESOLUÇÃO CONAMA nº \d+ de \d{4}$",            # "CONTROLE DA POLUIÇÃO DO AR – PRONAR RESOLUÇÃO CONAMA nº 5 de 1989"
 )]
 
@@ -63,11 +63,11 @@ _PDF_NOISE = [re.compile(p) for p in (
 def _norm(s: str) -> str:
     s = unicodedata.normalize("NFC", s).replace("\xa0", " ").translate(_CHARS)
     s = re.sub(r"µ\s*g\s*/\s*m\s*³", "µg/m³", s)
-    return re.sub(r"\s+", " ", s).strip()  # o HTML do Planalto quebra linha dentro do parágrafo
+    return re.sub(r"\s+", " ", s).strip()  # Planalto HTML breaks lines inside paragraphs
 
 
 def _ord(n: str) -> str:
-    """'1' -> '1º' (até o 9º se usa ordinal; do 10 em diante, cardinal, conforme LC 95/98)."""
+    """'1' -> '1º' (ordinals up to 9º; cardinals from 10 on, per Complementary Law 95/98)."""
     return f"{n}º" if n.isdigit() and int(n) < 10 else n
 
 
@@ -103,8 +103,8 @@ _BLOCK = {"p", "tr", "h1", "h2", "h3", "h4", "li"}
 
 
 def _blocks_in_order(root):
-    """Blocos de texto (p, tr, h*, li) na ordem do documento, sem aninhados (o <p> dentro de <tr> vem
-    com a linha). O texto solto entre blocos sai como string, para não perder dispositivos."""
+    """Text blocks (p, tr, h*, li) in document order, without nesting (a <p> inside a <tr> comes with the
+    row). Loose text between blocks is returned as a string so no provision is lost."""
     from bs4 import NavigableString, Tag
 
     orphan: list[str] = []
@@ -117,7 +117,7 @@ def _blocks_in_order(root):
                 orphan = []
             yield node
         elif isinstance(node, NavigableString) and node.find_parent(list(_BLOCK)) is None:
-            if type(node) is NavigableString and node.strip():  # ignora comentários/doctype
+            if type(node) is NavigableString and node.strip():  # skip comments/doctype
                 orphan.append(str(node))
     if orphan:
         yield " ".join(orphan)
@@ -131,17 +131,17 @@ def _html_paragraphs(path: Path) -> list[tuple[str, bool]]:
             break
         except UnicodeDecodeError:
             continue
-    # HTML do Planalto malformado: "<p ...></font><font>texto</font></p>". O </font> solto fecha o <p>
-    # e o texto do dispositivo (ex.: art. 6º, II da Lei 6.938) cairia fora de qualquer bloco.
+    # malformed Planalto HTML: "<p ...></font><font>text</font></p>". The stray </font> closes the <p>
+    # and the provision's text (e.g. art. 6º, II of Law 6.938) would fall outside every block.
     html = re.sub(r"(<p[^>]*>)\s*</font>", r"\1", html, flags=re.I)
     soup = BeautifulSoup(html, "lxml")
     for t in soup(["script", "style", "head"]):
         t.decompose()
-    # DOU (in.gov.br): o texto do ato fica em div.texto-dou
+    # DOU (in.gov.br): the act's text lives in div.texto-dou
     root = soup.select_one("div.texto-dou") or soup.body or soup
     out = []
     for b in _blocks_in_order(root):
-        if isinstance(b, str):  # texto fora de qualquer bloco (HTML quebrado)
+        if isinstance(b, str):  # text outside any block (broken HTML)
             if text := _norm(b):
                 out.append((text, False))
             continue
@@ -166,13 +166,13 @@ def _pdf_paragraphs(path: Path) -> list[tuple[str, bool]]:
     lines = []
     for page in PdfReader(str(path)).pages:
         lines += [_norm(l) for l in (page.extract_text() or "").splitlines()]
-    # junta linhas quebradas pelo layout: uma linha que não começa um dispositivo
-    # continua a anterior (a menos que a anterior termine com ponto final e esta comece com maiúscula)
-    # Nos anexos (tabelas), cada linha do PDF é uma linha da tabela, então lá nada é juntado.
+    # join lines broken by the layout: a line that does not start a provision continues the previous
+    # one (unless the previous one ends with a period and this one starts with a capital letter).
+    # In annexes (tables) each PDF line is a table row, so nothing is joined there.
     paras: list[str] = []
     in_annex = False
     for l in lines:
-        if not l or re.fullmatch(r"\d+", l) or any(p.match(l) for p in _PDF_NOISE):  # nº de página, cabeçalho
+        if not l or re.fullmatch(r"\d+", l) or any(p.match(l) for p in _PDF_NOISE):  # page number, header
             continue
         kind, _ = classify(l)
         in_annex = in_annex or kind == "anexo"
@@ -183,10 +183,10 @@ def _pdf_paragraphs(path: Path) -> list[tuple[str, bool]]:
     return [(p, False) for p in _rewrite_tables(paras)]
 
 
-# ----------------------------------------------------------------------------- tabelas dos anexos
-# O PDF perde a grade das tabelas: "Material Particulado - MP2,5 24 horas 60 50 37 25 15 -". Um LLM pequeno
-# erra a coluna com facilidade, então cada linha é reescrita com o nome da coluna ao lado do valor
-# ("PI-1: 60 µg/m³ | PI-2: 50 µg/m³ ..."). As linhas viram "a | b | c" e o chunker as trata como tabela.
+# ----------------------------------------------------------------------------- annex tables
+# PDFs lose the table grid: "Material Particulado - MP2,5 24 horas 60 50 37 25 15 -". A small LLM easily
+# picks the wrong column, so every row is rewritten with the column name next to the value
+# ("PI-1: 60 µg/m³ | PI-2: 50 µg/m³ ..."). Rows become "a | b | c" and the chunker treats them as a table.
 _PERIOD = re.compile(r"^(?P<nome>.*?)\s*(?P<per>24 horas|Anual|1 hora|8 horas)\s*(?:[¹²³⁴⁵]|[1-5](?=\s))?\s+"
                      r"(?P<vals>(?:[\d.,]+|-)(?:\s+(?:[\d.,]+|-))*)\s*$")
 _UNITS_ONLY = re.compile(r"^(?:\s*(?:µg/m³|µ/m³|ppm))+\s*$")
@@ -196,7 +196,7 @@ _IQAR_UNIT = {"CO": "ppm"}
 
 
 def _standards_table(rows: list[str]) -> list[str] | None:
-    """Tabela de padrões (Anexo I das Res. 491/2018 e 506/2024): colunas PI-1..PF (+ ppm)."""
+    """Standards table (Annex I of Res. 491/2018 and 506/2024): columns PI-1..PF (+ ppm)."""
     head = next((i for i, r in enumerate(rows) if re.search(r"\bPI-1\b", r)), None)
     if head is None:
         return None
@@ -207,16 +207,16 @@ def _standards_table(rows: list[str]) -> list[str] | None:
             continue
         m = _PERIOD.match(r)
         if not m:
-            if re.match(r"^\d\s*-\s", r):           # notas de rodapé "1 - média aritmética anual"
+            if re.match(r"^\d\s*-\s", r):           # footnotes "1 - média aritmética anual"
                 out.append(f"Nota {r}")
-            else:                                   # nome de poluente quebrado em duas linhas
+            else:                                   # pollutant name split over two lines
                 pending = (pending + " " + r).strip()
             continue
         if m["nome"] or pending:
             name = re.sub(r"(?<=Pb)[5⁵]$", "", (pending + " " + m["nome"]).strip())
             pending = ""
         vals = m["vals"].split()
-        vals = ["-"] * (len(cols) - len(vals)) + vals  # células vazias somem no PDF; alinhar à direita
+        vals = ["-"] * (len(cols) - len(vals)) + vals  # empty cells vanish in the PDF; align to the right
         cells = [f"{c}: {v}{'' if c.endswith('(ppm)') else ' µg/m³'}" if v != "-" else f"{c}: -"
                  for c, v in zip(cols, vals)]
         cells = [c for c in cells if not c.startswith("PF (ppm): -")]
@@ -225,8 +225,8 @@ def _standards_table(rows: list[str]) -> list[str] | None:
 
 
 def _levels_table(rows: list[str]) -> list[str] | None:
-    """Níveis de atenção/alerta/emergência (Anexo III da Res. 491/2018). O cabeçalho sai embaralhado
-    do PDF; a ordem das colunas é a da tabela publicada."""
+    """Attention/alert/emergency levels (Annex III of Res. 491/2018). The header comes out scrambled from
+    the PDF; the column order is that of the published table."""
     data = [r for r in rows if re.match(r"^(Atenção|Alerta|Emergência)\s", r)]
     if not data:
         return None
@@ -241,7 +241,7 @@ def _levels_table(rows: list[str]) -> list[str] | None:
 
 
 def _iqar_table(rows: list[str]) -> list[str] | None:
-    """Faixas do IQAr (Anexo IV da 491/2018, Anexo II da 506/2024): 'N1 - Boa 0 - 40 0 - 50 ...'."""
+    """IQAr bands (Annex IV of 491/2018, Annex II of 506/2024): 'N1 - Boa 0 - 40 0 - 50 ...'."""
     head = next((r for r in rows if r.startswith("Qualidade Índice")), None)
     if head is None:
         return None
@@ -277,7 +277,7 @@ def _rewrite_tables(paras: list[str]) -> list[str]:
         body = paras[i + 1:j]
         for fn in (_standards_table, _levels_table, _iqar_table):
             if (new := fn(body)) is not None:
-                # título do anexo (linhas antes da tabela) + tabela reescrita
+                # annex title (lines before the table) + rewritten table
                 title = [b for b in body[:2] if b.isupper() and "|" not in b]
                 body = title + new
                 break

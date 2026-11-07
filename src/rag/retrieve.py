@@ -1,15 +1,16 @@
-"""Recuperação de trechos normativos: BM25, vetorial, híbrida (RRF) e híbrida + reranker.
+"""Retrieval of regulation passages: BM25, dense, hybrid (RRF) and hybrid + reranker.
 
-Por que híbrida: o texto normativo mistura vocabulário exato ("MP2,5", "PI-1",
-"art. 6º", números de resolução), em que o BM25 é forte, com paráfrases ("poluição
-por fumaça", "quem fiscaliza"), em que o vetorial é forte. O RRF (Reciprocal Rank
-Fusion) combina os rankings sem precisar calibrar escalas de escore. O reranker
-(cross-encoder) reordena só os ~20 primeiros, o que custa pouco em CPU. A escolha
-final sai do benchmark (eval/bench_retrieval.py).
+Why hybrid: legal text mixes exact vocabulary ("MP2,5", "PI-1", "art. 6º", resolution
+numbers), where BM25 shines, with paraphrases ("poluição por fumaça" = smoke pollution,
+"quem fiscaliza" = who enforces), where dense retrieval shines. RRF (Reciprocal Rank
+Fusion) combines the rankings without calibrating score scales. The reranker
+(cross-encoder) only reorders the top ~20, which is cheap on CPU. The final choice comes
+from the benchmark (eval/bench_retrieval.py).
 
-Filtro temporal: por padrão, recupera só o que está vigente na data de referência
-(hoje ou a data da pergunta). Uma norma revogada só entra se a pergunta a citar
-explicitamente (ex.: "Resolução CONAMA 03/1990") ou se a data pedida cair na sua vigência.
+Temporal filter: by default only what is in force on the reference date (today or the
+question's date) is retrieved. A repealed regulation only comes in if the question cites
+it explicitly (e.g. "Resolução CONAMA 03/1990") or if the requested date falls within its
+validity. Portuguese stopwords and patterns below match the Portuguese legal text.
 """
 from __future__ import annotations
 
@@ -71,10 +72,10 @@ def index_text(c: dict) -> str:
     return f"{head}\n{c['text']}"
 
 
-# menções explícitas a uma norma: "491/2018", "nº 491", "03/1990", "6.938", e também sem o ano
-# ("CONAMA 491", "Resolução 506", "Lei 9605"), que é como a pergunta costuma vir
+# explicit mentions of a regulation: "491/2018", "nº 491", "03/1990", "6.938", and also without
+# the year ("CONAMA 491", "Resolução 506", "Lei 9605"), which is how questions usually phrase it
 def mentioned_docs(query: str, chunks: list[dict]) -> set[str]:
-    q = _strip(query.lower())  # sem acento; "nº" vira "no"
+    q = _strip(query.lower())  # accents stripped; "nº" becomes "no"
     out = set()
     for did in {c["doc_id"] for c in chunks}:
         m = re.match(r"([a-z]+)_(\d+)_(\d{4})", did)
@@ -93,9 +94,9 @@ def mentioned_docs(query: str, chunks: list[dict]) -> set[str]:
 
 
 def diversify(hits: list, max_per_group: int = 2) -> list:
-    """No máximo `max_per_group` trechos do mesmo dispositivo (mesma tabela ou partes do mesmo artigo)
-    no topo; o excedente desce para o fim. Sem isso, as 15 linhas do Anexo I (que repetem título e
-    cabeçalho) tomam o top-k inteiro e o segundo trecho de uma pergunta composta fica de fora."""
+    """At most `max_per_group` passages from the same provision (same table or parts of the same article)
+    at the top; the rest move to the end. Without this, the 15 rows of Annex I (which repeat the title
+    and header) take the whole top-k and the second passage of a multi-part question is left out."""
     head, tail, count = [], [], {}
     for h in hits:
         g = (h.chunk["doc_id"], h.chunk["label"].split(" (")[0])
@@ -117,7 +118,7 @@ class Hit:
     rank_bm25: int | None = None
     rank_dense: int | None = None
     rerank: float | None = None
-    cos: float | None = None       # similaridade de cosseno (vetorial), usada no limiar de recusa
+    cos: float | None = None       # cosine similarity (dense), used by the refusal threshold
 
 
 class Retriever:
@@ -128,7 +129,7 @@ class Retriever:
         self.bm25 = BM25Okapi([tokenize(t) for t in self.texts], k1=1.2, b=0.6)
         self.rrf_k = rrf_k
         self.rerank_top = rerank_top or int(os.environ.get("RAG_RERANK_TOP", "8"))
-        self.max_per_group = int(os.environ.get("RAG_MAX_PER_GROUP", "2"))  # 0 desliga a diversificação
+        self.max_per_group = int(os.environ.get("RAG_MAX_PER_GROUP", "2"))  # 0 disables diversification
         self.emb = None
         if mode in ("dense", "hybrid", "hybrid_rerank", "dense_rerank"):
             from src.rag.embed import get_embedder
@@ -138,7 +139,7 @@ class Retriever:
     def _allowed(self, query: str, date) -> np.ndarray:
         d = pd.Timestamp(date) if date is not None else pd.Timestamp.today().normalize()
         explicit = mentioned_docs(query, self.chunks)
-        # vigente na data, OU norma citada explicitamente (mesmo que já revogada como um todo)
+        # in force on the date, OR a regulation cited explicitly (even if repealed as a whole)
         return np.array([vigente(c, d) or (c["doc_id"] in explicit and not c.get("revogado"))
                          for c in self.chunks])
 
@@ -175,9 +176,9 @@ class Retriever:
 
 
 def rerank(query: str, hits: list[Hit], top: int) -> list[Hit]:
-    """Reordena os `top` primeiros com o cross-encoder (o resto mantém a ordem original). Em CPU o
-    reranker custa segundos por trecho, então o agente chama isto UMA vez, sobre a união dos
-    candidatos de todas as buscas, e não uma vez por busca."""
+    """Reorder the first `top` candidates with the cross-encoder (the rest keep their order). On CPU
+    the reranker costs seconds per passage, so the agent calls this ONCE, over the union of candidates
+    from every search, rather than once per search."""
     from src.rag.embed import get_reranker
 
     head = hits[:top]

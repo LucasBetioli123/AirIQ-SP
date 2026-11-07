@@ -1,17 +1,16 @@
-"""Variáveis estáticas de contexto de cada local, numa grade fina de 0.01° (~1 km).
+"""Static context features for each location, on a fine 0.01° (~1 km) grid.
 
-- Uso do solo: ESA WorldCover 2021 v200 (10 m, COG no AWS Open Data). Calculamos a
-  fração de área construída (classe 50), de árvores (10), de cultivo (40) e de
-  pastagem/campo (30). O MapBiomas (sugerido) também está acessível em COG no GCS, mas
-  é um único GeoTIFF nacional de ~1 GB por ano, e para frações de uso a 1 km as duas
-  fontes são equivalentes. O WorldCover vem em blocos de 3°, o que deixa a leitura
-  parcial mais simples.
-- Relevo: Copernicus DEM GLO-30 (COG, blocos de 1°).
+- Land use: ESA WorldCover 2021 v200 (10 m, COG on AWS Open Data). We compute the
+  fraction of built-up area (class 50), trees (10), cropland (40) and grassland (30).
+  MapBiomas is also available as COG on GCS, but it is a single ~1 GB national GeoTIFF
+  per year, and for 1 km land-use fractions both sources are equivalent. WorldCover
+  comes in 3° tiles, which makes partial reads simpler.
+- Terrain: Copernicus DEM GLO-30 (COG, 1° tiles).
 
-Lemos os COGs em resolução reduzida (os overviews internos) para não baixar dezenas
-de GB. O sorteio de pixels a ~80 m é estatisticamente suficiente para frações a 1 km.
+COGs are read at reduced resolution (their internal overviews) to avoid downloading
+tens of GB. Sampling pixels at ~80 m is statistically enough for 1 km fractions.
 
-Saída: data/interim/static_0p01.nc com as variáveis built, tree, crop, grass e elev.
+Output: data/interim/static_0p01.nc with variables built, tree, crop, grass and elev.
 """
 from __future__ import annotations
 
@@ -49,13 +48,13 @@ def _wc_tile_name(lat0: int, lon0: int) -> str:
 def _dem_tile_name(lat0: int, lon0: int) -> str:
     ns = "S" if lat0 < 0 else "N"
     ew = "W" if lon0 < 0 else "E"
-    # o bloco é nomeado pelo canto inferior esquerdo; S24 cobre -24..-23
+    # tiles are named by their lower-left corner; S24 covers -24..-23
     n = f"Copernicus_DSM_COG_10_{ns}{abs(lat0):02d}_00_{ew}{abs(lon0):03d}_00_DEM"
     return f"{n}/{n}.tif"
 
 
 def _read_block(url: str, bounds, sub: int = 8):
-    """Lê a parte do COG que cai no bbox, reduzida por `sub` (usa os overviews)."""
+    """Read the part of the COG inside the bbox, downsampled by `sub` (uses the overviews)."""
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
         with rasterio.open("/vsicurl/" + url) as src:
             b = (max(bounds[0], src.bounds.left), max(bounds[1], src.bounds.bottom),
@@ -95,7 +94,7 @@ def worldcover(lats, lons):
         try:
             return _read_block(base + _wc_tile_name(*t), BBOX)
         except Exception:
-            return None  # blocos só de oceano não existem
+            return None  # ocean-only tiles do not exist
 
     with ThreadPoolExecutor(6) as ex:
         res = [r for r in tqdm(ex.map(rd, tiles),
@@ -111,7 +110,7 @@ def worldcover(lats, lons):
 
 def dem(lats, lons):
     base = CFG["static"]["dem_url"]
-    # margem de 1 bloco: os limites efetivos vêm do próprio arquivo
+    # 1-tile margin: the effective bounds come from the file itself
     tiles = [(la, lo) for la in range(math.floor(BBOX[1]) - 1, math.ceil(BBOX[3]) + 1)
              for lo in range(math.floor(BBOX[0]) - 1, math.ceil(BBOX[2]) + 1)]
 
@@ -119,7 +118,7 @@ def dem(lats, lons):
         try:
             return _read_block(base + _dem_tile_name(*t), BBOX, sub=4)
         except Exception:
-            return None  # blocos só de oceano não existem
+            return None  # ocean-only tiles do not exist
 
     with ThreadPoolExecutor(8) as ex:
         res = [r for r in tqdm(ex.map(rd, tiles), total=len(tiles), desc="Copernicus DEM") if r is not None]

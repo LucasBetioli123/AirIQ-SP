@@ -1,4 +1,4 @@
-"""Regressões da revisão: causalidade, configuração e preservação da base normativa."""
+"""Regression tests: causality, configuration and preservation of the regulation base."""
 import json
 import os
 import subprocess

@@ -52,7 +52,7 @@ def test_chunks_preserve_structure(tmp_path: Path):
 
 
 def test_classify_suffix_and_planalto_ordinal():
-    # "Art. 1º - Esta Lei" não é art. 1º-E; "Art. 9 o -A." (HTML do Planalto) é art. 9º-A
+    # "Art. 1º - Esta Lei" is not art. 1º-E; "Art. 9 o -A." (Planalto HTML) is art. 9º-A
     assert classify("Art. 1º - Esta Lei estabelece")[1] == "art. 1º"
     assert classify("Art. 5º - A política")[1] == "art. 5º"
     assert classify("Art. 9 o -A. O proprietário")[1] == "art. 9º-A"
@@ -74,7 +74,7 @@ def test_rewrite_standards_table():
     assert "Material Particulado - MP2,5 | 24 horas | PI-1: 60 µg/m³ | PI-2: 50 µg/m³ | PI-3: 37 µg/m³ | " \
            "PI-4: 25 µg/m³ | PF: 15 µg/m³" in out
     assert any(r.startswith("Material Particulado - MP2,5 | Anual |") and "PF: 5 µg/m³" in r for r in out)
-    # célula vazia some no PDF: a linha do CO é alinhada à direita (9 ppm cai na coluna PF em ppm)
+    # an empty cell vanishes in the PDF: the CO row is right-aligned (9 ppm lands in the PF ppm column)
     assert any(r.startswith("Monóxido de Carbono - CO | 8 horas") and r.endswith("PF (ppm): 9") for r in out)
     assert "Nota 1 - média aritmética anual" in out
 

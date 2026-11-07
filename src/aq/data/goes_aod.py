@@ -1,17 +1,16 @@
-"""AOD (profundidade óptica de aerossóis, 550 nm) do GOES-16 ABI L2 AODF.
+"""AOD (aerosol optical depth, 550 nm) from GOES-16 ABI L2 AODF.
 
-Troca em relação ao sugerido (MODIS MAIAC MCD19A2): o MAIAC exige conta no
-Earthdata/Earth Engine, e esses hosts não estão acessíveis neste ambiente. O GOES-16
-é geoestacionário sobre a América do Sul e publica no AWS Open Data (anônimo) uma
-retrieval de AOD a cada 10 min em 2 km. Usar uma varredura por hora das 09h às 16h
-locais reduz bastante as falhas por nuvem: basta UMA hora de céu limpo para o dia
-ter AOD, enquanto o MODIS tem 1-2 passagens por dia.
+Why not MODIS MAIAC (MCD19A2): MAIAC requires an Earthdata/Earth Engine account.
+GOES-16 is geostationary over South America and publishes an AOD retrieval every
+10 min at 2 km on AWS Open Data (anonymous). Taking one scan per hour from 09 to 16 h
+local time greatly reduces cloud gaps: ONE clear-sky hour is enough for the day to
+have AOD, while MODIS has 1-2 overpasses per day.
 
-Para cada dia (local) e célula da grade de 0.05°, guardamos:
-  aod_mean   média das retrievals válidas (DQF <= aod_dqf_max) de todas as varreduras
-  aod_max    máximo entre as médias horárias da célula
-  aod_nscan  número de varreduras com pelo menos 1 pixel válido na célula
-Saída: data/raw/goes_aod/aod_<aaaa-mm-dd>.npz e o cubo data/interim/aod_daily.nc
+For each (local) day and 0.05° grid cell we keep:
+  aod_mean   mean of valid retrievals (DQF <= aod_dqf_max) over all scans
+  aod_max    maximum of the cell's hourly means
+  aod_nscan  number of scans with at least 1 valid pixel in the cell
+Output: data/raw/goes_aod/aod_<yyyy-mm-dd>.npz and the cube data/interim/aod_daily.nc
 """
 from __future__ import annotations
 
@@ -48,7 +47,7 @@ def process_day(date: pd.Timestamp) -> str:
         return "cached"
     keys = []
     for h in CFG["goes"]["aod_hours_utc"]:
-        t = date + pd.Timedelta(hours=h)  # date é meia-noite local ~ 03 UTC; horas UTC no mesmo dia
+        t = date + pd.Timedelta(hours=h)  # date is local midnight ~ 03 UTC; UTC hours on the same day
         try:
             ks = list_hour(PRODUCT, t.year, t.day_of_year, h)
         except Exception:
@@ -104,12 +103,12 @@ def assemble(dates) -> xr.Dataset:
 
 def main(start=None, end=None, workers: int = 12):
     dates = pd.date_range(start or CFG["period"]["start"], end or CFG["period"]["end"], freq="D")
-    window_for_bbox(PRODUCT, BBOX)  # aquece o cache da geometria antes das threads
+    window_for_bbox(PRODUCT, BBOX)  # warm the geometry cache before starting threads
     with ProcessPoolExecutor(workers) as ex:  # processos: o h5py serializa threads (lock global)
         list(tqdm(ex.map(process_day, dates, chunksize=1), total=len(dates), desc="GOES AOD"))
     ds = assemble(dates)
     cov = np.isfinite(ds["aod_mean"]).mean().item()
-    print(f"AOD diário: {ds.sizes['time']} dias, cobertura média de pixels {cov:.1%}")
+    print(f"Daily AOD: {ds.sizes['time']} days, mean pixel coverage {cov:.1%}")
 
 
 if __name__ == "__main__":

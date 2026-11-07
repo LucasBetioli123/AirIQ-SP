@@ -1,22 +1,25 @@
-"""Treino do modelo escolhido no benchmark, com intervalo de confiança e previsão D+1.
+"""Train the model chosen in the benchmark, with a confidence interval and a D+1 forecast.
 
-Modelo escolhido (reports/metrics/benchmark_estimativa.csv): LightGBM regularizado, com
-alvo relativo ao IDW do dia, log1p(PM) - log1p(IDW).
+Chosen model (reports/metrics/benchmark_estimativa.csv): regularized LightGBM with a
+target relative to the day's IDW, log1p(PM) - log1p(IDW).
 
-Os folds servem SÓ para medir métricas fora da amostra. Os modelos de produção (mapa,
-CLI, API, agente) são treinados com TODOS os dados: todas as estações e todo o período.
+The folds are ONLY used to measure out-of-sample metrics. The production models (map,
+CLI, API, agent) are trained on ALL data: every station and the whole period.
 
-1) INTERVALOS na validação espaço-temporal (cortes T1/T2 x folds de estação), comparando:
-   a) quantis do LightGBM (5%/95%) sem calibração
-   b) CQR: os mesmos quantis conformalizados. Os escores de calibração vêm de
-      cross-fitting por grupos de estação no período de calibração (o modelo interno não
-      viu a estação), o que imita o erro num local sem monitor
-   c) conformal do resíduo absoluto em torno da previsão pontual (mesmo cross-fitting)
-2) PREVISÃO D+1, comparada com a persistência (amanhã = hoje):
-   A) local COM estação: o modelo conhece o PM2.5 de hoje da própria estação (offset = PM de hoje)
-   B) local SEM estação: estações de teste fora do treino; "persistência" = IDW de hoje
-3) MODELOS FINAIS com todos os dados. A calibração do CQR de produção usa previsões
-   fora da amostra por grupo de estação sobre o período inteiro.
+1) INTERVALS under spatio-temporal validation (T1/T2 splits x station folds), comparing:
+   a) uncalibrated LightGBM quantiles (5%/95%)
+   b) CQR: the same quantiles, conformalized. Calibration scores come from cross-fitting
+      over station groups in the calibration period (the inner model never saw the
+      station), which mimics the error at a site without a monitor
+   c) absolute-residual conformal around the point prediction (same cross-fitting)
+2) D+1 FORECAST, compared with persistence (tomorrow = today):
+   A) site WITH a station: the model knows the station's PM2.5 today (offset = today's PM)
+   B) site WITHOUT a station: test stations held out of training; "persistence" = today's IDW
+3) FINAL MODELS on all data. Production CQR calibration uses out-of-sample predictions
+   per station group over the whole period.
+
+Method and scenario labels written to the CSVs stay in Portuguese (they are data keys used
+by the reports and the dashboard).
 """
 from __future__ import annotations
 
@@ -48,12 +51,12 @@ def quantile_model(offset_col: str = "idw"):
     return QuantileTrio(ALPHA, offset_col=offset_col, base=POINT_MODEL)
 
 
-# ----------------------------------------------------------------------------- calibração
+# ----------------------------------------------------------------------------- calibration
 def crossfit_scores(pool: pd.DataFrame, feats: list[str], fit_mask=None, pred_mask=None, k_inner: int = 4,
                     target: str = "pm25", lag_col: str = "pm25", offset_col: str = "idw"):
-    """Previsões 'fora da estação': para cada grupo de estações, treina sem ele (linhas
-    `fit_mask`) e prevê nele (linhas `pred_mask`). `lag_col` é a medição usada no IDW
-    (na previsão D+1 é a de HOJE, nunca o alvo). Devolve (y, lo_log, hi_log, yhat)."""
+    """Out-of-station predictions: for each station group, train without it (rows `fit_mask`)
+    and predict on it (rows `pred_mask`). `lag_col` is the measurement used in the IDW (for
+    the D+1 forecast it is TODAY's, never the target). Returns (y, lo_log, hi_log, yhat)."""
     fit_mask = pd.Series(True, index=pool.index) if fit_mask is None else fit_mask
     pred_mask = pd.Series(True, index=pool.index) if pred_mask is None else pred_mask
     inner = station_folds(pool["location_id"].values, k_inner)
@@ -133,10 +136,10 @@ def evaluate_intervals(df: pd.DataFrame) -> pd.DataFrame:
     return tab
 
 
-# ----------------------------------------------------------------------------- 2) previsão D+1
+# ----------------------------------------------------------------------------- 2) D+1 forecast
 def forecast_eval(fc: pd.DataFrame) -> pd.DataFrame:
     fc = fc.rename(columns={"pm25": "pm25_today"}).sort_values(["date", "location_id"]).reset_index(drop=True)
-    refs_all = fc.rename(columns={"pm25_today": "pm25"})  # medições de HOJE (D) para o lag
+    refs_all = fc.rename(columns={"pm25_today": "pm25"})  # TODAY's (D) measurements for the lag
     folds = station_folds(fc["location_id"].values)
     fc["fold"] = fc["location_id"].map(folds)
     lag_all = with_lag(fc, refs_all)
@@ -160,12 +163,12 @@ def forecast_eval(fc: pd.DataFrame) -> pd.DataFrame:
         results.append(r)
 
     for tf in TEMPORAL_FOLDS:
-        # O alvo D+1, inclusive nos limites de treino/calibração, define o split.
+        # The D+1 target date defines the split, including at the train/calibration boundaries.
         per = period_masks(fc["date"] + pd.Timedelta(days=1), tf)
-        # A) local com estação: split só temporal (todas as estações), offset = PM2.5 de hoje
+        # A) site with a station: temporal split only (all stations), offset = today's PM2.5
         tr, ca, te = (lag_all[per[p]] for p in ("train", "calib", "test"))
         evaluate(tr, ca, te, FC_FEATURES_MON, "pm25_today", "A) local com estação", tf["name"], -1)
-        # B) local sem estação: folds de estação; "persistência" = IDW de hoje
+        # B) site without a station: station folds; "persistence" = today's IDW
         for k in sorted(fc["fold"].unique()):
             pool = refs_all[fc["fold"] != k]
             trk = with_lag(fc[(fc["fold"] != k) & per["train"]], pool)
@@ -175,7 +178,7 @@ def forecast_eval(fc: pd.DataFrame) -> pd.DataFrame:
                                              target="pm25_next", lag_col="pm25_today")
             evaluate(trk, None, tek, FC_FEATURES_UNMON, "idw", "B) local sem estação", tf["name"], k,
                      (yc, loc, hic))
-            print(f"D+1 {tf['name']} fold {k}: ponto e intervalo avaliados", flush=True)
+            print(f"D+1 {tf['name']} fold {k}: point and interval evaluated", flush=True)
     oof = pd.concat(results, ignore_index=True)
     oof.to_parquet(data_path("processed", "oof_previsao_d1.parquet"), index=False)
     rows = []
@@ -201,7 +204,7 @@ def forecast_eval(fc: pd.DataFrame) -> pd.DataFrame:
 
 # ----------------------------------------------------------------------------- 3) modelos finais
 def fit_final(df: pd.DataFrame, fc: pd.DataFrame):
-    """Produção: TODOS os dados (todas as estações, todo o período)."""
+    """Production: ALL data (every station, the whole period)."""
     d = df.reset_index(drop=True)
     lagd = with_lag(d, d)
     point = point_model().fit(lagd[EST_FEATURES], lagd["pm25"].values)
@@ -234,7 +237,7 @@ def fit_final(df: pd.DataFrame, fc: pd.DataFrame):
             "alpha": ALPHA, "cqr_q_estimativa": cqr.q, "cqr_q_d1": cqr_fc.q,
             "n_treino": int(len(d)), "estacoes": int(d["location_id"].nunique())}
     (mdir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
-    print("modelos finais salvos:", meta)
+    print("final models saved:", meta)
 
 
 def main(fit_only=False):
@@ -243,7 +246,7 @@ def main(fit_only=False):
     fc = pd.read_parquet(data_path("processed", "station_days_fc.parquet"))
     for table in (df, fc):
         if "feature_schema" not in table or not table["feature_schema"].eq(FEATURE_SCHEMA).all():
-            raise ValueError("base antiga: rode `make sample` ou `make data` antes do treino")
+            raise ValueError("outdated tables: run `make sample` or `make data` before training")
     if not fit_only:
         evaluate_intervals(df)
         forecast_eval(fc)
@@ -252,5 +255,5 @@ def main(fit_only=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fit-only", action="store_true", help="treino e calibração de produção; não refaz métricas de teste")
+    parser.add_argument("--fit-only", action="store_true", help="production training and calibration only; does not recompute test metrics")
     main(parser.parse_args().fit_only)

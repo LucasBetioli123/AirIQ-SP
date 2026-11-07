@@ -1,12 +1,12 @@
-"""Monta as bases de treino a partir dos dados brutos já processados em data/interim.
+"""Build the training tables from the raw data already processed into data/interim.
 
-Saídas (data/processed):
-  station_days.parquet     estimativa do mesmo dia: 1 linha por (estação, dia), alvo pm25
-  station_days_fc.parquet  previsão D+1: observações até D + calendário de D+1, alvo pm25_next
+Outputs (data/processed):
+  station_days.parquet     same-day estimate: 1 row per (station, day), target pm25
+  station_days_fc.parquet  next-day forecast: observations up to D + calendar of D+1, target pm25_next
 
-  python -m src.aq.build_dataset                # a partir de data/interim (após `make data`)
-  python -m src.aq.build_dataset --make-sample  # gera a amostra versionada em data/sample
-  python -m src.aq.build_dataset --from-sample  # usa a amostra (roda tudo em poucos minutos)
+  python -m src.aq.build_dataset                # from data/interim (after `make data`)
+  python -m src.aq.build_dataset --make-sample  # write the versioned sample to data/sample
+  python -m src.aq.build_dataset --from-sample  # use the sample (everything runs in minutes)
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def build(sample: bool = False):
     est["feature_schema"] = FEATURE_SCHEMA
     est.to_parquet(data_path("processed", "station_days.parquet"), index=False)
 
-    # previsão: para cada (estação, D) com medição em D+1
+    # forecast: for each (station, D) with a measurement on D+1
     nxt = pm[["location_id", "date", "pm25"]].copy()
     nxt["date"] = nxt["date"] - pd.Timedelta(days=1)
     fc = pm.merge(nxt.rename(columns={"pm25": "pm25_next"}), on=["location_id", "date"], how="inner")
@@ -46,21 +46,21 @@ def build(sample: bool = False):
                      ffc.reset_index(drop=True)], axis=1)
     fcd["feature_schema"] = FEATURE_SCHEMA
     fcd.to_parquet(data_path("processed", "station_days_fc.parquet"), index=False)
-    print(f"estimativa: {len(est)} linhas x {est.shape[1]} col | previsão D+1: {len(fcd)} linhas")
-    print(f"AOD observado na célula: {np.isfinite(est['aod']).mean():.1%} | após preenchimento: "
+    print(f"estimate: {len(est)} rows x {est.shape[1]} cols | D+1 forecast: {len(fcd)} rows")
+    print(f"AOD observed in the cell: {np.isfinite(est['aod']).mean():.1%} | after gap-filling: "
           f"{np.isfinite(est['aod_filled']).mean():.1%}")
     print(est["aod_fill_level"].value_counts(normalize=True).sort_index().round(3).to_dict())
     return est, fcd
 
 
 def make_sample():
-    """Amostra versionada (poucos MB) que roda TODO o pipeline de modelagem em minutos.
+    """Versioned sample (a few MB) that runs the WHOLE modeling pipeline in minutes.
 
-    - bases de treino já com as variáveis (estações x dias do período inteiro):
-      benchmark, treino, intervalos, D+1, SHAP e episódios reproduzem os números do relatório
-    - cubos de satélite/meteorologia completos SÓ para algumas janelas de datas: mapas,
-      CLI, API e agente funcionam nessas datas (lista em data/sample/README.md)
-    O caminho completo (download -> base) é `make data`."""
+    - training tables with all features (stations x days over the full period):
+      benchmark, training, intervals, D+1, SHAP and episodes reproduce the published numbers
+    - full satellite/weather cubes ONLY for a few date windows: maps, CLI, API and agent
+      work on those dates (listed in data/sample/README.md)
+    The full path (download -> tables) is `make data`."""
     src, dst, proc = data_path("interim"), data_path("sample"), data_path("processed")
     for f in ("station_days.parquet", "station_days_fc.parquet"):
         pd.read_parquet(proc / f).to_parquet(dst / f, index=False, compression="zstd")
@@ -81,17 +81,17 @@ def make_sample():
     f["date"] = pd.to_datetime(f["date"])
     f[f["date"].isin(days)].to_parquet(dst / "fires_daily.parquet", index=False, compression="zstd")
     total = sum(p.stat().st_size for p in dst.iterdir()) / 1e6
-    print(f"amostra gravada em {dst} ({total:.1f} MB)")
+    print(f"sample written to {dst} ({total:.1f} MB)")
 
 
 def from_sample():
-    """Copia as bases de treino da amostra para data/processed (sem baixar nada)."""
+    """Copy the sample's training tables to data/processed (no downloads)."""
     for f in ("station_days.parquet", "station_days_fc.parquet"):
         df = pd.read_parquet(data_path("sample", f), columns=["feature_schema"])
         if not df["feature_schema"].eq(FEATURE_SCHEMA).all():
-            raise ValueError("amostra incompatível com as variáveis atuais")
+            raise ValueError("sample is incompatible with the current feature schema")
         shutil.copy(data_path("sample", f), data_path("processed", f))
-    print("bases de treino copiadas da amostra para data/processed")
+    print("training tables copied from the sample to data/processed")
 
 
 if __name__ == "__main__":

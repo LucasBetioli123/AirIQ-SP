@@ -69,6 +69,43 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
 .lang button { font: inherit; font-size: 13px; padding: 5px 10px; border: 0; background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--s1); color: #fff; }
 .tag { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--s1); margin-bottom: 6px; }
+.agent { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+.qpanel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-width: 0; }
+.qpanel input { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); }
+.qlist { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 520px; overflow-y: auto; }
+.qbtn { text-align: left; font: inherit; font-size: 13px; line-height: 1.4; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); cursor: pointer; }
+.qbtn:hover, .qbtn:focus-visible { border-color: var(--s1); outline: none; }
+.qbtn small { display: block; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.linkbtn { font: inherit; font-size: 13px; background: none; border: 0; color: var(--s1); cursor: pointer; padding: 6px 0 0; }
+.chat { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; min-height: 560px; max-height: 760px; min-width: 0; }
+.chathead { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1baf7a; margin-right: 6px; }
+.replay { font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; color: var(--text-muted); }
+.msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.bubble { max-width: 92%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble.user { align-self: flex-end; background: var(--s1); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.bot { align-self: flex-start; background: var(--surface-0); border: 1px solid var(--border); border-bottom-left-radius: 4px; white-space: normal; }
+.steps { list-style: none; margin: 0 0 8px; padding: 0; font-size: 13px; color: var(--text-secondary); }
+.steps li { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; }
+.steps .ic { width: 16px; flex-shrink: 0; text-align: center; }
+.steps .detail { color: var(--text-muted); font-size: 12px; display: block; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--s1); border-radius: 50%; animation: sp .8s linear infinite; margin-top: 3px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+.answer { white-space: pre-wrap; color: var(--text-primary); border-top: 1px dashed var(--border); padding-top: 8px; }
+.caret::after { content: "▍"; color: var(--s1); animation: bl 1s steps(1) infinite; }
+@keyframes bl { 50% { opacity: 0; } }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 12px; }
+.pill { border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; color: var(--text-secondary); }
+.pill.ok { border-color: #1baf7a; color: #13865e; }
+.pill.bad { border-color: #e34948; color: #c23a39; }
+.bubble details { margin-top: 8px; font-size: 13px; }
+.bubble details p { margin: 6px 0; padding: 8px 10px; background: var(--surface-1); border-left: 3px solid var(--s1); border-radius: 4px; white-space: pre-wrap; color: var(--text-secondary); }
+.inputrow { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
+.inputrow input { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); }
+.inputrow button, .cta { font: inherit; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 0; background: var(--s1); color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
+.inputrow button:disabled { opacity: .5; cursor: default; }
+.ptnote { font-size: 13px; color: var(--text-secondary); background: var(--accent-bg); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; }
+@media (max-width: 820px) { .agent { grid-template-columns: 1fr; } .qlist { max-height: 260px; } .chat { min-height: 480px; } }
 </style>
 </head>
 <body>
@@ -82,8 +119,9 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
   </div>
   <p data-i="intro"></p>
   <div class="links">
-    <a class="btn" href="https://github.com/LucasBetioli123/airiq-sp" data-i="code"></a>
-    <a class="btn" href="https://github.com/LucasBetioli123/airiq-sp/blob/main/docs/DETALHES_TECNICOS.md" data-i="deep"></a>
+    <a class="cta" href="#agent" data-i="try"></a>
+    <a class="btn" href="https://github.com/LucasBetioli123/AirIQ-SP" data-i="code"></a>
+    <a class="btn" href="https://github.com/LucasBetioli123/AirIQ-SP/blob/main/docs/TECHNICAL_DETAILS.md" data-i="deep"></a>
   </div>
 </header>
 
@@ -122,7 +160,24 @@ footer { margin-top: 48px; color: var(--text-muted); font-size: 13px; }
   <div class="card"><h3 data-i="c_ret"></h3><p data-i="c_ret_s"></p><div id="ret" class="chart"></div></div>
   <div class="card"><h3 data-i="c_rag"></h3><p data-i="c_rag_s"></p><div id="rag" class="chart"></div></div>
 </div>
-<div class="note" data-i="example"></div>
+<h2 id="agent" data-i="h5"></h2>
+<p class="lead" data-i="l5"></p>
+<p class="ptnote" data-i="ptnote"></p>
+<div class="agent">
+  <div class="qpanel">
+    <input id="qsearch" type="search" data-ph="search_ph" aria-label="Search questions">
+    <div class="qlist" id="qlist"></div>
+    <button type="button" class="linkbtn" id="qmore"></button>
+  </div>
+  <div class="chat">
+    <div class="chathead"><span><span class="dot"></span><span data-i="chat_title"></span></span><span class="replay" data-i="replay_badge"></span></div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <form class="inputrow" id="askform">
+      <input id="askinput" autocomplete="off" data-ph="ask_ph" aria-label="Question">
+      <button id="askbtn" type="submit" data-i="send"></button>
+    </form>
+  </div>
+</div>
 
 <footer data-i="footer"></footer>
 </div>
@@ -132,7 +187,7 @@ const I18N = {
   en: {
     tag: 'Air quality × AI',
     intro: 'Daily PM2.5 estimated and forecast for the whole state of São Paulo, Brazil, from satellite data, weather reanalysis and 30 monitoring stations, with a calibrated confidence interval. A local AI agent answers questions about environmental regulations and queries the model, always citing its source.',
-    code: 'Code on GitHub', deep: 'Technical deep dive (PT)',
+    try: '▶ Ask the AI agent', code: 'Code on GitHub', deep: 'Technical deep dive',
     k_mae: 'mean error on never-seen stations', k_far: 'error at 25–50 km from stations vs. IDW', k_cov: 'real coverage of the 90% interval',
     k_acc: 'agent accuracy on answerable questions', k_ref: 'correct refusals out of scope', k_cost: 'per query: local LLM on CPU', k_cost_v: '$0',
     h1: '1. Where air is measured, and how it varies',
@@ -166,7 +221,7 @@ const I18N = {
   pt: {
     tag: 'Qualidade do ar × IA',
     intro: 'PM2.5 diário estimado e previsto para todo o estado de São Paulo a partir de satélite, reanálise meteorológica e 30 estações da CETESB, com intervalo de confiança calibrado. Um agente de IA local responde perguntas sobre normas ambientais e consulta o modelo, sempre citando a fonte.',
-    code: 'Código no GitHub', deep: 'Detalhes técnicos',
+    try: '▶ Pergunte ao agente de IA', code: 'Código no GitHub', deep: 'Detalhes técnicos (EN)',
     k_mae: 'erro médio em estações nunca vistas', k_far: 'de erro a 25–50 km das estações vs. IDW', k_cov: 'cobertura real do intervalo de 90%',
     k_acc: 'de acerto do agente nas perguntas respondíveis', k_ref: 'de recusa correta fora da base', k_cost: 'por consulta: LLM local em CPU', k_cost_v: 'US$ 0',
     h1: '1. Onde o ar é medido e como ele varia',
@@ -370,6 +425,7 @@ function rag() {
 
 function renderAll() {
   texts(); kpis(); map(); bench(); dist(); cov(); fc(); alertChart(); shap(); ret(); rag(); series(current || sel.value);
+  if (window.agentTexts) agentTexts();
 }
 const sel = document.getElementById('station');
 Object.keys(D.series).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(n => sel.add(new Option(n, n)));
@@ -384,6 +440,122 @@ renderAll();
 document.getElementById('map').on('plotly_click', e => { const pt = e.points.find(p => p.curveNumber === 1); if (!pt) return;
   sel.value = pt.text; series(pt.text); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
+</script>
+<script>
+// "Ask the agent": replays REAL runs recorded in logs/eval_runs_qwen3-4b_causal.jsonl.
+// A static page cannot run the 4B LLM, so each recorded run is animated step by step (sped up) and
+// labeled as a replay, with the original CPU time.
+Object.assign(I18N.en, {
+  h5: '5. Ask the agent',
+  l5: 'Pick a question (or search) and watch the agent plan, search the regulations, call the PM2.5 model, write the answer and validate every number. These are real answers produced by the local Qwen3-4B model and recorded in the evaluation log.',
+  ptnote: '🇧🇷 The regulations are Brazilian federal law, so questions, answers and legal passages are in <strong>Portuguese</strong>. That is part of the challenge: multilingual retrieval over real legal text.',
+  chat_title: 'AirIQ agent · Qwen3-4B (local, CPU)', replay_badge: 'replay of recorded runs · sped up', send: 'Send',
+  search_ph: 'Search the 36 questions…', ask_ph: 'Type to search, or pick a question on the left', more: 'Show all 36 questions', less: 'Show featured questions',
+  welcome: 'Hi! I answer questions about Brazilian air-quality regulations, citing the exact article, and I can query the PM2.5 model for a city and date. Pick a question to start.',
+  nomatch: 'This public demo replays recorded runs of the local LLM, so it only answers the 36 evaluation questions. Pick one from the list (they are in Portuguese).',
+  t_fato: 'fact', t_multi: 'multi-passage', t_temporal: 'validity over time', t_ferramenta: 'uses the PM2.5 model', t_sem_resposta: 'out of scope',
+  s_plan: 'Planning the answer', s_plan_d: 'searches: ', s_search: 'Searching 7 Brazilian regulations', s_search_d: '{n} passages · BM25 + embeddings + reranker · best relevance {r}',
+  s_tool: 'Calling the PM2.5 model', s_std: 'Checking the standard in force', s_refuse: 'Relevance below the threshold: refusing instead of guessing',
+  s_write: 'Writing the answer', s_valid: 'Validation: every number has a source', s_valid_bad: 'Validation: unsourced content → refused',
+  m_ok: '✓ matches the answer key', m_bad: '✗ differs from the answer key', m_ref: '✓ correct refusal', m_time: 'original run: {s} s on CPU',
+  m_tok: '{t} tokens', m_cost: 'cost US$ 0', passages: 'Cited legal passages ({n})', expected: 'Expected answer (answer key): '
+});
+Object.assign(I18N.pt, {
+  h5: '5. Pergunte ao agente',
+  l5: 'Escolha uma pergunta (ou busque) e veja o agente planejar, buscar nas normas, chamar o modelo de PM2.5, escrever a resposta e validar cada número. São respostas reais do Qwen3-4B local, gravadas no log da avaliação.',
+  ptnote: '🇧🇷 As normas são leis federais brasileiras, por isso perguntas, respostas e trechos de lei estão em <strong>português</strong>.',
+  chat_title: 'Agente AirIQ · Qwen3-4B (local, CPU)', replay_badge: 'replay de execuções gravadas · acelerado', send: 'Enviar',
+  search_ph: 'Buscar nas 36 perguntas…', ask_ph: 'Digite para buscar ou escolha uma pergunta ao lado', more: 'Ver as 36 perguntas', less: 'Ver perguntas em destaque',
+  welcome: 'Olá! Respondo perguntas sobre normas brasileiras de qualidade do ar citando o artigo exato, e consulto o modelo de PM2.5 para uma cidade e data. Escolha uma pergunta para começar.',
+  nomatch: 'Esta demonstração pública reproduz execuções gravadas do LLM local, então só responde às 36 perguntas da avaliação. Escolha uma da lista.',
+  t_fato: 'fato', t_multi: 'vários trechos', t_temporal: 'vigência', t_ferramenta: 'usa o modelo de PM2.5', t_sem_resposta: 'fora da base',
+  s_plan: 'Planejando a resposta', s_plan_d: 'buscas: ', s_search: 'Buscando em 7 normas brasileiras', s_search_d: '{n} trechos · BM25 + embeddings + reranker · melhor relevância {r}',
+  s_tool: 'Chamando o modelo de PM2.5', s_std: 'Consultando o padrão vigente', s_refuse: 'Relevância abaixo do limiar: recusa em vez de chutar',
+  s_write: 'Escrevendo a resposta', s_valid: 'Validação: todo número tem fonte', s_valid_bad: 'Validação: conteúdo sem fonte → recusada',
+  m_ok: '✓ confere com o gabarito', m_bad: '✗ difere do gabarito', m_ref: '✓ recusa correta', m_time: 'execução original: {s} s em CPU',
+  m_tok: '{t} tokens', m_cost: 'custo US$ 0', passages: 'Trechos de lei citados ({n})', expected: 'Resposta esperada (gabarito): '
+});
+const FEATURED = ['q31', 'q30', 'q28', 'q22', 'q11', 'q32', 'q18', 'q10'];
+const RUNS = D.runs, byId = Object.fromEntries(RUNS.map(r => [r.id, r]));
+let showAll = false, busy = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function qlist() {
+  const q = norm($('qsearch').value.trim());
+  let rows = q ? RUNS.filter(r => norm(r.question).includes(q) || norm(t_('t_' + r.type)).includes(q))
+               : (showAll ? RUNS : FEATURED.map(id => byId[id]).filter(Boolean));
+  $('qlist').innerHTML = rows.map(r => `<button type="button" class="qbtn" data-q="${r.id}"><small>${esc(t_('t_' + r.type))}</small>${esc(r.question)}</button>`).join('');
+  $('qmore').textContent = showAll ? t_('less') : t_('more');
+  $('qmore').hidden = !!q;
+}
+
+function agentTexts() {
+  texts();
+  document.querySelectorAll('[data-ph]').forEach(el => el.placeholder = t_(el.dataset.ph));
+  qlist();
+  if (!$('msgs').children.length) bot(`<div>${esc(t_('welcome'))}</div>`);
+}
+
+function scroll() { const m = $('msgs'); m.scrollTop = m.scrollHeight; }
+function bot(html) { const d = document.createElement('div'); d.className = 'bubble bot'; d.innerHTML = html; $('msgs').appendChild(d); scroll(); return d; }
+function user(text) { const d = document.createElement('div'); d.className = 'bubble user'; d.textContent = text; $('msgs').appendChild(d); scroll(); }
+
+async function step(ul, label, detail, ms) {
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="ic"><span class="spin"></span></span><span>${esc(label)}${detail ? `<span class="detail">${esc(detail)}</span>` : ''}</span>`;
+  ul.appendChild(li); scroll(); await sleep(ms);
+  li.querySelector('.ic').textContent = '✓'; return li;
+}
+
+async function replay(run) {
+  if (busy) return; busy = true; $('askbtn').disabled = true;
+  user(run.question);
+  const b = bot('<ul class="steps"></ul>'), ul = b.querySelector('.steps');
+  const searches = [...new Set(run.tools.filter(t => t.name === 'buscar_normas').map(t => t.args.consulta))].filter(s => s !== run.question);
+  await step(ul, t_('s_plan'), searches.length ? t_('s_plan_d') + searches.map(s => `“${s}”`).join(' · ') : '', 900);
+  await step(ul, t_('s_search'), fill(t_('s_search_d'), { n: run.n_retrieved, r: (run.relevance ?? 0).toFixed(2) }), 1100);
+  for (const tl of run.tools.filter(t => t.name !== 'buscar_normas')) {
+    const r = tl.result || {}, a = tl.args || {};
+    if (tl.name === 'estimar_pm25') {
+      const det = r.pm25_ug_m3 != null ? `${a.local} · ${r.data_alvo} → ${r.pm25_ug_m3} µg/m³ (90%: ${r.intervalo_90.join('–')}) · IQAr: ${r.faixa_iqar}` : `${a.local} · ${a.data}`;
+      await step(ul, t_('s_tool'), det, 1200);
+    } else {
+      await step(ul, t_('s_std'), a.data ? String(a.data) : '', 800);
+    }
+  }
+  if (run.threshold_refusal) await step(ul, t_('s_refuse'), '', 700);
+  const li = document.createElement('li'); li.innerHTML = `<span class="ic"><span class="spin"></span></span><span>${esc(t_('s_write'))}</span>`; ul.appendChild(li);
+  const ans = document.createElement('div'); ans.className = 'answer caret'; b.appendChild(ans);
+  const text = run.answer, chunk = Math.max(2, Math.round(text.length / 260));
+  for (let i = 0; i < text.length; i += chunk) { ans.textContent = text.slice(0, i + chunk); if (i % (chunk * 6) === 0) scroll(); await sleep(16); }
+  ans.classList.remove('caret'); li.querySelector('.ic').textContent = '✓';
+  if (run.found) await step(ul, run.validation_ok ? t_('s_valid') : t_('s_valid_bad'), '', 500);
+  const verdict = run.type === 'sem_resposta' ? (run.correct ? ['ok', t_('m_ref')] : ['bad', t_('m_bad')]) : (run.correct ? ['ok', t_('m_ok')] : ['bad', t_('m_bad')]);
+  let extra = `<div class="meta"><span class="pill ${verdict[0]}">${esc(verdict[1])}</span><span class="pill">${esc(fill(t_('m_time'), { s: Math.round(run.seconds) }))}</span>` +
+    `<span class="pill">${esc(fill(t_('m_tok'), { t: run.tokens.toLocaleString() }))}</span><span class="pill">${esc(t_('m_cost'))}</span></div>`;
+  if (run.passages.length) extra += `<details><summary>${esc(fill(t_('passages'), { n: run.passages.length }))}</summary>` +
+    run.passages.map(p => `<p><strong>[${p.n}] ${esc(p.citation)}</strong>\n${esc(p.text)}${p.text.length >= 700 ? '…' : ''}</p>`).join('') + '</details>';
+  if (!run.correct && run.expected) extra += `<details><summary>${esc(t_('expected').replace(/: $/, ''))}</summary><p>${esc(run.expected)}</p></details>`;
+  b.insertAdjacentHTML('beforeend', extra); scroll();
+  busy = false; $('askbtn').disabled = false;
+}
+
+$('qlist').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) replay(byId[b.dataset.q]); });
+$('qmore').addEventListener('click', () => { showAll = !showAll; qlist(); });
+$('qsearch').addEventListener('input', qlist);
+$('askinput').addEventListener('input', () => { $('qsearch').value = $('askinput').value; qlist(); });
+$('askform').addEventListener('submit', e => {
+  e.preventDefault(); if (busy) return;
+  const q = norm($('askinput').value.trim()); if (!q) return;
+  const hit = RUNS.find(r => norm(r.question) === q) || RUNS.find(r => norm(r.question).includes(q));
+  $('askinput').value = ''; $('qsearch').value = ''; qlist();
+  if (hit) replay(hit); else { user(q); bot(`<div>${esc(t_('nomatch'))}</div>`); }
+});
+agentTexts();
 </script>
 </body>
 </html>

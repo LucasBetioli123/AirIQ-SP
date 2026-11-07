@@ -1,8 +1,8 @@
-# Uso: `make help`. Todos os alvos usam o venv em .venv (criado por `make setup`).
+# Usage: `make help`. Every target uses the venv in .venv (created by `make setup`).
 ifeq ($(OS),Windows_NT)
 PY ?= .venv/Scripts/python
 BOOT_PY ?= python
-# wheel pronta do llama-cpp-python para CPU (no Windows compilar exige Visual Studio + CMake)
+# prebuilt llama-cpp-python CPU wheel (compiling on Windows needs Visual Studio + CMake)
 LLAMA_WHEEL := --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 LLAMA_ENV :=
 else
@@ -20,18 +20,18 @@ export PYTHONIOENCODING := utf-8
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-setup: ## cria .venv e instala dependências com versões fixas
+setup: ## create .venv and install pinned dependencies
 	$(BOOT_PY) -m venv .venv
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -r requirements.txt
 	$(LLAMA_ENV) $(PY) -m pip install -r requirements-llm.txt $(LLAMA_WHEEL)
 	$(PY) -m pip install -r requirements-nn.txt
 
-models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
+models: ## download the GGUF models (LLM, embeddings, reranker) from Docker Hub
 	$(PY) -m src.rag.models_dl
 
-# ---------------- Módulo 1: PM2.5 (satélite + ML) ----------------
-data: ## baixa TODOS os dados brutos do período do config (horas; ver README)
+# ---------------- Module 1: PM2.5 (satellite + ML) ----------------
+data: ## download ALL raw data for the configured period (hours; see README)
 	$(PY) -m src.aq.data.openaq
 	$(PY) -m src.aq.data.era5
 	$(PY) -m src.aq.data.goes_aod
@@ -41,58 +41,58 @@ data: ## baixa TODOS os dados brutos do período do config (horas; ver README)
 	$(PY) -m src.aq.data.static
 	$(PY) -m src.aq.build_dataset
 
-sample: ## copia as bases de treino da amostra versionada (sem download)
+sample: ## copy the training tables from the versioned sample (no download)
 	$(PY) -m src.aq.build_dataset --from-sample
 
-dataset: ## monta a base de treino a partir dos brutos já baixados
+dataset: ## build the training tables from already-downloaded raw data
 	$(PY) -m src.aq.build_dataset
 
-bench: ## benchmark de modelos (baselines x ML) na validação espaço-temporal
+bench: ## model benchmark (baselines vs. ML) under spatio-temporal validation
 	$(PY) -m src.aq.benchmark
 
-train: ## treina o modelo final + intervalos conformais + previsão D+1
+train: ## train the final model + conformal intervals + D+1 forecast
 	$(PY) -m src.aq.train
 
-evaluate: ## métricas, SHAP, episódios extremos
+evaluate: ## metrics, SHAP, extreme episodes
 	$(PY) -m src.aq.evaluate
 
-maps: ## mapa diário de PM2.5 e de incerteza (DATE=aaaa-mm-dd)
+maps: ## daily PM2.5 and uncertainty map (DATE=yyyy-mm-dd)
 	$(PY) -m src.aq.maps $(if $(DATE),--date $(DATE),)
 
-predict: ## estimativa pontual: make predict LAT=-22.90 LON=-47.06 DATE=2023-03-10 [H=1]
+predict: ## point estimate: make predict LAT=-23.50 LON=-47.45 DATE=2021-08-23 [H=1]
 	$(PY) -m src.aq.cli --lat $(LAT) --lon $(LON) --date $(DATE) --horizon $(or $(H),0)
 
-api: ## sobe a API FastAPI em :8000 (GET /predict)
+api: ## start the FastAPI API on :8000 (GET /predict)
 	$(PY) -m uvicorn src.aq.api:app --host 0.0.0.0 --port 8000
 
-# ---------------- Módulo 2: agente RAG ----------------
-rag-download: ## baixa as normas das fontes oficiais
+# ---------------- Module 2: RAG agent ----------------
+rag-download: ## download the regulations from official sources
 	$(PY) -m src.rag.download
 
-rag-ingest: ## parse + chunking + índices (BM25 e vetorial)
+rag-ingest: ## parse + chunking + indexes (BM25 and dense)
 	$(PY) -m src.rag.ingest
 
-rag-bench: ## benchmark de recuperação (BM25, denso, híbrido, rerank)
+rag-bench: ## retrieval benchmark (BM25, dense, hybrid, rerank)
 	$(PY) -m eval.bench_retrieval
 
-rag-eval: ## avaliação ponta a ponta do agente (respostas, citações, recusa)
+rag-eval: ## end-to-end agent evaluation (answers, citations, refusals)
 	$(PY) -m eval.run_rag_eval
 
-ask: ## pergunta ao agente: make ask Q="..."
+ask: ## ask the agent (in Portuguese): make ask Q="..."
 	$(PY) -m src.rag.cli "$(Q)"
 
-chat: ## interface de chat (FastAPI + HTML) em :7860
+chat: ## chat UI (FastAPI + HTML) on :7860
 	$(PY) -m uvicorn src.rag.app:app --host 0.0.0.0 --port 7860
 
-# ---------------- Engenharia ----------------
-notebooks: ## executa os notebooks com saída visível
+# ---------------- Engineering ----------------
+notebooks: ## execute the notebooks with visible outputs
 	$(PY) -m jupyter nbconvert --to notebook --execute --inplace notebooks/*.ipynb
 
-test: ## testes automatizados
+test: ## automated tests
 	$(PY) -m pytest -q
 
-all-sample: ## pipeline completo sobre a amostra (também disponível sem make)
+all-sample: ## full pipeline on the sample (also available without make)
 	$(PY) -m src.aq.pipeline
 
-docker: ## imagem Docker reprodutível
+docker: ## reproducible Docker image
 	docker build -t airiq-sp .

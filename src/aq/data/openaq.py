@@ -1,18 +1,18 @@
-"""PM2.5 medido nas estações da CETESB, via espelho público da OpenAQ no AWS S3.
+"""PM2.5 measured at CETESB stations, via OpenAQ's public mirror on AWS S3.
 
-Por que não o QUALAR direto: o QUALAR exige cadastro/login e limita o download a
-1 parâmetro x 1 estação x 1 ano por consulta. A OpenAQ ingeriu a rede da CETESB e
-publica o histórico horário em `s3://openaq-data-archive` (acesso anônimo), em
-arquivos `records/csv.gz/locationid=<id>/year=<aaaa>/month=<mm>/location-<id>-<aaaammdd>.csv.gz`.
+Why not QUALAR (CETESB's portal) directly: it requires registration and limits each
+download to 1 parameter x 1 station x 1 year. OpenAQ ingests the CETESB network and
+publishes the hourly history in `s3://openaq-data-archive` (anonymous access), as
+`records/csv.gz/locationid=<id>/year=<yyyy>/month=<mm>/location-<id>-<yyyymmdd>.csv.gz`.
 
-Saídas:
-  data/raw/openaq/hourly_<id>.parquet   PM2.5 horário por estação
-  data/interim/stations.parquet         metadados (id, nome, lat, lon)
-  data/interim/pm25_daily.parquet       média diária (dia local) com >= min_valid_hours
+Outputs:
+  data/raw/openaq/hourly_<id>.parquet   hourly PM2.5 per station
+  data/interim/stations.parquet         metadata (id, name, lat, lon)
+  data/interim/pm25_daily.parquet       daily mean (local day) with >= min_valid_hours
 
-Uso:
-  python -m src.aq.data.openaq                 # baixa o período do config
-  python -m src.aq.data.openaq --discover      # (re)varre o bucket atrás de estações em SP
+Usage:
+  python -m src.aq.data.openaq                 # download the configured period
+  python -m src.aq.data.openaq --discover      # (re)scan the bucket for stations in SP
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ def download_location(loc_id: int, start: pd.Timestamp, end: pd.Timestamp, worke
     df = pd.concat(frames, ignore_index=True)
     df = df[df["parameter"] == "pm25"]
     if df.empty:
-        # salva vazio para não varrer de novo uma estação que não mede PM2.5
+        # save an empty file so a station without PM2.5 is not scanned again
         pd.DataFrame(columns=["location_id"]).to_parquet(out)
         return None
     df = df[["location_id", "sensors_id", "location", "datetime", "lat", "lon", "value"]].copy()
@@ -71,15 +71,15 @@ def download_location(loc_id: int, start: pd.Timestamp, end: pd.Timestamp, worke
 
 
 def to_daily(hourly: pd.DataFrame) -> pd.DataFrame:
-    """Média diária no dia local. O registro horário da OpenAQ marca o FIM da hora,
-    então subtraímos 1 h antes de atribuir o dia (a hora 00:00 pertence ao dia anterior)."""
+    """Daily mean over the local day. OpenAQ's hourly timestamp marks the END of the hour,
+    so 1 h is subtracted before assigning the day (00:00 belongs to the previous day)."""
     tz = CFG["region"]["tz"]
     h = hourly.copy()
     h["ts"] = pd.to_datetime(h["datetime"], utc=True).dt.tz_convert(tz) - pd.Timedelta(hours=1)
     h["date"] = h["ts"].dt.tz_localize(None).dt.normalize()
     v = h["value"]
     h = h[(v >= 0) & (v <= OAQ["max_valid_value"])]
-    # duplicatas (mesmo instante reportado 2x) -> mantém a média
+    # duplicates (same instant reported twice) -> keep the mean
     h = h.groupby(["location_id", "date", h["ts"].dt.hour]).agg(value=("value", "mean")).reset_index()
     d = h.groupby(["location_id", "date"]).agg(pm25=("value", "mean"), n_hours=("value", "size"),
                                                 pm25_max_h=("value", "max")).reset_index()
@@ -87,7 +87,7 @@ def to_daily(hourly: pd.DataFrame) -> pd.DataFrame:
 
 
 def discover(lat_rng=(-25.5, -19.5), lon_rng=(-53.5, -44.0), max_id: int = 12000) -> pd.DataFrame:
-    """Varre os location IDs baixos do bucket (onde está a rede CETESB) e devolve os que caem em SP."""
+    """Scan the bucket's low location IDs (where the CETESB network lives) and return those inside SP."""
 
     def probe(i):
         try:
@@ -121,15 +121,15 @@ def main(start: str | None = None, end: str | None = None, ids: list[int] | None
     stations["name"] = stations["name"].str.replace(r"-\d+$", "", regex=True)
     daily = to_daily(hourly)
     daily = daily[(daily["date"] >= start_ts) & (daily["date"] <= end_ts)]
-    # estações com pouquíssimos dias não ajudam nem a treinar nem a validar
+    # stations with very few days help neither training nor validation
     counts = daily.groupby("location_id").size()
     keep = counts[counts >= 30].index
     daily = daily[daily["location_id"].isin(keep)].reset_index(drop=True)
     stations = stations[stations["location_id"].isin(keep)].reset_index(drop=True)
     stations.to_parquet(data_path("interim", "stations.parquet"), index=False)
     daily.to_parquet(data_path("interim", "pm25_daily.parquet"), index=False)
-    print(f"{len(stations)} estações com PM2.5, {len(daily)} estação-dias "
-          f"({daily['date'].min().date()} a {daily['date'].max().date()})")
+    print(f"{len(stations)} stations with PM2.5, {len(daily)} station-days "
+          f"({daily['date'].min().date()} to {daily['date'].max().date()})")
     return daily
 
 

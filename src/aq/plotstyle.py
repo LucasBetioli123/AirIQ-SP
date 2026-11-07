@@ -1,14 +1,20 @@
-"""Estilo único dos gráficos (marcas finas, grade discreta, paleta categórica fixa)."""
+"""Shared chart style (thin marks, subtle grid, fixed categorical palette)."""
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-# ordem fixa (nunca ciclada): azul, laranja, água; cinza para baselines
+# fixed order (never cycled): blue, orange, aqua; gray for baselines
 BLUE, ORANGE, AQUA, GREY = "#2a78d6", "#eb6834", "#1baf7a", "#8a8984"
 TEXT, MUTED = "#0b0b0b", "#52514e"
-SEQ_PM = "Oranges"      # magnitude: um só matiz, claro -> escuro
+SEQ_PM = "Oranges"      # magnitude: single hue, light -> dark
 SEQ_UNC = "Purples"
+
+
+def en(label: str) -> str:
+    """English display name for a model/method label stored in Portuguese (see src/common/labels.py)."""
+    from src.common.labels import en as _en
+    return _en(label)
 
 
 def apply():

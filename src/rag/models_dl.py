@@ -1,12 +1,12 @@
-"""Baixa modelos abertos em GGUF (LLM, embeddings, reranker) para rodar localmente, sem custo.
+"""Download open GGUF models (LLM, embeddings, reranker) to run locally at zero cost.
 
-Fonte: os artefatos OCI do namespace `ai/` do Docker Hub (Docker Model Runner), que
-empacotam o mesmo GGUF publicado no HuggingFace. Escolhemos essa fonte porque o
-HuggingFace e o registro do Ollama não estão acessíveis neste ambiente. Quem tiver
-Ollama pode usar `LLM_PROVIDER=ollama` e `ollama pull qwen3:4b` no lugar.
+Source: the OCI artifacts in Docker Hub's `ai/` namespace (Docker Model Runner), which
+package the same GGUF files published on HuggingFace, with anonymous access and no
+account. With Ollama installed you can use `LLM_PROVIDER=ollama` and `ollama pull qwen3:4b`
+instead.
 
-  python -m src.rag.models_dl                  # modelos padrão (ver DEFAULT)
-  python -m src.rag.models_dl --all            # todos os candidatos do benchmark
+  python -m src.rag.models_dl                  # default models (see DEFAULT)
+  python -m src.rag.models_dl --all            # every benchmark candidate
   python -m src.rag.models_dl ai/qwen3:4b-instruct-2507-q4_K_M
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import time
 from src.common.config import ROOT
 import requests
 
-_S = requests.Session()  # sem retry automático em 429: o limite do Docker Hub é por hora
+_S = requests.Session()  # no automatic retry on 429: Docker Hub's limit is per hour
 
 
 def session():
@@ -26,7 +26,7 @@ def session():
 REGISTRY = "https://registry-1.docker.io/v2"
 GGUF_TYPES = ("application/vnd.docker.ai.gguf.v3", "application/vnd.docker.ai.gguf")
 
-# (referência no Docker Hub, pasta de destino, nome do arquivo)
+# (Docker Hub reference, destination folder, file name)
 DEFAULT = [
     ("ai/qwen3:4b-instruct-2507-q4_K_M", "llm", "qwen3-4b-instruct-2507-q4_k_m.gguf"),
     ("ai/granite-embedding-multilingual:278M-F16", "emb", "granite-embedding-multilingual-278m-f16.gguf"),
@@ -56,17 +56,17 @@ def _manifest(repo: str, tag: str, tok: str) -> dict:
     for attempt in range(6):
         r = session().get(f"{REGISTRY}/{repo}/manifests/{tag}",
                           headers={"Authorization": f"Bearer {tok}", "Accept": accept}, timeout=30)
-        if r.status_code == 429:  # limite anônimo do Docker Hub (100 manifests/h por IP)
+        if r.status_code == 429:  # Docker Hub anonymous limit (100 manifests/h per IP)
             wait = 60 * (attempt + 1)
-            print(f"  limite do Docker Hub atingido; aguardando {wait}s")
+            print(f"  Docker Hub rate limit reached; waiting {wait}s")
             time.sleep(wait)
             continue
         r.raise_for_status()
         m = r.json()
-        if "manifests" in m:  # índice multi-plataforma -> pega o primeiro
+        if "manifests" in m:  # multi-platform index -> take the first entry
             return _manifest(repo, m["manifests"][0]["digest"], tok)
         return m
-    raise RuntimeError("Docker Hub: limite de requisições; tente de novo mais tarde")
+    raise RuntimeError("Docker Hub: rate limit reached; try again later")
 
 
 def pull(ref: str, sub: str, fname: str) -> str:
@@ -76,12 +76,12 @@ def pull(ref: str, sub: str, fname: str) -> str:
     repo, tag = ref.split(":")
     tok = _token(repo)
     m = _manifest(repo, tag, tok)
-    # artefatos novos usam o formato CNCF (vnd.cncf.model.weight.v1.raw) com o nome do arquivo na anotação
+    # newer artifacts use the CNCF format (vnd.cncf.model.weight.v1.raw) with the file name in an annotation
     layer = next(l for l in m["layers"] if l["mediaType"] in GGUF_TYPES or
                  l.get("annotations", {}).get("org.cncf.model.filepath", "").endswith(".gguf"))
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
-    print(f"baixando {ref} ({layer['size'] / 1e9:.2f} GB) -> {dest.relative_to(ROOT)}")
+    print(f"downloading {ref} ({layer['size'] / 1e9:.2f} GB) -> {dest.relative_to(ROOT)}")
     with session().get(f"{REGISTRY}/{repo}/blobs/{layer['digest']}", headers={"Authorization": f"Bearer {tok}"},
                        stream=True, timeout=600) as r:
         r.raise_for_status()
@@ -97,11 +97,11 @@ if __name__ == "__main__":
     ap.add_argument("refs", nargs="*")
     ap.add_argument("--all", action="store_true")
     a = ap.parse_args()
-    known = {it[0]: it for it in DEFAULT + BENCH}  # refs conhecidas vão para a pasta/nome esperados pelo código
+    known = {it[0]: it for it in DEFAULT + BENCH}  # known refs go to the folder/name the code expects
     items = [known.get(r, (r, "llm", r.split("/")[-1].replace(":", "-") + ".gguf")) for r in a.refs] or \
         (DEFAULT + BENCH if a.all else DEFAULT)
     for it in items:
         try:
             print(pull(*it))
-        except Exception as e:  # segue com os demais
-            print(f"falhou {it[0]}: {e}")
+        except Exception as e:  # keep going with the rest
+            print(f"failed {it[0]}: {e}")

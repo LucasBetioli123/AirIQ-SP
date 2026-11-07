@@ -1,14 +1,14 @@
-"""Cliente de LLM configurável por variável de ambiente (sempre com opção gratuita).
+"""LLM client configured through environment variables (always with a free option).
 
-  LLM_PROVIDER=llamacpp       (padrão) GGUF local via llama.cpp, CPU, custo zero
-  LLM_PROVIDER=ollama         servidor Ollama local (API compatível com OpenAI)
-  LLM_PROVIDER=openai_compat  qualquer API compatível com OpenAI (Groq, Gemini, OpenRouter...)
-  LLM_MODEL=...               caminho do GGUF (llamacpp) ou nome do modelo
-  LLM_BASE_URL / LLM_API_KEY  para ollama/openai_compat
+  LLM_PROVIDER=llamacpp       (default) local GGUF via llama.cpp, CPU, zero cost
+  LLM_PROVIDER=ollama         local Ollama server (OpenAI-compatible API)
+  LLM_PROVIDER=openai_compat  any OpenAI-compatible API (Groq, Gemini, OpenRouter...)
+  LLM_MODEL=...               GGUF path (llamacpp) or model name
+  LLM_BASE_URL / LLM_API_KEY  for ollama/openai_compat
 
-Para robustez com modelos pequenos, todas as chamadas pedem saída JSON validada por
-schema. No llama.cpp isso vira gramática (decodificação restrita); nos provedores
-OpenAI-compatible, `response_format`.
+For robustness with small models, every call requests schema-validated JSON output. In
+llama.cpp this becomes a grammar (constrained decoding); with OpenAI-compatible providers,
+`response_format`.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from src.common.config import ROOT
 
 DEFAULT_GGUF = "models/llm/qwen3-4b-instruct-2507-q4_k_m.gguf"
-# preço estimado (US$ por 1M tokens: entrada, saída) para o custo no log. Local = 0.
+# estimated price (US$ per 1M tokens: input, output) for the cost in the log. Local = 0.
 PRICES = {"llamacpp": (0.0, 0.0), "ollama": (0.0, 0.0),
           "llama-3.1-8b-instant": (0.05, 0.08), "gemini-2.0-flash": (0.10, 0.40)}
 

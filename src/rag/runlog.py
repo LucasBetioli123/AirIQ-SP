@@ -1,5 +1,5 @@
-"""Registro de cada execução do agente (JSONL): pergunta, trechos recuperados,
-chamadas de ferramenta, resposta, tempo, tokens e custo estimado."""
+"""Log of every agent run (JSONL): question, retrieved passages, tool calls, answer,
+latency, tokens and estimated cost. Keys stay in Portuguese (data schema)."""
 from __future__ import annotations
 
 import json

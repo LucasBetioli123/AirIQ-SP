@@ -1,9 +1,9 @@
-"""Utilitários comuns aos produtos GOES-16 ABI L2 (AOD e focos de queimada).
+"""Shared helpers for the GOES-16 ABI L2 products (AOD and fire detections).
 
-O ABI usa uma grade fixa em ângulos de varredura (x, y) em radianos. Convertemos
-para lat/lon com a fórmula do GOES-R Product User Guide (vol. 5, seção 4.2.8) e
-lemos do S3 só a janela de linhas/colunas que cobre o recorte, via HTTP range
-requests (o NetCDF4/HDF5 é chunked, então não baixamos os ~40 MB do disco inteiro).
+ABI uses a fixed grid of scan angles (x, y) in radians. We convert to lat/lon with the
+GOES-R Product User Guide formula (vol. 5, section 4.2.8) and read from S3 only the
+row/column window covering the area, via HTTP range requests (NetCDF4/HDF5 is chunked,
+so the ~40 MB full-disk file is never downloaded).
 """
 from __future__ import annotations
 
@@ -47,8 +47,8 @@ def open_remote(key: str) -> xr.Dataset:
 
 @functools.lru_cache(maxsize=4)
 def window_for_bbox(product: str, bbox: tuple[float, float, float, float]):
-    """Calcula (uma vez por produto, com cache em disco) a janela de linhas/colunas que
-    cobre o bbox e as coordenadas lat/lon dos pixels dessa janela."""
+    """Compute (once per product, cached on disk) the row/column window covering the bbox
+    and the lat/lon coordinates of the pixels in that window."""
     from src.common.config import data_path
 
     cache = data_path("raw", "goes_geom", f"{product}_{'_'.join(f'{b:g}' for b in bbox)}.npz")
@@ -85,7 +85,7 @@ def first_key(product: str, year: int, doy: int, hour: int) -> str:
 
 
 def scan_start(key: str):
-    """Instante de início da varredura a partir do nome do arquivo (sAAAADDDHHMMSSs)."""
+    """Scan start time from the file name (sYYYYDDDHHMMSSs)."""
     import pandas as pd
 
     m = re.search(r"_s(\d{4})(\d{3})(\d{2})(\d{2})(\d{2})", key)
@@ -94,8 +94,8 @@ def scan_start(key: str):
 
 
 def bin_to_grid(lat: np.ndarray, lon: np.ndarray, val: np.ndarray, bbox, res: float):
-    """Média de pixels válidos em cada célula de uma grade regular lat/lon (res graus).
-    Retorna soma, contagem (para compor várias varreduras depois)."""
+    """Mean of valid pixels in each cell of a regular lat/lon grid (res degrees).
+    Returns sum and count (so several scans can be combined later)."""
     lon_min, lat_min, lon_max, lat_max = bbox
     nx = int(round((lon_max - lon_min) / res))
     ny = int(round((lat_max - lat_min) / res))

@@ -1,1 +1,1 @@
-"""Coletores de dados brutos (todos de fontes públicas e gratuitas)."""
+"""Raw-data collectors (all from free, public sources)."""

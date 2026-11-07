@@ -1,4 +1,4 @@
-"""Experimento: tendência D-1 -> D na previsão D+1 (cenário A e B), mesma validação do train.py."""
+"""Experiment: D-1 -> D trend in the D+1 forecast (scenarios A and B), same validation as train.py."""
 import sys
 import numpy as np
 import pandas as pd
@@ -10,7 +10,7 @@ from src.common.config import data_path
 
 fc = pd.read_parquet(data_path("processed", "station_days_fc.parquet"))
 fc = fc.rename(columns={"pm25": "pm25_today"}).sort_values(["date", "location_id"]).reset_index(drop=True)
-# PM2.5 de D-1 da própria estação (conhecido no fim de D)
+# the station's own PM2.5 on D-1 (known at the end of D)
 prev = fc[["location_id", "date", "pm25_today"]].assign(date=lambda x: x["date"] + pd.Timedelta(days=1))
 fc = fc.merge(prev.rename(columns={"pm25_today": "pm25_yday"}), on=["location_id", "date"], how="left")
 refs_all = fc.rename(columns={"pm25_today": "pm25"})

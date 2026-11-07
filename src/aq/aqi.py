@@ -1,17 +1,18 @@
-"""Faixas do Índice de Qualidade do Ar (IQAr) e padrões legais para MP2,5 (média de 24 h).
+"""Air Quality Index (IQAr) bands and legal 24-hour PM2.5 standards in Brazil.
 
-Faixas de concentração usadas pela CETESB e pelo Guia Técnico de Monitoramento do MMA
-para MP2,5 em 24 h: Boa 0-25 | Moderada >25-50 | Ruim >50-75 | Muito Ruim >75-125 |
-Péssima >125 µg/m³.
+Concentration bands used by CETESB and by the Ministry of Environment's (MMA) technical
+monitoring guide for 24 h PM2.5 (band names stay in Portuguese, as in the regulations):
+Boa (good) 0-25 | Moderada >25-50 | Ruim >50-75 | Muito Ruim >75-125 | Péssima >125 µg/m³.
 
-Padrões legais de MP2,5 em 24 h (µg/m³):
-  - Res. CONAMA 03/1990: não regulava MP2,5
-  - Res. CONAMA 491/2018: PI-1 = 60, PI-2 = 50, PI-3 = 37, PF = 25. A primeira etapa
-    (PI-1) vigora desde a publicação, e as seguintes dependem de planos de controle
-  - Res. CONAMA 506/2024 (DOU de 9/7/2024): revoga o art. 4º e o Anexo I da 491 e fixa o
-    cronograma. PI-1 (60) até 31/12/2024 (art. 4º, § 1º), PI-2 (50) a partir de 1/1/2025
-    (§ 2º), PI-3 (37) em 2033, PI-4 (25) em 2044. Conferido no texto da norma
-    (data/raw/normas/conama_506_2024.pdf); o agente cita o trecho pelo módulo RAG (src/rag).
+Legal 24 h PM2.5 standards (µg/m³):
+  - CONAMA Res. 03/1990: did not regulate PM2.5
+  - CONAMA Res. 491/2018: PI-1 = 60, PI-2 = 50, PI-3 = 37, PF = 25 (PI = interim target,
+    PF = final standard). PI-1 applies from publication; later stages depend on control plans
+  - CONAMA Res. 506/2024 (Official Gazette of 2024-07-09): repeals art. 4 and Annex I of 491
+    and sets the schedule: PI-1 (60) until 2024-12-31 (art. 4, § 1), PI-2 (50) from
+    2025-01-01 (§ 2), PI-3 (37) in 2033, PI-4 (25) in 2044. Checked against the text of the
+    regulation (data/raw/normas/conama_506_2024.pdf); the agent cites the passage through
+    the RAG module (src/rag).
 """
 from __future__ import annotations
 
@@ -33,7 +34,7 @@ def band(pm25: float | np.ndarray):
 
 
 def legal_standard_24h(date) -> dict:
-    """Padrão de MP2,5 (24 h) vigente na data, segundo as resoluções CONAMA."""
+    """24 h PM2.5 standard in force on the given date, according to the CONAMA resolutions."""
     d = pd.Timestamp(date)
     if d < pd.Timestamp("2018-11-21"):
         return {"norma": "Resolução CONAMA 03/1990", "etapa": None, "valor": None,
@@ -49,14 +50,15 @@ def legal_standard_24h(date) -> dict:
     return {"norma": "Resolução CONAMA 506/2024, art. 4º, § 4º e Anexo I", "etapa": "PI-4", "valor": 25.0}
 
 
-# MP2,5 em 24 h, Anexo I de cada resolução (µg/m³), conferido no texto (data/raw/normas)
+# 24 h PM2.5, Annex I of each resolution (µg/m³), checked against the text (data/raw/normas)
 STAGES_24H = {"Resolução CONAMA 491/2018": {"PI-1": 60, "PI-2": 50, "PI-3": 37, "PF": 25},
               "Resolução CONAMA 506/2024": {"PI-1": 60, "PI-2": 50, "PI-3": 37, "PI-4": 25, "PF": 15}}
 
 
 def compare_stages(pm25: float, date) -> list[str]:
-    """Comparação já calculada da estimativa com todas as etapas da norma vigente na data. LLMs de 4B
-    erram comparação numérica ("51,4 ultrapassa 60"); com o texto pronto, a resposta só copia."""
+    """Precomputed comparison of the estimate with every stage of the standard in force on the date.
+    4B LLMs get numeric comparisons wrong ("51.4 exceeds 60"); with the sentence ready-made, the
+    answer only has to copy it. The text stays in Portuguese because the agent answers in Portuguese."""
     std = legal_standard_24h(date)
     if std["valor"] is None:
         return []

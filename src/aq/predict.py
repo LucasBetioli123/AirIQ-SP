@@ -1,8 +1,10 @@
-"""Inferência: PM2.5 (estimativa do dia ou previsão D+1) para qualquer coordenada/data.
+"""Inference: PM2.5 (same-day estimate or D+1 forecast) for any coordinate/date.
 
-É o mesmo código usado pelo mapa, pela CLI, pela API e pela ferramenta do agente.
-A estimativa usa as variáveis de satélite/meteorologia da data e o IDW das estações
-CETESB que mediram naquela data (como seria na operação, com a rede em tempo real).
+The same code serves the map, the CLI, the API and the agent's tool. The estimate uses
+the date's satellite/weather features and the IDW of the CETESB stations that measured
+on that date (as it would in operation, with the network reporting in real time).
+Output keys and descriptive values stay in Portuguese: they feed the Portuguese-speaking
+agent and the API contract.
 """
 from __future__ import annotations
 
@@ -30,10 +32,10 @@ def _use_sample() -> bool:
 def models():
     mdir = ROOT / "models"
     if not (mdir / "estimativa.joblib").exists():
-        raise FileNotFoundError("modelos não treinados: rode `make train` (ou `make all-sample`)")
+        raise FileNotFoundError("models not trained: run `make train` (or `make all-sample`)")
     est, fc = joblib.load(mdir / "estimativa.joblib"), joblib.load(mdir / "previsao_d1.joblib")
     if any(m.get("feature_schema") != FEATURE_SCHEMA for m in (est, fc)):
-        raise ValueError("modelos antigos: rode `make sample train` para treinar a versão causal")
+        raise ValueError("outdated models: run `make sample train` to train the causal version")
     return est, fc
 
 
@@ -61,20 +63,20 @@ def available_dates() -> tuple[pd.Timestamp, pd.Timestamp]:
 
 
 def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
-    """horizon=0: estimativa para `dates`. horizon=1: previsão para `dates`+1, feita com
-    o que se sabe em `dates` (satélite, fogo e medições de hoje)."""
+    """horizon=0: estimate for `dates`. horizon=1: forecast for `dates`+1, made with what is
+    known on `dates` (today's satellite, fire and measurements)."""
     dates = pd.DatetimeIndex(pd.to_datetime(dates)).normalize()
     if horizon not in (0, 1):
-        raise ValueError("horizon deve ser 0 ou 1")
+        raise ValueError("horizon must be 0 or 1")
     lats, lons = np.asarray(lats, float), np.asarray(lons, float)
     idx = available_index()
     need = dates + pd.Timedelta(days=horizon)
     if not dates.isin(idx).all():
         lo_d, hi_d = available_dates()
-        extra = " (modo amostra: só algumas janelas de datas; rode `make data` para o período completo)" \
+        extra = " (sample mode: only a few date windows; run `make data` for the full period)" \
             if _use_sample() else ""
-        raise DataUnavailable(f"sem dados de satélite/meteorologia para essa data; período disponível: "
-                              f"{lo_d.date()} a {hi_d.date()}{extra}")
+        raise DataUnavailable(f"no satellite/weather data for this date; available period: "
+                              f"{lo_d.date()} to {hi_d.date()}{extra}")
     est, fc = models()
     ctx = load_context(_use_sample())
     feats = point_features(ctx, dates, lats, lons, forecast=horizon == 1)
@@ -91,7 +93,7 @@ def predict_points(dates, lats, lons, horizon: int = 0) -> pd.DataFrame:
         m = fc
         X = feats[m["features_unmon"]]
         point = m["point_unmon"].predict(X)
-        # no local de uma estação que mediu hoje: usa o modelo com o PM2.5 de hoje
+        # at a station that measured today: use the model that takes today's PM2.5
         today = obs.groupby(["date", "lat", "lon"])["pm25"].mean()
         own = np.array([today.get((d, la, lo), np.nan) if dn < 0.5 else np.nan
                         for d, la, lo, dn in zip(dates, lats, lons, d_near)])
