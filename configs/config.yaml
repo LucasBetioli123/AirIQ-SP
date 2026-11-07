@@ -11,7 +11,7 @@ region:
   tz: "America/Sao_Paulo"
 
 period:
-  # janela limitada pela disponibilidade do espelho CETESB no arquivo OpenAQ (ver RELATORIO.md)
+  # janela limitada pela disponibilidade do espelho CETESB no arquivo OpenAQ (ver docs/DETALHES_TECNICOS.md)
   start: "2021-01-01"
   end: "2023-04-30"
 

@@ -1,5 +1,5 @@
 # Conjunto de avaliação do agente (escrito à mão, conferido contra o texto das normas em data/raw/normas).
-# tipo: fato | multi (exige juntar 2+ trechos) | temporal (vigência) | ferramenta (modelo da Parte 1) |
+# tipo: fato | multi (exige juntar 2+ trechos) | temporal (vigência) | ferramenta (modelo de PM2.5) |
 #       sem_resposta (não está na base)
 # gold: ids dos chunks que contêm a resposta. "doc:art4" casa também com as partes "doc:art4:p2", e
 #       "doc" sozinho casa com qualquer trecho do documento.
@@ -208,19 +208,7 @@ perguntas:
     gold: [conama_491_2018:art4, conama_491_2018:anexoi:l3]
     data: "2020-07-01"
 
-  # ---------------- ferramenta (modelo da Parte 1) ----------------
-  - id: q29
-    tipo: ferramenta
-    pergunta: "Qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da Resolução CONAMA 491?"
-    resposta_esperada: "Valor previsto com IC 90% pela ferramenta; comparar com o PI-1 de 60 µg/m³ (24 h) do Anexo I da 491/2018, o padrão vigente na data de referência (abr/2023)."
-    fatos_chave: ["60"]
-    gold: [conama_491_2018:anexoi:l3]
-    deve_chamar_ferramenta: true
-    local: "Campinas"
-    data_ferramenta: "amanhã"
-    horizonte_esperado: 1
-    etapa_comparacao: "PI-1"
-
+  # ---------------- ferramenta (modelo de PM2.5) ----------------
   - id: q30
     tipo: ferramenta
     pergunta: "Qual a estimativa de PM2.5 em Ribeirão Preto em 2022-09-10 e em qual faixa do IQAr ela fica?"

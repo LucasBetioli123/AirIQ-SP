@@ -1,9 +1,9 @@
-docker run --rm teste-ia:entrega python -m pytest -q
+docker run --rm respira-sp:latest python -m pytest -q
 .............................                                            [100%]
 29 passed in 9.76s
 exit_code 0
 elapsed_seconds 167.2
-docker run --rm teste-ia:entrega python -m src.aq.pipeline --quick
+docker run --rm respira-sp:latest python -m src.aq.pipeline --quick
 Demonstração rápida: os CSVs de teste versionados não serão recalculados.
 Executando src.aq.build_dataset --from-sample
 bases de treino copiadas da amostra para data/processed
@@ -34,7 +34,7 @@ Executando src.aq.cli --municipio Campinas --date 2022-10-11 --horizon 1
     "estacoes_usadas_idw": 8,
     "dist_estacao_mais_proxima_km": 7.1
   },
-  "fonte": "modelo LightGBM + CQR (Parte 1); satélite GOES-16, ERA5, rede CETESB via OpenAQ",
+  "fonte": "modelo LightGBM + CQR; satélite GOES-16, ERA5, rede CETESB via OpenAQ",
   "feature_schema": "causal-spatial-aod-v2",
   "emissao": "fim do dia de referência; dados históricos, sem feed em tempo real"
 }

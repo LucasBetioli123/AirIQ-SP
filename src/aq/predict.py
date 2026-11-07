@@ -130,7 +130,7 @@ def predict_one(lat: float, lon: float, date: str, horizon: int = 0) -> dict:
                         "aod_nivel_preenchimento": int(r["aod_nivel_preenchimento"]),
                         "estacoes_usadas_idw": int(r["estacoes_usadas_idw"]),
                         "dist_estacao_mais_proxima_km": round(float(r["dist_estacao_mais_proxima_km"]), 1)},
-        "fonte": "modelo LightGBM + CQR (Parte 1); satélite GOES-16, ERA5, rede CETESB via OpenAQ",
+        "fonte": "modelo LightGBM + CQR; satélite GOES-16, ERA5, rede CETESB via OpenAQ",
         "feature_schema": FEATURE_SCHEMA,
         "emissao": "fim do dia de referência; dados históricos, sem feed em tempo real",
     }

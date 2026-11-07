@@ -1,6 +1,6 @@
 """Pergunta ao agente pela linha de comando.
 
-  python -m src.rag.cli "qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?"
+  python -m src.rag.cli "Em 2021-08-24 a qualidade do ar em Sorocaba atendia ao padrão final (PF) de MP2,5 de 24 horas da CONAMA 491/2018?"
 """
 from __future__ import annotations
 

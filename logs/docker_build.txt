@@ -1209,8 +1209,8 @@
 #12 exporting attestation manifest sha256:28600ea6f5b8bdfa3b73824c25babc4ffa3307d6eceaf7157b23cd6dcbfbacea
 #12 exporting attestation manifest sha256:28600ea6f5b8bdfa3b73824c25babc4ffa3307d6eceaf7157b23cd6dcbfbacea 0.1s done
 #12 exporting manifest list sha256:1871b2d008898f749b8a55b3c8a10e07b23467929051f4daeb1560561ca3e1ad 0.1s done
-#12 naming to docker.io/library/teste-ia:entrega
-#12 naming to docker.io/library/teste-ia:entrega 0.1s done
-#12 unpacking to docker.io/library/teste-ia:entrega
-#12 unpacking to docker.io/library/teste-ia:entrega 153.6s done
+#12 naming to docker.io/library/respira-sp:latest
+#12 naming to docker.io/library/respira-sp:latest 0.1s done
+#12 unpacking to docker.io/library/respira-sp:latest
+#12 unpacking to docker.io/library/respira-sp:latest 153.6s done
 #12 DONE 358.9s

@@ -1,6 +1,6 @@
 """Divisão do texto normativo em trechos citáveis (chunks).
 
-Estratégia (justificativa no RELATORIO.md):
+Estratégia (justificativa em docs/DETALHES_TECNICOS.md):
   - Unidade básica = ARTIGO inteiro (caput + §§ + incisos + alíneas). Na prática
     jurídica, o artigo é a unidade de sentido: um inciso solto ("II - 60 µg/m³") não diz
     nada sem o caput que o introduz

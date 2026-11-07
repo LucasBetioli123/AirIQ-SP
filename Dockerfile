@@ -1,6 +1,6 @@
 # Ambiente reprodutível. Uso:
-#   docker build -t teste-ia .
-#   docker run --rm -v "$PWD/models:/app/models" -v "$PWD/reports:/app/reports" teste-ia make all-sample
+#   docker build -t respira-sp .
+#   docker run --rm -v "$PWD/models:/app/models" -v "$PWD/reports:/app/reports" respira-sp make all-sample
 # Não monte uma pasta data vazia em /app/data: ela esconderia a amostra incluída na imagem.
 FROM python:3.13-slim
 

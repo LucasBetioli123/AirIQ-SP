@@ -51,7 +51,7 @@ Lei 9.605/1998. LLM local em CPU: cada resposta pode levar vários minutos.
 Os dados de PM2.5 são históricos (2021–2023); "hoje/amanhã" usam uma data de demonstração,
 informada em cada resposta, e não a data atual.</p>
 <div id="log"></div>
-<form id="f"><input id="q" placeholder="Ex.: qual o PM2.5 previsto para Campinas amanhã e ele ultrapassa o padrão da CONAMA 491?" required>
+<form id="f"><input id="q" placeholder="Ex.: o PM2.5 previsto para Sorocaba amanhã ultrapassa o padrão vigente?" required>
 <button>Perguntar</button></form>
 <script>
 const log = document.getElementById('log'), f = document.getElementById('f'), q = document.getElementById('q');

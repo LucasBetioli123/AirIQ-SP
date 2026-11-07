@@ -1,4 +1,6 @@
-"""Verifica testes, inferência real, API e métricas publicadas; grava evidência UTF-8."""
+"""Valida uma instalação: testes, inferência real, API e métricas publicadas; grava evidência UTF-8.
+
+Uso: python -m scripts.verify_install (depois de treinar com `python -m src.aq.pipeline --quick`)."""
 import json
 import subprocess
 import sys
@@ -15,7 +17,7 @@ from src.common.config import ROOT
 
 
 def main():
-    path = ROOT / "logs/validacao_entrega.txt"
+    path = ROOT / "logs/validacao_instalacao.txt"
     with path.open("w", encoding="utf-8") as log:
         def record(label, value):
             log.write(label + " " + json.dumps(value, ensure_ascii=False, default=str) + "\n")

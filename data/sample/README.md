@@ -13,7 +13,7 @@ Gerada por `python -m src.aq.build_dataset --make-sample` a partir dos dados com
 | `rag_chunks.jsonl` | base normativa já dividida em trechos (para o agente rodar sem baixar as normas) |
 
 Com a amostra, `make all-sample` reproduz benchmark, intervalos, D+1, SHAP e episódios
-(os mesmos números do RELATORIO) em poucos minutos. Mapas, CLI e API funcionam nas
+(os mesmos números de docs/DETALHES_TECNICOS.md) em poucos minutos. Mapas, CLI e API funcionam nas
 datas das janelas. Para o período completo: `make data`.
 
 Esquema `causal-spatial-aod-v2`: somente preenchimento espacial do AOD (célula,

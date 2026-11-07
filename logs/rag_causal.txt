@@ -27,24 +27,24 @@ juiz q31: 1
  "acerto_temporal": 0.8
 }
 Traceback (most recent call last):
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\frame.py", line 4934, in _set_value
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\frame.py", line 4934, in _set_value
     self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 1566, in column_setitem
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 1566, in column_setitem
     col_mgr.setitem_inplace(idx, value)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 2278, in setitem_inplace
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 2278, in setitem_inplace
     value = np_can_hold_element(arr.dtype, value)
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\dtypes\cast.py", line 1859, in np_can_hold_element
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\dtypes\cast.py", line 1859, in np_can_hold_element
     raise LossySetitemError
 pandas.errors.LossySetitemError
 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 1179, in setitem
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 1179, in setitem
     casted = np_can_hold_element(values.dtype, value)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\dtypes\cast.py", line 1859, in np_can_hold_element
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\dtypes\cast.py", line 1859, in np_can_hold_element
     raise LossySetitemError
 pandas.errors.LossySetitemError
 
@@ -53,40 +53,40 @@ During handling of the above exception, another exception occurred:
 Traceback (most recent call last):
   File "<frozen runpy>", line 198, in _run_module_as_main
   File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\eval\run_rag_eval.py", line 271, in <module>
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\eval\run_rag_eval.py", line 271, in <module>
     rescore(a.rescore)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\eval\run_rag_eval.py", line 208, in rescore
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\eval\run_rag_eval.py", line 208, in rescore
     df.at[i, "ferramenta_ok"] = all(checks.values())
     ~~~~~^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 3473, in __setitem__
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 3473, in __setitem__
     return super().__setitem__(key, value)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 3318, in __setitem__
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 3318, in __setitem__
     self.obj._set_value(*key, value=value, takeable=self._takeable)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\frame.py", line 4945, in _set_value
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\frame.py", line 4945, in _set_value
     self.loc[index, col] = value
     ~~~~~~~~^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 1010, in __setitem__
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 1010, in __setitem__
     iloc._setitem_with_indexer(indexer, value, self.name)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 2651, in _setitem_with_indexer
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 2651, in _setitem_with_indexer
     self._setitem_with_indexer_split_path(indexer, value, name)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 2741, in _setitem_with_indexer_split_path
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 2741, in _setitem_with_indexer_split_path
     self._setitem_single_column(loc, value, pi)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\indexing.py", line 2898, in _setitem_single_column
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\indexing.py", line 2898, in _setitem_single_column
     self.obj._mgr.column_setitem(loc, plane_indexer, value)
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 1568, in column_setitem
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 1568, in column_setitem
     new_mgr = col_mgr.setitem((idx,), value)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 625, in setitem
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 625, in setitem
     return self.apply("setitem", indexer=indexer, value=value)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 456, in apply
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\managers.py", line 456, in apply
     applied = getattr(b, f)(**kwargs)
               ^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 1182, in setitem
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 1182, in setitem
     nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\lucas\Documents\GitHub\teste_IA\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 484, in coerce_to_target_dtype
+  File "C:\Users\lucas\Documents\GitHub\respira-sp\.venv\Lib\site-packages\pandas\core\internals\blocks.py", line 484, in coerce_to_target_dtype
     raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
 TypeError: Invalid value 'True' for dtype 'float64'
 

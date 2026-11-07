@@ -1,1 +1,1 @@
-"""Parte 2: agente com RAG sobre normas ambientais."""
+"""Módulo 2 — agente com RAG sobre normas ambientais brasileiras."""

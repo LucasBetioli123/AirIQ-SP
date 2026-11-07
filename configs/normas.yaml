@@ -1,4 +1,4 @@
-# Base de conhecimento do agente (Parte 2). Só documentos públicos, de fontes oficiais.
+# Base de conhecimento do agente (módulo RAG). Só documentos públicos, de fontes oficiais.
 # vigencia_inicio/vigencia_fim permitem responder "qual regra valia na data X".
 # urls: tentadas em ordem; o conteúdo baixado é validado por `must_contain`.
 # Também é possível colocar o arquivo manualmente em data/raw/normas/<id>.<html|pdf>.
@@ -60,7 +60,7 @@ documentos:
     data_publicacao: "1989-08-25"
     vigencia_inicio: "1989-08-25"
     # Revogada inteira pela Res. CONAMA 513/2026 (DOU de 09/04/2026). O texto da 513 não entrou na base:
-    # só está no DOU, que bloqueia acesso automatizado (ver RELATORIO.md).
+    # só está no DOU, que bloqueia acesso automatizado (ver docs/DETALHES_TECNICOS.md).
     vigencia_fim: "2026-04-08"
     revogada_por: "Resolução CONAMA 513/2026 (texto fora da base)"
     revogacoes_parciais:

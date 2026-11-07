@@ -1,6 +1,6 @@
 """Avaliação ponta a ponta do agente sobre eval/rag_questions.yaml.
 
-Métricas (método no RELATORIO.md):
+Métricas (método em docs/DETALHES_TECNICOS.md):
   acerto         todos os `fatos_chave` da resposta esperada aparecem na resposta
                  (números/termos normalizados); `acerto_parcial` = fração dos fatos
   cit_precisao   fração dos trechos citados que casam com o dispositivo-ouro (gold_match)

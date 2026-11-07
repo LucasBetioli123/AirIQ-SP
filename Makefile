@@ -30,7 +30,7 @@ setup: ## cria .venv e instala dependências com versões fixas
 models: ## baixa os modelos GGUF (LLM, embeddings, reranker) do Docker Hub
 	$(PY) -m src.rag.models_dl
 
-# ---------------- Parte 1 ----------------
+# ---------------- Módulo 1: PM2.5 (satélite + ML) ----------------
 data: ## baixa TODOS os dados brutos do período do config (horas; ver README)
 	$(PY) -m src.aq.data.openaq
 	$(PY) -m src.aq.data.era5
@@ -65,7 +65,7 @@ predict: ## estimativa pontual: make predict LAT=-22.90 LON=-47.06 DATE=2023-03-
 api: ## sobe a API FastAPI em :8000 (GET /predict)
 	$(PY) -m uvicorn src.aq.api:app --host 0.0.0.0 --port 8000
 
-# ---------------- Parte 2 ----------------
+# ---------------- Módulo 2: agente RAG ----------------
 rag-download: ## baixa as normas das fontes oficiais
 	$(PY) -m src.rag.download
 
@@ -95,4 +95,4 @@ all-sample: ## pipeline completo sobre a amostra (também disponível sem make)
 	$(PY) -m src.aq.pipeline
 
 docker: ## imagem Docker reprodutível
-	docker build -t teste-ia .
+	docker build -t respira-sp .

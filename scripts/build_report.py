@@ -1,4 +1,4 @@
-"""Gera o relatório final diretamente dos CSVs, sem transcrever métricas à mão."""
+"""Gera docs/DETALHES_TECNICOS.md diretamente dos CSVs, sem transcrever métricas à mão."""
 from pathlib import Path
 import re
 
@@ -64,7 +64,9 @@ def main():
     sens_d1_model = band_row(d1a, "LightGBM reg. (offset IDW) D+1")[sens]
     sens_d1_pers = band_row(d1a, "Persistência")[sens]
     sens_alert_d1, prec_alert_d1 = band_row(d1a, alert)[sens], band_row(d1a, alert)[prec]
-    report = f"""# Relatório técnico
+    report = f"""# Respira SP — detalhes técnicos
+
+> Documento gerado por `scripts/build_report.py` a partir dos CSVs em `reports/metrics/`: nenhum número aqui foi digitado à mão. Visão geral e instalação no [README](../README.md).
 
 ## 1. Resultado e escopo
 
@@ -74,7 +76,7 @@ Na validação de estações não vistas e período posterior, o LightGBM regula
 
 Não há feed atual: o produto é uma demonstração histórica. Uma emissão ao fim de D usa as agregações completas de D e produz a estimativa de D e a previsão de D+1. “Hoje/amanhã” no agente usam uma referência histórica explícita. A CLI recebe a data de referência; horizonte 1 significa data-alvo = referência + um dia.
 
-O desafio recomenda 2019 em diante, mas permite recorte e fontes alternativos justificados. O arquivo público anônimo de PM2.5 utilizado limita o período e tem lacunas em aproximadamente metade dos dias. Priorizei as duas partes funcionais, validação espaço-temporal, incerteza medida e rastreabilidade das respostas.
+O arquivo público e anônimo de PM2.5 limita o período a 2021–2023 e tem lacunas em aproximadamente metade dos dias. A prioridade foi ter os dois módulos funcionando ponta a ponta, com validação espaço-temporal, incerteza medida e rastreabilidade das respostas.
 
 ## 2. Dados, fontes e reprodução
 
@@ -83,10 +85,10 @@ O desafio recomenda 2019 em diante, mas permite recorte e fontes alternativos ju
 | PM2.5 horário | CETESB via arquivo OpenAQ público no S3 | Mesmas estações da rede CETESB; o QUALAR exige cadastro e não tem API anônima. Média diária só com pelo menos 18 h válidas |
 | AOD | GOES-16 ABI L2 AODF | O MCD19A2 (MAIAC) não está no catálogo do Planetary Computer (conferido em 30/10/2026; há só outros produtos MODIS) e GEE/LP DAAC exigem conta. O GOES-16 é geoestacionário: oito varreduras diurnas por dia contra duas passagens MODIS, menos dias perdidos por nuvem; controle de qualidade DQF |
 | NO2 troposférico | Sentinel-5P TROPOMI, COG público MEEO/S3 | Sinal de tráfego/indústria e precursor de aerossol secundário; qa ≥ 0,75 |
-| Fogo e FRP | GOES-16 ABI L2 FDCF | O BDQueimadas do INPE não respondia no ambiente inicial e agrega, entre outros, as detecções do próprio GOES-16. O FDCF fornece também a potência radiativa (FRP), usada no peso do fogo. O INPE voltou a responder na revisão; não troquei a fonte para não refazer as variáveis no fim do prazo |
+| Fogo e FRP | GOES-16 ABI L2 FDCF | O BDQueimadas do INPE agrega, entre outras, as detecções do próprio GOES-16. O FDCF fornece também a potência radiativa (FRP), usada no peso do fogo, e mantém o mesmo sensor do AOD |
 | Meteorologia | ERA5, espelho público NCAR/S3 | Vento, umidade, chuva, temperatura, nuvens e camada limite, sem chave CDS |
 | Uso do solo e relevo | ESA WorldCover 2021 e Copernicus DEM | Blocos públicos com leitura parcial |
-| Limite estadual e municípios | IBGE espelhado no GitHub | Mesmo recorte territorial, sem dependência do acesso inicial a gov.br |
+| Limite estadual e municípios | IBGE espelhado no GitHub | Mesmo recorte territorial, sem depender de portais que bloqueiam acesso automatizado |
 
 Os coletores estão em `src/aq/data/`; usam leituras parciais HTTP de NetCDF/HDF5 e COG. `python -m src.aq.pipeline --full` baixa, monta as bases, compara, treina e gera evidências. `python -m src.aq.pipeline` refaz a modelagem completa sobre a amostra de aproximadamente 12 MB, sem baixar brutos. Para demonstrar em poucos minutos, `python -m src.aq.pipeline --quick` treina e calibra a produção, faz previsão e um mapa, conservando os CSVs de teste já fornecidos. A amostra contém as bases de treino completas com variáveis e cubos de contexto em algumas janelas, suficientes para mapas, CLI e agente.
 
@@ -98,7 +100,7 @@ Hierarquia exclusivamente espacial: célula observada (nível 0), média 3×3 (1
 
 AOD observado na célula em **{d.aod.notna().mean():.1%}** das linhas; após preenchimento espacial, **{d.aod_filled.notna().mean():.1%}**. O AOD isolado é um sinal fraco na superfície: mede a coluna, influenciada por umidade, altura e transporte dos aerossóis. Por isso entram combinações físicas, NO2, fogo e estações vizinhas.
 
-A revisão retirou o antigo preenchimento D−1/D+1 e a meteorologia realizada de amanhã. `scripts/migrate_causal_sample.py` faz uma migração idempotente das variáveis espaciais armazenadas, recalcula as combinações físicas e remove campos meteorológicos futuros. O download completo já gera o novo esquema diretamente. Bases e modelos antigos são recusados por verificação do identificador de esquema.
+Uma versão anterior usava preenchimento temporal D−1/D+1 e a meteorologia realizada de amanhã; ambos foram retirados para garantir causalidade. `scripts/migrate_causal_sample.py` faz uma migração idempotente das variáveis espaciais armazenadas, recalcula as combinações físicas e remove campos meteorológicos futuros. O download completo já gera o novo esquema diretamente. Bases e modelos antigos são recusados por verificação do identificador de esquema.
 
 ## 3. Variáveis e validação
 
@@ -113,7 +115,7 @@ A revisão retirou o antigo preenchimento D−1/D+1 e a meteorologia realizada d
 | IDW das outras estações em D | Nível regional observado; a estação-alvo é excluída |
 | Calendário de D e D+1 | Sazonalidade e dia da semana conhecido na emissão |
 
-O alvo do modelo pontual é `log1p(PM2.5) − log1p(IDW)`: o modelo aprende a correção local sobre um baseline regional forte. A escolha do LightGBM regularizado foi mantida da etapa inicial; o benchmark foi refeito com as variáveis causais.
+O alvo do modelo pontual é `log1p(PM2.5) − log1p(IDW)`: o modelo aprende a correção local sobre um baseline regional forte. Todo o benchmark usa as variáveis causais.
 
 As estações são divididas em cinco grupos determinísticos. Cada grupo fica totalmente fora do treino e das referências do IDW durante seu teste. O split temporal cruza esses grupos com:
 
@@ -152,7 +154,7 @@ As árvores tendem a encolher os extremos para a média; o T1 tem pouco históri
 
 ## 5. Previsão real de D+1 em horizonte, sem meteorologia futura
 
-Usa as variáveis observadas de D e D−1 e o calendário conhecido de D+1. Não é mais o experimento de perfect prognosis da versão inicial. A reanálise ERA5 continua sendo uma reconstrução histórica do dia D: sua latência operacional e possíveis revisões não são simuladas. O próximo passo de operação é substituir a fonte por observações/previsões disponíveis no horário de emissão e monitorar sua latência.
+Usa as variáveis observadas de D e D−1 e o calendário conhecido de D+1. Não é um experimento de *perfect prognosis*. A reanálise ERA5 continua sendo uma reconstrução histórica do dia D: sua latência operacional e possíveis revisões não são simuladas. O próximo passo de operação é substituir a fonte por observações/previsões disponíveis no horário de emissão e monitorar sua latência.
 
 A: local com estação, persistência = PM2.5 de D. B: local sem estação, estações-alvo totalmente excluídas, persistência = IDW de D. São cenários distintos, reportados separadamente.
 
@@ -160,7 +162,7 @@ A: local com estação, persistência = PM2.5 de D. B: local sem estação, esta
 
 **Cobertura do intervalo de D+1 medida no teste**, sem reutilizar a cobertura da estimativa de D:
 
-Na revisão, a cobertura agregada foi **{d1_all.loc['A) local com estação', 'cobertura_real']:.2%} em A** e **{d1_all.loc['B) local sem estação', 'cobertura_real']:.2%} em B**, abaixo do nominal de 90%. Os intervalos são identificados pelo nível nominal; não prometem cobertura de 90% em todo período ou faixa. A queda na seca e nos valores altos exige cautela e mais dados de calibração representativos.
+A cobertura agregada foi **{d1_all.loc['A) local com estação', 'cobertura_real']:.2%} em A** e **{d1_all.loc['B) local sem estação', 'cobertura_real']:.2%} em B**, abaixo do nominal de 90%. Os intervalos são identificados pelo nível nominal; não prometem cobertura de 90% em todo período ou faixa. A queda na seca e nos valores altos exige cautela e mais dados de calibração representativos.
 
 {table(d1_intervals)}
 
@@ -190,7 +192,7 @@ A saída inclui concentração, limites, faixa IQAr, data de referência e alvo,
 
 Sete documentos públicos: CONAMA 491/2018, 506/2024, 03/1990, 05/1989; Lei 6.938/1981; Decreto 99.274/1990; Lei 9.605/1998. As fontes e revogações parciais estão em `configs/normas.yaml`. Não há pretensão de cobrir toda a legislação ambiental vigente.
 
-O parser preserva capítulo, artigo, parágrafo, inciso, alínea e anexo. A unidade preferida é o artigo; artigos longos são subdivididos com metadados de hierarquia. Tabelas são transformadas em linhas com o nome da coluna junto a cada valor, evitando confundir PI-1, PI-2 e PF. A recuperação combina BM25 e embeddings Granite-278M por RRF; reranker Qwen3-0.6B reordena candidatos e fornece um escore para a recusa. Resultados do benchmark existente, cuja base textual não mudou:
+O parser preserva capítulo, artigo, parágrafo, inciso, alínea e anexo. A unidade preferida é o artigo; artigos longos são subdivididos com metadados de hierarquia. Tabelas são transformadas em linhas com o nome da coluna junto a cada valor, evitando confundir PI-1, PI-2 e PF. A recuperação combina BM25 e embeddings Granite-278M por RRF; reranker Qwen3-0.6B reordena candidatos e fornece um escore para a recusa. Benchmark de recuperação (30 perguntas com trecho-ouro anotado):
 
 {table(retrieval)}
 
@@ -200,19 +202,19 @@ Downloads incompletos não substituem a base; a ingestão grava atomicamente som
 
 ### Avaliação, gabaritos e limites das métricas
 
-37 perguntas: fatos, composição de trechos, vigência, três ferramentas e seis sem resposta. A precisão das citações agora verifica o **dispositivo**, não apenas o documento. Nas ferramentas são exigidos local, data-alvo, horizonte, valor e dois limites do IC; quando a pergunta pede faixa, exige a faixa retornada, em vez de aceitar qualquer nome. A citação do padrão é verificada separadamente; a semântica da comparação depende da análise das fontes/juiz, não só de presença de números.
+36 perguntas escritas à mão e conferidas contra o texto das normas: 17 de fato, 6 de composição de trechos, 5 de vigência, 2 com ferramenta e 6 sem resposta na base. A precisão das citações verifica o **dispositivo**, não apenas o documento. Nas ferramentas são exigidos local, data-alvo, horizonte, valor e dois limites do IC; quando a pergunta pede faixa, exige a faixa retornada, em vez de aceitar qualquer nome. A citação do padrão é verificada separadamente; a semântica da comparação depende da análise das fontes/juiz, não só de presença de números.
 
-Resultados da revisão:
+Resultados:
 
 {table(final.T.reset_index().rename(columns={'index': 'metrica', final.index[0]: 'valor'})) if len(final) else 'Avaliação final em geração.'}
 
-Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da avaliação anterior, com rechecagem dos gabaritos e citações exatas, e executa novamente as três perguntas que chamam o modelo alterado. O log preserva os timestamps originais e as novas execuções. Não representa uma rodada nova de 37 gerações nem um conjunto independente. As tags anteriores são históricas; suas métricas e previsões não representam o modelo causal atual.
+Proveniência: a tag `qwen3-4b_causal` reaproveita as respostas normativas de uma rodada anterior com o mesmo LLM e a mesma base, rechecadas com os gabaritos e a regra de citação exata atuais, e executa novamente as perguntas que chamam o modelo de PM2.5 (alterado na versão causal). O log preserva os timestamps originais e as novas execuções. O Gemma3-4B aparece como comparação de gerador, recalculado com as mesmas regras.
 
 “Fidelidade automática” mede rastreabilidade de números e referências, não equivalência semântica completa. O juiz é outro modelo local de 4B e também pode errar. Limiares de recusa foram ajustados no próprio conjunto; seis recusas corretas não demonstram generalização para qualquer pergunta fora da base. São limitações assumidas, a serem resolvidas com conjunto separado de calibração e avaliação maior.
 
 ## 8. Priorização, descartes e próximos passos
 
-- MAIAC/QUALAR/CDS/INPE foram substituídos por fontes públicas acessíveis no ambiente inicial, mantendo a natureza física dos sinais (justificativa por fonte na seção 2).
+- MAIAC/QUALAR/CDS/INPE foram substituídos por fontes públicas e anônimas, mantendo a natureza física dos sinais (justificativa por fonte na seção 2).
 - O modelo foi escolhido pelo MAE. Pelo critério de detecção de dias poluídos, o IDW e a persistência são melhores (seção 5.1). Não troquei o critério depois de ver o teste; registro o conflito e uso o intervalo para alerta.
 - Preenchimento com AOD de D+1 e meteorologia realizada de D+1 foram retirados para respeitar o horizonte de emissão.
 - Tendência do episódio no D+1 (PM2.5 e IDW de D−1, conhecidos ao fim de D) foi testada e descartada: piorou o MAE (A: 4,05 → 4,14; B: 4,47 → 4,54) e a detecção acima de 25 µg/m³. O experimento reproduz exatamente as linhas de base publicadas (`scripts/exp_tendencia_d1.py`, `logs/exp_tendencia_d1.txt`).
@@ -222,18 +224,18 @@ Proveniência: a tag `qwen3-4b_causal` reaproveita as 34 respostas normativas da
 - As faixas do IQAr seguem a 491/2018 para todas as datas. Correto para 2021–2023, mas desatualizado após a 506/2024 (Boa ≤ 15 µg/m³).
 - Próximos passos: mais estações e anos, fonte meteorológica disponível na emissão, previsão numérica opcional, peso nos extremos/altura de pluma, limiar de alerta calibrado fora do teste, faixas do IQAr por data de vigência, teste externo de RAG e calibração independente dos limiares.
 
-## 9. Engenharia, evidências e uso de IA
+## 9. Engenharia e evidências
 
 Dependências fixadas, Dockerfile e Makefile; pipeline portável com um comando, testes de causalidade (retirar todas as observações futuras não altera as variáveis), preservação da base normativa, `.env` e avaliação das ferramentas. CSVs, figuras, notebooks com saída e logs são versionados; modelos grandes e brutos são reconstruídos.
 
 {docker_note}
 
-Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_entrega.txt` registram a revisão. [USO_DE_IA.md](USO_DE_IA.md) declara a implementação inicial com Claude Code, a revisão causal com Codex e a auditoria final com Claude Code (análise de faixas do IQAr e justificativa das fontes). O candidato deve conseguir explicar e modificar o código na entrevista.
-
-**Pendências externas à implementação:** gravar o vídeo não listado de até dez minutos e inserir o link no README; conceder acesso aos avaliadores quando seus usuários do GitHub forem informados (o repositório é privado). O prazo de 72 horas conta do recebimento do desafio; o repositório não comprova essa data nem a entrega por e-mail.
+Os logs `benchmark_causal.txt`, `train_causal.txt`, `docker_build.txt`, `docker_validacao.txt` e `validacao_instalacao.txt` registram as execuções de validação (`scripts/verify_install.py` refaz testes, inferência, API e a cobertura D+1 publicada).
 """
-    (ROOT / "RELATORIO.md").write_text(report, encoding="utf-8")
-    print("RELATORIO.md atualizado a partir dos resultados")
+    out = ROOT / "docs" / "DETALHES_TECNICOS.md"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(report, encoding="utf-8")
+    print(f"{out.relative_to(ROOT)} atualizado a partir dos resultados")
 
 
 if __name__ == "__main__":

@@ -51,14 +51,14 @@ def patched(monkeypatch, tmp_path):
 def test_agent_calls_tool_and_cites(patched):
     tmp, calls = patched
     llm = FakeLLM([
-        {"buscas": ["padrão 24 horas"], "pm25": [{"local": "Campinas", "data": "amanhã", "horizonte": 1}]},
+        {"buscas": ["padrão 24 horas"], "pm25": [{"local": "Sorocaba", "data": "amanhã", "horizonte": 1}]},
         {"encontrado": True, "citacoes": [1],
          "resposta": "Previsão de 18.2 µg/m³ (IC 90%: 11.0-29.5) [F1]; não ultrapassa o padrão de 60 µg/m³ [1]."},
     ])
     ag = A.Agent.__new__(A.Agent)
     ag.llm, ag.rag_mode, ag.k, ag.max_sources = llm, "hybrid_rerank", 4, 8
-    r = ag.ask("PM2.5 amanhã em Campinas ultrapassa o padrão?")
-    assert calls == [("Campinas", "amanhã", 1)]
+    r = ag.ask("PM2.5 amanhã em Sorocaba ultrapassa o padrão?")
+    assert calls == [("Sorocaba", "amanhã", 1)]
     assert r["encontrado"] and r["citacoes"] == [1] and r["validacao"]["ok"]
     assert "Resolução Teste 999/2020, art. 3º" in r["resposta"]
     log = [json.loads(l) for l in open(tmp / "runs.jsonl", encoding="utf-8")]
@@ -102,7 +102,7 @@ def test_norm_date_and_query_cleanup():
     assert A.norm_date("2015-06-01", "Em 2015, qual era o padrão?") == "2015-06-01"
     assert A.norm_date("2015", "Em 2015, qual era o padrão?") == "2015-07-01"
     # data inventada pelo plano sem ano na pergunta é descartada
-    assert A.norm_date("2018-03-28", "Campinas amanhã ultrapassa o padrão da CONAMA 491?") is None
+    assert A.norm_date("2018-03-28", "Sorocaba amanhã ultrapassa o padrão da CONAMA 491?") is None
     assert A.norm_date(None, "Em 2015, qual resolução definia os padrões?") == "2015-07-01"
     # o ano no número da norma não é data de vigência
     assert A.norm_date(None, "O que diz a Resolução CONAMA 491/2018?") is None

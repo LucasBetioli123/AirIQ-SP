@@ -248,7 +248,7 @@ class Agent:
         refs = [f"[{c}] {sources[c - 1]['citacao']} — {sources[c - 1].get('url') or ''}".rstrip(" —") for c in cited]
         final = text + ("\n\nFontes:\n" + "\n".join(refs) if found and refs else "")
         if found and any(f["ferramenta"] == "estimar_pm25" for f in run["ferramentas"]):
-            final += ("\n\nObs.: estimativa do modelo da Parte 1 (satélite GOES-16 + ERA5 + rede CETESB); "
+            final += ("\n\nObs.: estimativa do modelo de PM2.5 (satélite GOES-16 + ERA5 + rede CETESB); "
                       f"data de referência do sistema = {run['data_referencia_sistema']}.")
         run.update({"encontrado": found, "recusa_por_limiar": gate, "resposta": final, "citacoes": cited,
                     "trechos_citados": [sources[c - 1]["id"] for c in cited], "validacao": validation,

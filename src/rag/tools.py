@@ -1,7 +1,7 @@
 """Ferramentas do agente.
 
   buscar_normas(consulta, data)        -> trechos normativos com citação (RAG)
-  estimar_pm25(local, data, horizonte) -> modelo da Parte 1 (estimativa/previsão + IC 90%)
+  estimar_pm25(local, data, horizonte) -> modelo de PM2.5 (estimativa/previsão + IC 90%)
   padrao_mp25_vigente(data)            -> etapa do padrão de MP2,5 vigente na data + cronograma (art. 4º)
 
 Datas relativas ("hoje", "amanhã") são resolvidas contra a DATA DE REFERÊNCIA do

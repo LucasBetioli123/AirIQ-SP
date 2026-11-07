@@ -11,7 +11,7 @@ Padrões legais de MP2,5 em 24 h (µg/m³):
   - Res. CONAMA 506/2024 (DOU de 9/7/2024): revoga o art. 4º e o Anexo I da 491 e fixa o
     cronograma. PI-1 (60) até 31/12/2024 (art. 4º, § 1º), PI-2 (50) a partir de 1/1/2025
     (§ 2º), PI-3 (37) em 2033, PI-4 (25) em 2044. Conferido no texto da norma
-    (data/raw/normas/conama_506_2024.pdf); o agente cita o trecho pela Parte 2.
+    (data/raw/normas/conama_506_2024.pdf); o agente cita o trecho pelo módulo RAG (src/rag).
 """
 from __future__ import annotations
 

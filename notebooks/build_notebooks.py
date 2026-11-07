@@ -28,7 +28,7 @@ def nb(cells):
 
 NB1 = [
     "md:# 01 - Dados: da coleta à base de treino\n\nTodas as fontes são públicas e anônimas (AWS/GCS Open Data). "
-    "Ver `RELATORIO.md` para as trocas de fonte e suas justificativas.",
+    "Ver `docs/DETALHES_TECNICOS.md` para as trocas de fonte e suas justificativas.",
     SETUP,
     "from src.common.config import load_config, data_path\ncfg = load_config()\n"
     "st = pd.read_parquet('data/interim/stations.parquet') if Path('data/interim/stations.parquet').exists() else pd.read_parquet('data/sample/stations.parquet')\n"
